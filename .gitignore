@@ -1,0 +1,9 @@
+MorphicServer/bin/*
+MorphicServer/obj/*
+*.csproj.user
+MorphicServer/.vscode/*
+!MorphicServer/.vscode/settings.json
+!MorphicServer/.vscode/tasks.json
+!MorphicServer/.vscode/launch.json
+!MorphicServer/.vscode/extensions.json
+*.code-workspace
