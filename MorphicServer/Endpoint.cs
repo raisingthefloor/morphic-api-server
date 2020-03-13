@@ -65,24 +65,29 @@ namespace MorphicServer
         {
             // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
             // us to construct with a generic.  However, it means we need to populate some fields here instead
-            // of in a constructor.  
+            // of in a constructor.
             var endpoint = new T();
             endpoint.Context = context;
             endpoint.Request = context.Request;
             endpoint.Response = context.Response;
-            endpoint.PopulateParameterFields();
-            await endpoint.LoadResource();
-            if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
+            try
             {
-                if (methodInfo.Invoke(endpoint, new object[]{}) is Task task)
+                endpoint.PopulateParameterFields();
+                await endpoint.LoadResource();
+                if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
                 {
-                    await task;
+                    if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
+                    {
+                        await task;
+                    }
                 }
-            }
-            else
-            {
-                // If the class doesn't have a matching method, respond with MethodNotAllowed
-                context.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                else
+                {
+                    // If the class doesn't have a matching method, respond with MethodNotAllowed
+                    context.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                }
+            }catch (HttpError error){
+                await context.Response.WriteError(error, context.RequestAborted);
             }
         }
 
