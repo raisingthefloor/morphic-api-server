@@ -1,9 +1,25 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using System.Net;
+using System;
 
 namespace MorphicServer
 {
+
+    [Path("/preferences/")]
+    public class PreferencesRootEndpoint: Endpoint
+    {
+        [Method]
+        public async Task Post()
+        {
+            var preferences = new Preferences();
+            preferences.Id = Guid.NewGuid();
+            var updated = await Request.ReadJson<Preferences>();
+            preferences.UserId = updated.UserId;
+            await Save(preferences);
+            await Respond(preferences);
+        }
+    }
+
     /// <summary>And endpoint representing user preferences</summary>
     [Path("/preferences/{id}")]
     public class PreferencesEndpoint: Endpoint
@@ -16,9 +32,7 @@ namespace MorphicServer
         /// <summary>Fetch the preferences from a database</summary>
         public override async Task LoadResource()
         {
-            // TODO: Will ultimately call async into database
-            Preferences = new Preferences(Id);
-            await Task.CompletedTask;
+            Preferences = await Load<Preferences>(Id);
         }
 
         /// <summary>The preferences data populated by <code>LoadResource()</code></summary>
@@ -29,6 +43,22 @@ namespace MorphicServer
         public async Task Get()
         {
             await Respond(Preferences);
+        }
+
+        /// <summary>Update the user's preferences</summary>
+        [Method]
+        public async Task Put()
+        {
+            var updated = await Request.ReadJson<Preferences>();
+            Preferences.UserId = updated.UserId;
+            await Save(Preferences);
+        }
+
+        /// <summary>Update the user's preferences</summary>
+        [Method]
+        public async Task Delete()
+        {
+            await Delete(Preferences);
         }
     }
 }

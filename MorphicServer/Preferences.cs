@@ -1,18 +1,12 @@
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+
 namespace MorphicServer
 {
 
     /// <summary>Dummy data model for preferences</summary>
-    public class Preferences
+    public class Preferences : Record
     {
-
-        public Preferences(string id){
-            this.id = id;
-        }
-
-        public Preferences(){
-            this.id = "";
-        }
-
-        public string id { get; set; }
+        public string? UserId { get; set; }
     }
 }

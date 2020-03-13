@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 
 namespace MorphicServer
@@ -153,10 +154,46 @@ namespace MorphicServer
             return Task.CompletedTask;
         }
 
+        public async Task<T> Load<T>(string id) where T: Record
+        {
+            var db = Context.GetDatabase();
+            T? record = await db.Get<T>(id);
+            if (record == null){
+                throw new HttpError(HttpStatusCode.NotFound);
+            }
+            return record;
+        }
+
+        public async Task Save<T>(T obj) where T: Record
+        {
+            var db = Context.GetDatabase();
+            var success = await db.Save<T>(obj);
+            if (!success){
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+        }
+
+        public async Task Delete<T>(T obj) where T: Record
+        {
+            var db = Context.GetDatabase();
+            var success = await db.Delete<T>(obj);
+            if (!success){
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+        }
+
         /// <summary>Convenience method for serializing an object to JSON as a response</summary>
         public async Task Respond<T>(T obj)
         {
             await Response.WriteJson(obj, Context.RequestAborted);
+        }
+    }
+
+    public static class HttpContextExtensions
+    {
+        public static Database GetDatabase(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<Database>();
         }
     }
 }

@@ -7,3 +7,4 @@ MorphicServer/.vscode/*
 !MorphicServer/.vscode/launch.json
 !MorphicServer/.vscode/extensions.json
 *.code-workspace
+Database/*
