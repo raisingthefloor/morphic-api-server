@@ -14,8 +14,9 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegsiterUsernameRequest>();
-            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username);
-            if (existing != null){
+            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
+            if (existing != null)
+            {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
             }
             var prefs = new Preferences();

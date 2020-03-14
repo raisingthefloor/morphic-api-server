@@ -2,6 +2,7 @@ using System;
 using MongoDB.Driver;
 using MongoDB.Bson;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -53,12 +54,15 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<T?> Get<T>(string id) where T: Record
+        public async Task<T?> Get<T>(string id, Session? session = null) where T: Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
-                var result = await collection.FindAsync(record => record.Id == id);
-                return result.FirstOrDefault();
+                if (session != null)
+                {
+                    return (await collection.FindAsync(session.Handle, record => record.Id == id)).FirstOrDefault();
+                }
+                return (await collection.FindAsync(record => record.Id == id)).FirstOrDefault();
             }
             return null;
         }
@@ -67,14 +71,17 @@ namespace MorphicServer
         /// <remarks>
         /// The destination collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Save<T>(T obj) where T: Record
+        public async Task<bool> Save<T>(T obj, Session? session = null) where T: Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 var options = new ReplaceOptions();
                 options.IsUpsert = true;
-                var result = await collection.ReplaceOneAsync(record => record.Id == obj.Id, obj, options);
-                return result.IsAcknowledged;
+                if (session != null)
+                {
+                    return (await collection.ReplaceOneAsync(session.Handle, record => record.Id == obj.Id, obj, options)).IsAcknowledged;
+                }
+                return (await collection.ReplaceOneAsync(record => record.Id == obj.Id, obj, options)).IsAcknowledged;
             }
             return false;
         }
@@ -83,14 +90,39 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Delete<T>(T obj) where T: Record
+        public async Task<bool> Delete<T>(T obj, Session? session = null) where T: Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
-                var result = await collection.DeleteOneAsync(record => record.Id == obj.Id);
-                return result.IsAcknowledged;
+                if (session != null)
+                {
+                    return (await collection.DeleteOneAsync(session.Handle, record => record.Id == obj.Id)).IsAcknowledged;
+                }
+                return (await collection.DeleteOneAsync(record => record.Id == obj.Id)).IsAcknowledged;
             }
             return false;
+        }
+
+        public async Task<bool> WithTransaction(Func<Session, Task> operations, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            using (var session = await Client.StartSessionAsync(cancellationToken: cancellationToken))
+            {
+                var options = new TransactionOptions(
+                    readPreference: ReadPreference.Primary,
+                    readConcern: ReadConcern.Local,
+                    writeConcern: WriteConcern.WMajority
+                );
+
+                return await session.WithTransactionAsync(
+                    async (session, cancellationToken) =>
+                    {
+                        await operations(new Session(session));
+                        return true;
+                    },
+                    options,
+                    cancellationToken
+                );
+            }
         }
 
         public void InitializeDatabaseIfNeeded()
@@ -98,6 +130,11 @@ namespace MorphicServer
             var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
             var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
             if (info == null){
+                Morphic.CreateCollection("Preferences");
+                Morphic.CreateCollection("User");
+                Morphic.CreateCollection("UsernameCredential");
+                Morphic.CreateCollection("KeyCredential");
+                Morphic.CreateCollection("AuthToken");
                 info = new DatabaseInfo();
                 info.Version = 1;
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
@@ -113,6 +150,16 @@ namespace MorphicServer
             [BsonId]
             public string Id { get; set; } = "0";
             public int Version { get; set; } = 0;
+        }
+
+        public class Session
+        {
+            public IClientSessionHandle Handle;
+
+            public Session(IClientSessionHandle handle)
+            {
+                Handle = handle;
+            }
         }
 
     }

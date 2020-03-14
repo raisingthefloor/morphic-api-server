@@ -75,13 +75,26 @@ namespace MorphicServer
             endpoint.Response = context.Response;
             try
             {
-                endpoint.PopulateParameterFields();
-                await endpoint.LoadResource();
                 if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
                 {
-                    if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
+                    Func<Task> call = async () => {
+                        endpoint.PopulateParameterFields();
+                        await endpoint.LoadResource();
+                        if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
+                        {
+                            await task;
+                        }
+                    };
+                    if (methodInfo.GetRunInTransaction())
                     {
-                        await task;
+                        await endpoint.WithTransaction(async (session) =>
+                        {
+                            await call();
+                        });
+                    }
+                    else
+                    {
+                        await call();
                     }
                 }
                 else
@@ -159,7 +172,7 @@ namespace MorphicServer
         public async Task<T> Load<T>(string id) where T: Record
         {
             var db = Context.GetDatabase();
-            T? record = await db.Get<T>(id);
+            T? record = await db.Get<T>(id, ActiveSession);
             if (record == null){
                 throw new HttpError(HttpStatusCode.NotFound);
             }
@@ -169,7 +182,7 @@ namespace MorphicServer
         public async Task Save<T>(T obj) where T: Record
         {
             var db = Context.GetDatabase();
-            var success = await db.Save<T>(obj);
+            var success = await db.Save<T>(obj, ActiveSession);
             if (!success){
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
@@ -178,7 +191,7 @@ namespace MorphicServer
         public async Task Delete<T>(T obj) where T: Record
         {
             var db = Context.GetDatabase();
-            var success = await db.Delete<T>(obj);
+            var success = await db.Delete<T>(obj, ActiveSession);
             if (!success){
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
@@ -198,6 +211,25 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.Unauthorized);
             }
             return user;
+        }
+
+        public Database.Session? ActiveSession;
+
+        public async Task WithTransaction(Func<Database.Session, Task> operations)
+        {
+            var db = Context.GetDatabase();
+            var success = await db.WithTransaction(
+                async (session) => 
+                {
+                    ActiveSession = session;
+                    await operations(session);
+                    ActiveSession = null;
+                },
+                Context.RequestAborted
+            );
+            if (!success){
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
         }
     }
 

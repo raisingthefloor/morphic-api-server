@@ -30,6 +30,9 @@ namespace MorphicServer.Attributes
         {
             get { return name; }
         }
+
+        /// <summary>Indicates the entire method should be part of a database transaction
+        public bool RunInTransaction { get; set; } = false;
     }
 
     public static class MethodExtensions
@@ -63,6 +66,16 @@ namespace MorphicServer.Attributes
                 return attr.Name ?? methodInfo.Name.ToUpper();
             }
             return null;
+        }
+
+        /// <summary>Get the value of the <code>RunInTransaction</code> property of the <code>[Method]</code> attribute</summary>
+        public static bool GetRunInTransaction(this MethodInfo methodInfo)
+        {
+            if (Attribute.GetCustomAttribute(methodInfo, typeof(Method)) is Method attr)
+            {
+                return attr.RunInTransaction;
+            }
+            return false;
         }
     }
 }
