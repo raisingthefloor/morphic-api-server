@@ -3,6 +3,7 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
@@ -37,7 +38,6 @@ namespace MorphicServer
             CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
             CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
             CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
-            InitializeDatabase();
         }
 
         /// <summary>The MongoDB client connection</summary>
@@ -93,9 +93,26 @@ namespace MorphicServer
             return false;
         }
 
-        public void InitializeDatabase()
+        public void InitializeDatabaseIfNeeded()
         {
-            // TODO: create TTL=0 index on AuthToken.ExpiresAt
+            var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
+            var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
+            if (info == null){
+                info = new DatabaseInfo();
+                info.Version = 1;
+                var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
+                var options = new CreateIndexOptions();
+                options.ExpireAfter = TimeSpan.Zero;
+                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+                collection.InsertOne(info);
+            }
+        }
+
+        class DatabaseInfo
+        {
+            [BsonId]
+            public string Id { get; set; } = "0";
+            public int Version { get; set; } = 0;
         }
 
     }

@@ -21,6 +21,7 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
+            // TODO: check for duplicate username
             var request = await Request.ReadJson<RegsiterUsernameRequest>();
             var prefs = new Preferences();
             prefs.Id = Guid.NewGuid().ToString();
@@ -34,7 +35,7 @@ namespace MorphicServer
             cred.Id = request.username;
             cred.UserId = user.Id;
             cred.SavePassword(request.password);
-            var token = new AuthToken(user);
+            var token = new AuthToken(user, 30);
             await Save(prefs);
             await Save(user);
             await Save(cred);
