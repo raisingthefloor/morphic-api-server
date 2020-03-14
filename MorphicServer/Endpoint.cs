@@ -6,7 +6,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Primitives;
 using MorphicServer.Attributes;
+using System.Linq;
 
 namespace MorphicServer
 {
@@ -187,6 +189,16 @@ namespace MorphicServer
         {
             await Response.WriteJson(obj, Context.RequestAborted);
         }
+
+        /// <summary>Return the logged in user or throw an exception</summary>
+        public async Task<User> RequireUser()
+        {
+            var user = await Context.GetUser();
+            if (user == null){
+                throw new HttpError(HttpStatusCode.Unauthorized);
+            }
+            return user;
+        }
     }
 
     public static class HttpContextExtensions
@@ -194,6 +206,17 @@ namespace MorphicServer
         public static Database GetDatabase(this HttpContext context)
         {
             return context.RequestServices.GetRequiredService<Database>();
+        }
+
+        public static async Task<User?> GetUser(this HttpContext context)
+        {
+            var db = context.GetDatabase();
+            var providedToken = context.Request.Headers["X-Morphic-Auth-Token"].FirstOrDefault();
+            var token = await db.Get<AuthToken>(providedToken);
+            if (token != null && token.UserId != null){
+                return await db.Get<User>(token.UserId);
+            }
+            return null;
         }
     }
 }

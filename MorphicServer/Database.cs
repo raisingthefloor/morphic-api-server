@@ -31,12 +31,20 @@ namespace MorphicServer
         public Database(DatabaseSettings settings)
         {
             Client = new MongoClient(settings.ConnectionString);
-            var db = Client.GetDatabase(settings.DatabaseName);
-            CollectionByType[typeof(Preferences)] = db.GetCollection<Preferences>("Preferences");
+            Morphic = Client.GetDatabase(settings.DatabaseName);
+            CollectionByType[typeof(Preferences)] = Morphic.GetCollection<Preferences>("Preferences");
+            CollectionByType[typeof(User)] = Morphic.GetCollection<User>("User");
+            CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
+            CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
+            CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
+            InitializeDatabase();
         }
 
         /// <summary>The MongoDB client connection</summary>
         private MongoClient Client;
+
+        /// <summary>The Morphic Database</summary>
+        private IMongoDatabase Morphic;
 
         /// <summary>The MongoDB collections within the database</summary>
         private Dictionary<Type, object> CollectionByType = new Dictionary<Type, object>();
@@ -47,14 +55,10 @@ namespace MorphicServer
         /// </remarks>
         public async Task<T?> Get<T>(string id) where T: Record
         {
-            Guid guid;
-            if (Guid.TryParse(id, out guid))
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
-                if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
-                {
-                    var result = await collection.FindAsync(record => record.Id == guid);
-                    return result.FirstOrDefault();
-                }
+                var result = await collection.FindAsync(record => record.Id == id);
+                return result.FirstOrDefault();
             }
             return null;
         }
@@ -87,6 +91,11 @@ namespace MorphicServer
                 return result.IsAcknowledged;
             }
             return false;
+        }
+
+        public void InitializeDatabase()
+        {
+            // TODO: create TTL=0 index on AuthToken.ExpiresAt
         }
 
     }

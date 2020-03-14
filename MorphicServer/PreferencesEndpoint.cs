@@ -1,24 +1,9 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using System;
+using System.Net;
 
 namespace MorphicServer
 {
-
-    [Path("/preferences/")]
-    public class PreferencesRootEndpoint: Endpoint
-    {
-        [Method]
-        public async Task Post()
-        {
-            var preferences = new Preferences();
-            preferences.Id = Guid.NewGuid();
-            var updated = await Request.ReadJson<Preferences>();
-            preferences.UserId = updated.UserId;
-            await Save(preferences);
-            await Respond(preferences);
-        }
-    }
 
     /// <summary>And endpoint representing user preferences</summary>
     [Path("/preferences/{id}")]
@@ -32,6 +17,10 @@ namespace MorphicServer
         /// <summary>Fetch the preferences from a database</summary>
         public override async Task LoadResource()
         {
+            var authenticatedUser = await RequireUser();
+            if (authenticatedUser.PreferencesId != Id){
+                throw new HttpError(HttpStatusCode.Forbidden);
+            }
             Preferences = await Load<Preferences>(Id);
         }
 

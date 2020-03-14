@@ -8,7 +8,7 @@ namespace MorphicServer
     public class Record
     {
 
-        [BsonId(IdGenerator = typeof(GuidGenerator))]
-        public Guid Id { get; set; } = default(Guid);
+        [BsonId]
+        public string Id { get; set; } = "";
     }
 }

@@ -48,8 +48,9 @@ namespace MorphicServer
                         return o;
                     }
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    var x = e;
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
