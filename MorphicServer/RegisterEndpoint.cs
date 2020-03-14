@@ -6,14 +6,6 @@ using System.Net;
 namespace MorphicServer
 {
 
-    public class RegsiterUsernameRequest
-    {
-        public string username { get; set; } = "";
-        public string password { get; set; } = "";
-        public string? firstName { get; set; }
-        public string? lastName { get; set; }
-    }
-
     /// <summary>Create a new user with a username</summary>
     [Path("/register/username")]
     public class RegisterUsernameEndpoint: Endpoint
@@ -21,8 +13,11 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
-            // TODO: check for duplicate username
             var request = await Request.ReadJson<RegsiterUsernameRequest>();
+            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username);
+            if (existing != null){
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
+            }
             var prefs = new Preferences();
             prefs.Id = Guid.NewGuid().ToString();
             var user = new User();
@@ -35,7 +30,7 @@ namespace MorphicServer
             cred.Id = request.username;
             cred.UserId = user.Id;
             cred.SavePassword(request.password);
-            var token = new AuthToken(user, 30);
+            var token = new AuthToken(user);
             await Save(prefs);
             await Save(user);
             await Save(cred);
@@ -44,6 +39,26 @@ namespace MorphicServer
             response.token = token.Id;
             response.user = user;
             await Respond(response);
+        }
+
+        class RegsiterUsernameRequest
+        {
+            public string username { get; set; } = "";
+            public string password { get; set; } = "";
+            public string? firstName { get; set; }
+            public string? lastName { get; set; }
+        }
+
+        class BadRequestResponse
+        {
+            public string Error { get; set; }
+
+            BadRequestResponse(string error)
+            {
+                Error = error;
+            }
+
+            public static BadRequestResponse ExistingUsername = new BadRequestResponse("ExistingUsername");
         }
     }
 }
