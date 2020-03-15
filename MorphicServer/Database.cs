@@ -1,9 +1,11 @@
 using System;
-using MongoDB.Driver;
-using MongoDB.Bson;
-using System.Threading.Tasks;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Text.Json;
+using MongoDB.Driver;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
@@ -103,6 +105,11 @@ namespace MorphicServer
             return false;
         }
 
+        /// <summary>Run async operations within a transaction, using a lamba to specify the operations</summary>
+        /// <remarks>
+        /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>
+        /// attribute, which ensures that any operations, incluing <code>LoadResource</code> are run in the transaction.
+        /// </remarks>
         public async Task<bool> WithTransaction(Func<Session, Task> operations, CancellationToken cancellationToken = default(CancellationToken))
         {
             using (var session = await Client.StartSessionAsync(cancellationToken: cancellationToken))
@@ -125,8 +132,15 @@ namespace MorphicServer
             }
         }
 
+        /// <summary>Do a one-time database setup or upgrade</summary>
+        /// <remarks>
+        /// Creates collections and indexes, and keeps a record of initilization in the <code>DatabaseInfo</code> collection.
+        /// </remarks>
         public void InitializeDatabaseIfNeeded()
         {
+            // FIXME: If multiple servers are spun up at the same time, we could have a situation where each tries to initialize or
+            // upgrade the database.  We need some kind of locking system, or this initialization/upgrade code should move to a
+            // script that gets run prior to spinning up instances.
             var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
             var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
             if (info == null){
@@ -145,6 +159,10 @@ namespace MorphicServer
             }
         }
 
+        /// <summary>A record of the database initilization</summary>
+        /// <remarks>
+        /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
+        /// </remarks>
         class DatabaseInfo
         {
             [BsonId]
@@ -152,6 +170,10 @@ namespace MorphicServer
             public int Version { get; set; } = 0;
         }
 
+        /// <summary>A database transaction session</summary>
+        /// <remarks>
+        /// A thin wrapper around the MongoDB session handle to provide some abstraction
+        /// </remarks>
         public class Session
         {
             public IClientSessionHandle Handle;
@@ -160,6 +182,28 @@ namespace MorphicServer
             {
                 Handle = handle;
             }
+        }
+
+        /// <summary>A MongoDB serializer to store a field as a JSON string</summary>
+        /// <remarks>
+        /// Useful when the properties contain names or values that MongoDB doesn't allow, such
+        /// as dots in property names.
+        /// </remarks>
+        public class JsonSerializer<T> : SerializerBase<T>
+        {
+
+            public override T Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                var json = context.Reader.ReadString();
+                return JsonSerializer.Deserialize<T>(json);
+            }
+
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, T value)
+            {
+                string json = JsonSerializer.Serialize(value);
+                context.Writer.WriteString(json);
+            }
+
         }
 
     }

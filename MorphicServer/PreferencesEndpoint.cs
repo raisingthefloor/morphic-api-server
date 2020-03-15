@@ -39,7 +39,7 @@ namespace MorphicServer
         public async Task Put()
         {
             var updated = await Request.ReadJson<Preferences>();
-            Preferences.UserId = updated.UserId;
+            Preferences.Default = updated.Default;
             await Save(Preferences);
         }
 

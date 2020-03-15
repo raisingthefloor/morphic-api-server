@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using System;
 using System.Net;
+using System.Text.Encodings.Web;
 
 namespace MorphicServer
 {
@@ -17,7 +18,11 @@ namespace MorphicServer
             await response.StartAsync(cancellationToken);
             if (obj != null)
             {
-                await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), null, cancellationToken);
+                var options = new JsonSerializerOptions()
+                {
+                    Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+                };
+                await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), options, cancellationToken);
             }
             await response.CompleteAsync();
         }
@@ -42,7 +47,9 @@ namespace MorphicServer
             {
                 try
                 {
-                    var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), null, cancellationToken);
+                    var options = new JsonSerializerOptions();
+                    options.Converters.Add(new JsonElementInferredTypeConverter());
+                    var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {
                         return o;
