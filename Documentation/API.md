@@ -5,6 +5,7 @@ Endpoints
 
 * [User Registration](#section-user-registration)
   * [`/register/username`](#endpoint-register-username)
+  * [`/register/key`](#endpoint-register-key)
 * [Authentication](#section-authentication)
   * [`/auth/username`](#endpoint-auth-username)
   * [`/auth/key`](#endpoint-auth-key)
@@ -46,6 +47,63 @@ given username/password credentials.
     <tr>
       <th><code>password</code></th>
       <td>The user-chosen password</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>firstName</code></th>
+      <td>The user's first name</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>lastName</code></th>
+      <td>The user's last name</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4">Response Body</th>
+    </tr>
+    <tr>
+      <th><code>token</code></th>
+      <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>user</code></th>
+      <td>The user object</td>
+      <td><a href="#endpoint-user"><code>User</code></a></td>
+      <td>Required</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="endpoint-register-key"></a>/register/key
+------------------
+
+### POST
+
+Create a new user with empty preferences and the ability to login with the
+given secret key credentials.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th>Content-Type</th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <th><code>key</code></th>
+      <td>The client-derived secret key</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
