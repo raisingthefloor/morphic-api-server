@@ -25,6 +25,8 @@ Endpoints
 Create a new user with empty preferences and the ability to login with the
 given username/password credentials.
 
+Immediately log the user in and return an authentication token.
+
 <table>
   <tbody>
     <tr>
@@ -88,6 +90,8 @@ given username/password credentials.
 Create a new user with empty preferences and the ability to login with the
 given secret key credentials.
 
+Immediately log the user in and return an authentication token.
+
 <table>
   <tbody>
     <tr>
@@ -149,8 +153,6 @@ given secret key credentials.
 Authenticate the given username/password credentials and return a
 token that can be used in `X-Morphic-Auth-Token` headers.
 
-Immediately log the user in and return an authentication token.
-
 <table>
   <tbody>
     <tr>
@@ -195,8 +197,6 @@ Immediately log the user in and return an authentication token.
 
 Authenticate the given secret key credentials and return a
 token that can be used in `X-Morphic-Auth-Token` headers.
-
-Immediately log the user in and return an authentication token.
 
 <table>
   <tbody>
