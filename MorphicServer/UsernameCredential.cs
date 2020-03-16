@@ -5,13 +5,12 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace MorphicServer
 {
-    public class UsernameCredential: Record
+    public class UsernameCredential: Credential
     {
         public int? PasswordIterationCount;
         public string? PasswordFunction;
         public string? PasswordSalt;
         public string? PasswordHash;
-        public string? UserId;
 
         public void SavePassword(string password)
         {

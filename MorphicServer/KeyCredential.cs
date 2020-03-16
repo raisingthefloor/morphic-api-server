@@ -4,9 +4,8 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
-    public class KeyCredential: Record
+    public class KeyCredential: Credential
     {
-        public string? UserId;
     }
 
     public static class KeyCredentialDatabase
