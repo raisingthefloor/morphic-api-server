@@ -1,0 +1,84 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"extensions": {
+		"recommendations": [
+			"ms-dotnettools.csharp",
+			"formulahendry.dotnet-test-explorer"
+		]
+	},
+	"settings": {
+		"files.exclude": {
+			"Database": true
+		},
+		"csharp.supressBuildAssetsNotification": true
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "build",
+				"command": "dotnet",
+				"type": "process",
+				"args": [
+					"build",
+					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"/property:GenerateFullPaths=true",
+					"/consoleloggerparameters:NoSummary"
+				],
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "publish",
+				"command": "dotnet",
+				"type": "process",
+				"args": [
+					"publish",
+					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"/property:GenerateFullPaths=true",
+					"/consoleloggerparameters:NoSummary"
+				],
+				"problemMatcher": "$msCompile"
+			},
+			{
+				"label": "watch",
+				"command": "dotnet",
+				"type": "process",
+				"args": [
+					"watch",
+					"run",
+					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"/property:GenerateFullPaths=true",
+					"/consoleloggerparameters:NoSummary"
+				],
+				"problemMatcher": "$msCompile"
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch MorphicServer",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "build",
+				// If you have changed target frameworks, make sure to update the program path.
+				"program": "${workspaceFolder}/MorphicServer/bin/Debug/netcoreapp3.1/MorphicServer.dll",
+				"args": [],
+				"cwd": "${workspaceFolder}/MorphicServer",
+				"stopAtEntry": false,
+				"env": {
+					"ASPNETCORE_ENVIRONMENT": "Development"
+				},
+				"sourceFileMap": {
+					"/Views": "${workspaceFolder}/Views"
+				}
+			}
+		],
+		"compounds": []
+	}
+}

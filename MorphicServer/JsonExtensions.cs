@@ -42,7 +42,7 @@ namespace MorphicServer
                 case JsonValueKind.Null:
                     return null;
                 case JsonValueKind.True:
-                    return false;
+                    return true;
                 case JsonValueKind.False:
                     return false;
                 case JsonValueKind.Number:
