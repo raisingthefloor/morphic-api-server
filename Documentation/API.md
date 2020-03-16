@@ -187,6 +187,12 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th><code>user</code></th>
+      <td>The user object</td>
+      <td><a href="#endpoint-user"><code>User</code></a></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -224,6 +230,12 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th><code>token</code></th>
       <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
       <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>user</code></th>
+      <td>The user object</td>
+      <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
     </tr>
   </tbody>
