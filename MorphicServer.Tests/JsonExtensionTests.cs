@@ -19,11 +19,11 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(bool), o);
-            Assert.StrictEqual((bool)o, true);
+            Assert.IsType<bool>(o);
+            Assert.True((bool)o);
             Assert.True(result.TryGetValue("b", out o));
-            Assert.IsType(typeof(bool), o);
-            Assert.StrictEqual((bool)o, false);
+            Assert.IsType<bool>(o);
+            Assert.False((bool)o);
         }
 
         [Fact]
@@ -36,11 +36,11 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(long), o);
-            Assert.Equal((long)o, 12);
+            Assert.IsType<long>(o);
+            Assert.Equal(12, (long)o);
             Assert.True(result.TryGetValue("b", out o));
-            Assert.IsType(typeof(long), o);
-            Assert.Equal((long)o, 0);
+            Assert.IsType<long>(o);
+            Assert.Equal(0, (long)o);
         }
 
         [Fact]
@@ -53,10 +53,10 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(double), o);
+            Assert.IsType<double>(o);
             Assert.True(Math.Abs(12.5 - (double)o) < 0.001);
             Assert.True(result.TryGetValue("b", out o));
-            Assert.IsType(typeof(double), o);
+            Assert.IsType<double>(o);
             Assert.True(Math.Abs(0.1 - (double)o) < 0.001);
         }
 
@@ -70,11 +70,11 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(string), o);
-            Assert.Equal((string)o, "hello");
+            Assert.IsType<string>(o);
+            Assert.Equal("hello", (string)o);
             Assert.True(result.TryGetValue("b", out o));
-            Assert.IsType(typeof(string), o);
-            Assert.Equal((string)o, "");
+            Assert.IsType<string>(o);
+            Assert.Equal("", (string)o);
         }
 
         [Fact]
@@ -100,19 +100,19 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(object[]), o);
+            Assert.IsType<object[]>(o);
             var array = (object[])o;
-            Assert.Equal(array.Length, 5);
+            Assert.Equal(5, array.Length);
 
-            Assert.IsType(typeof(long), array[0]);
-            Assert.Equal((long)array[0], 1);
-            Assert.IsType(typeof(string), array[1]);
-            Assert.Equal((string)array[1], "two");
+            Assert.IsType<long>(array[0]);
+            Assert.Equal(1, (long)array[0]);
+            Assert.IsType<string>(array[1]);
+            Assert.Equal("two", (string)array[1]);
             Assert.Null(array[2]);
-            Assert.IsType(typeof(double), array[3]);
+            Assert.IsType<double>(array[3]);
             Assert.True(Math.Abs(4.1 - (double)array[3]) < 0.001);
-            Assert.IsType(typeof(bool), array[4]);
-            Assert.Equal((bool)array[4], true);
+            Assert.IsType<bool>(array[4]);
+            Assert.True((bool)array[4]);
         }
 
         [Fact]
@@ -125,14 +125,14 @@ namespace MorphicServer.Tests
             var result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
             object o;
             Assert.True(result.TryGetValue("a", out o));
-            Assert.IsType(typeof(Dictionary<string, object>), o);
+            Assert.IsType<Dictionary<string, object>>(o);
             var dictionary = (Dictionary<string, object>)o;
             Assert.True(dictionary.TryGetValue("first", out o));
-            Assert.IsType(typeof(long), o);
-            Assert.Equal((long)o, 1);
+            Assert.IsType<long>(o);
+            Assert.Equal(1, (long)o);
             Assert.True(dictionary.TryGetValue("second", out o));
-            Assert.IsType(typeof(string), o);
-            Assert.Equal((string)o, "two");
+            Assert.IsType<string>(o);
+            Assert.Equal("two", (string)o);
         }
     }
 }

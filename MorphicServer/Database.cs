@@ -49,6 +49,11 @@ namespace MorphicServer
         /// <summary>The Morphic Database</summary>
         private IMongoDatabase Morphic;
 
+    public void DeleteDatabase()
+        {
+            Client.DropDatabase(Morphic.DatabaseNamespace.DatabaseName);
+        }
+
         /// <summary>The MongoDB collections within the database</summary>
         private Dictionary<Type, object> CollectionByType = new Dictionary<Type, object>();
 

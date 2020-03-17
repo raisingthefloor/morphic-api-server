@@ -47,6 +47,9 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegsiterUsernameRequest>();
+            if (request.username == "" || request.password == ""){
+                throw new HttpError(HttpStatusCode.BadRequest);
+            }
             var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
             if (existing != null)
             {
@@ -85,6 +88,10 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegsiterKeyRequest>();
+            if (request.key == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest);
+            }
             var existing = await Context.GetDatabase().Get<KeyCredential>(request.key, ActiveSession);
             if (existing != null)
             {
