@@ -86,7 +86,7 @@ namespace MorphicServer.Tests
         }
 
         [Fact]
-        public async Task TestRegisterKey()
+        public async Task TestKey()
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
             request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
