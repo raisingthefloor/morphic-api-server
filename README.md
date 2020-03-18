@@ -10,6 +10,8 @@ To run the services MorphicServer depends on, you can invoke a docker stack:
 $ docker stack deploy -c docker-compose.dev.yaml morphic-server
 ````
 
+*Currently the only dependency is MongoDB, which you can run without docker if desired*
+
 The server itself can be started from your IDE or from the command line:
 ````
 $ dotnet run --project MorphicServer
