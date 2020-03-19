@@ -7,6 +7,7 @@ Development
 
 To run the services MorphicServer depends on, you can invoke a docker stack:
 ````
+$ mkdir Database
 $ docker stack deploy -c docker-compose.dev.yaml morphic-server
 ````
 
