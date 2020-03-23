@@ -19,7 +19,7 @@ namespace MorphicServer
             var user = await AuthenticatedUser(request);
             if (user == null)
             {
-                throw new HttpError(HttpStatusCode.Unauthorized);
+                throw new HttpError(HttpStatusCode.BadRequest);
             }
             var token = new AuthToken(user);
             await Save(token);

@@ -35,25 +35,25 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, missing password
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""username"": ""test""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, unknown username
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""username"": ""testunknown"", ""password"": ""testwrong""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, wrong password
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testwrong""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -109,13 +109,13 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, wrong key
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""key"": ""testwrong""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
