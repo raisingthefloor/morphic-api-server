@@ -9,3 +9,4 @@ MorphicServer.Tests/obj/*
 **/!.vscode/launch.json
 **/!.vscode/extensions.json
 Database/*
+**/.vs
