@@ -1,0 +1,6 @@
+bin/
+obj/
+MorphicServer/bin/
+MorphicServer/obj/
+MorphicServer.Tests/bin/
+MorphicServer.Tests/obj/
