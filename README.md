@@ -46,7 +46,7 @@ At the end:
 docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml down --remove-orphans
 ````
 
-Note: If you previously create a swarm:
+Note: If you previously created a swarm and want to leave it before running docker-compose commands:
 ````
 docker swarm leave --force
 ````
