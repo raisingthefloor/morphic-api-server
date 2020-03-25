@@ -1,0 +1,24 @@
+# How to run the supporting services for MorphicServer:
+#
+# $ docker swarm init    (only needed the first time)
+# $ docker stack deploy -c docker-compose.dev.yaml morphic-server
+#
+# How to shut down the supporting services:
+# $ docker stack rm morphic-server
+
+version: "3.7"
+services:
+  morphicserver:
+    hostname: morphicserver
+    depends_on:
+      - mongo
+    build:
+      context: .
+    ports:
+      - "5002:80"
+    environment:
+      DATABASESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017"
+      DATABASESETTINGS__DATABASE:          "Morphic"
+      LOGGING__LOGLEVEL__DEFAULT:          "Debug"
+      ASPNETCORE_ENVIRONMENT:              "Development"
+
