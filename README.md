@@ -22,3 +22,31 @@ You can get started making requests by registering a new user:
 ````
 $ curl http://localhost:5002/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword"}'
 ````
+
+docker-compose and morphicserver container
+=====
+An alternative to docker swarm is to run the containers directly with docker-compose:
+````
+docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml up --build
+````
+
+Slightly nicer, if you're going to be doing work on the morphic server and don't need to bring the database
+down all the time:
+````
+docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml up -d mongo
+````
+followed by one or more
+````
+docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml up --build morphicserver
+````
+The same curl command as above will work.
+
+At the end:
+````
+docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml down --remove-orphans
+````
+
+Note: If you previously create a swarm:
+````
+docker swarm leave --force
+````
