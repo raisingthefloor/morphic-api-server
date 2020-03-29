@@ -37,7 +37,8 @@ namespace MorphicServer.Tests
         public EndpointTests()
         {
             var config = new ConfigurationBuilder();
-            config.AddJsonFile("appsettings.Test.json");
+            var settingsFile = Environment.GetEnvironmentVariable("APPSETTINGS_FILENAME") ?? "appsettings.Test.json";
+            config.AddJsonFile(settingsFile);
             var builder = new WebHostBuilder();
             builder.UseConfiguration(config.Build());
             builder.UseStartup<Startup>();
