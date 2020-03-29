@@ -1,0 +1,21 @@
+# How to run the supporting services for MorphicServer:
+#
+# $ docker-compose -f docker-compose.integ-test.yml up
+
+version: "3.7"
+services:
+  mongo:
+    image: mongo
+
+  morphicserver:
+    hostname: morphicserver
+    entrypoint: dotnet test 
+    depends_on:
+      - mongo
+    build:
+      context: .
+      target: build-env
+    ports:
+      - "5002:80"
+    environment:
+      APPSETTINGS_FILENAME: appsettings.Integration.json
