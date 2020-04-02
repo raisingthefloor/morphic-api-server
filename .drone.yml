@@ -1,0 +1,16 @@
+pipeline:
+  build-server:
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    commands:
+      - dotnet restore
+      - dotnet publish -c Release -o MorphicServer
+
+  run-tests:
+    image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    commands:
+      - dotnet test
+
+services:
+  database:
+    image: mongo
+    environment: []
