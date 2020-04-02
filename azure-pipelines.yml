@@ -16,6 +16,7 @@ resources:
   containers:
     - container: mongo
       image: mongo
+      ports: 27017
 
 pool:
   vmImage: "ubuntu-18.04"
@@ -23,7 +24,9 @@ pool:
 stages:
   - stage: Build
     jobs:
-      - job: Restore
+      - job: Build
+        variables:
+          APPSETTINGS_FILENAME: appsettings.Integration.json
         steps:
           - task: DotNetCoreCLI@2
             displayName: Restore
@@ -33,22 +36,10 @@ stages:
             displayName: Build
             inputs:
               command: 'build'
-
-  - stage: Test
-    jobs:
-      - job: Test
-        variables:
-          APPSETTINGS_FILENAME: appsettings.Integration.json
-        steps:
           - task: DotNetCoreCLI@2
             displayName: Test
             inputs:
               command: 'test'
-
-  - stage: Publish
-    jobs:
-      - job: Publish
-        steps:
           - task: DotNetCoreCLI@2
             displayName: Publish
             inputs:
