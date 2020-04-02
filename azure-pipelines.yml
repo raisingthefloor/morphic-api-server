@@ -30,16 +30,24 @@ pool:
 
 steps:
   - task: DotNetCoreCLI@1
-    command: 'restore'
+    displayName: Restore
+    inputs:
+      command: 'restore'
 
   - task: DotNetCoreCLI@2
-    command: 'build'
+    displayName: Build
+    inputs:
+      command: 'build'
 
   - task: DotNetCoreCLI@3
-    command: 'test'
+    displayName: Test
+    inputs:
+      command: 'test'
     variables:
       APPSETTINGS_FILENAME: appsettings.Integration.json
 
   - task: DotNetCoreCLI@3
-    command: 'publish'
+    displayName: Publish
+    inputs:
+      command: 'publish'
     outputDir: MorphicServer
