@@ -7,12 +7,10 @@ pipeline:
 
   run-tests:
     image: mcr.microsoft.com/dotnet/core/sdk:3.1
+    environment:
+      APPSETTINGS_FILENAME:  "appsettings.Integration.json"
     commands:
       - dotnet test
-    environment:
-      DATABASESETTINGS__CONNECTIONSTRING: mongodb://mongo:27017
-      DATABASESETTINGS__DATABASE: Morphic
-      LOGGING__LOGLEVEL__DEFAULT: Debug
     
 services:
   database:
