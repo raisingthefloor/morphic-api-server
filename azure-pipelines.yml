@@ -12,6 +12,11 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
+resources:
+  containers:
+    - container: mongo
+      image: mongo
+
 pool:
   vmImage: "ubuntu-18.04"
 
