@@ -12,21 +12,8 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
-resources:
-  containers:
-    - container: mongo
-      image: mongo
-
-strategy:
-  matrix:
-    linux:
-      imageName: "ubuntu-18.04"
-    windows:
-      imageName: "windows-latest"
-  maxParallel: 1
-
 pool:
-  vmImage: $(imageName)
+  vmImage: "ubuntu-18.04"
 
 stages:
   - stage: Build
