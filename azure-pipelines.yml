@@ -12,33 +12,40 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
 
+resources:
+  containers:
+    - container: mongo
+      image: mongo
+
+strategy:
+  matrix:
+    linux:
+      imageName: "ubuntu-18.04"
+    windows:
+      imageName: "windows-latest"
+  maxParallel: 1
+
+pool:
+  vmImage: $(imageName)
+
 stages:
   - stage: Build
-    jobs:
-      - job: BuildJobWindows
-        pool:
-          vmImage: 'windows-latest'
-        steps:
-          - task: NuGetToolInstaller@1
+    steps:
+      - task: DotNetCoreCLI@1
+        command: 'restore'
 
-          - task: NuGetCommand@2
-            inputs:
-              restoreSolution: '$(solution)'
+      - task: DotNetCoreCLI@2
+        command: 'build'
 
-          - task: VSBuild@1
-            inputs:
-              solution: '$(solution)'
-              msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
-              platform: '$(buildPlatform)'
-              configuration: '$(buildConfiguration)'
+  - stage: Test
+    steps:
+      - task: DotNetCoreCLI@3
+        command: 'test'
+        variables:
+          APPSETTINGS_FILENAME: appsettings.Integration.json
 
-          - task: VSTest@2
-            inputs:
-              platform: '$(buildPlatform)'
-              configuration: '$(buildConfiguration)'
-      - job: BuildLinux
-        pool:
-          vmImage: 'ubuntu-18.04'
-        steps:
-          - script: dotnet restore
-          - script: dotnet publish -c Release -o MorphicServer
+  - stage: Publish
+    steps:
+      - task: DotNetCoreCLI@3
+        command: 'publish'
+        outputDir: MorphicServer
