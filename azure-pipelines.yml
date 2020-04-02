@@ -29,10 +29,7 @@ pool:
   vmImage: $(imageName)
 
 jobs:
-  - job: OnlyJob
-    variables:
-      APPSETTINGS_FILENAME: appsettings.Integration.json
-
+  - job: Build
     steps:
       - task: DotNetCoreCLI@1
         displayName: Restore
@@ -44,11 +41,17 @@ jobs:
         inputs:
           command: 'build'
 
+  - job: Test
+    variables:
+      APPSETTINGS_FILENAME: appsettings.Integration.json
+    steps:
       - task: DotNetCoreCLI@3
         displayName: Test
         inputs:
           command: 'test'
 
+  - job: Publish
+    steps:
       - task: DotNetCoreCLI@3
         displayName: Publish
         inputs:
