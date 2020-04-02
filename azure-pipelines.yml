@@ -21,12 +21,11 @@ stages:
       - job: Restore
         steps:
           - task: DotNetCoreCLI@2
+            displayName: Restore
             inputs:
               command: 'restore'
-
-      - job: Build
-        steps:
           - task: DotNetCoreCLI@2
+            displayName: Build
             inputs:
               command: 'build'
 
@@ -37,6 +36,7 @@ stages:
           APPSETTINGS_FILENAME: appsettings.Integration.json
         steps:
           - task: DotNetCoreCLI@2
+            displayName: Test
             inputs:
               command: 'test'
 
@@ -45,6 +45,7 @@ stages:
       - job: Publish
         steps:
           - task: DotNetCoreCLI@2
+            displayName: Publish
             inputs:
               command: 'publish'
               outputDir: MorphicServer
