@@ -10,9 +10,9 @@ pipeline:
     commands:
       - dotnet test
     environment:
-      DATABASESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017"
-      DATABASESETTINGS__DATABASE:          "Morphic"
-      LOGGING__LOGLEVEL__DEFAULT:          "Debug"
+      DATABASESETTINGS__CONNECTIONSTRING: mongodb://mongo:27017
+      DATABASESETTINGS__DATABASE: Morphic
+      LOGGING__LOGLEVEL__DEFAULT: Debug
     
 services:
   database:
