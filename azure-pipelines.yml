@@ -28,32 +28,36 @@ strategy:
 pool:
   vmImage: $(imageName)
 
-jobs:
-  - job: Build
-    steps:
-      - task: DotNetCoreCLI@1
-        displayName: Restore
-        inputs:
-          command: 'restore'
+stages:
+  - stage: Build
+    jobs:
+      - job: Restore
+        steps:
+          - task: DotNetCoreCLI@1
+            inputs:
+              command: 'restore'
 
-      - task: DotNetCoreCLI@2
-        displayName: Build
-        inputs:
-          command: 'build'
+      - job: Build
+        steps:
+          - task: DotNetCoreCLI@2
+            inputs:
+              command: 'build'
 
-  - job: Test
-    variables:
-      APPSETTINGS_FILENAME: appsettings.Integration.json
-    steps:
-      - task: DotNetCoreCLI@3
-        displayName: Test
-        inputs:
-          command: 'test'
+  - stage: Test
+    jobs:
+      - job: Test
+        variables:
+          APPSETTINGS_FILENAME: appsettings.Integration.json
+        steps:
+          - task: DotNetCoreCLI@3
+            inputs:
+              command: 'test'
 
-  - job: Publish
-    steps:
-      - task: DotNetCoreCLI@3
-        displayName: Publish
-        inputs:
-          command: 'publish'
-          outputDir: MorphicServer
+  - stage: Publish
+    jobs:
+      - job: Publish
+        steps:
+          - task: DotNetCoreCLI@3
+            inputs:
+              command: 'publish'
+              outputDir: MorphicServer
