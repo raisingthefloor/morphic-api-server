@@ -13,6 +13,6 @@ pipeline:
       - dotnet test
     
 services:
-  database:
+  momgo:
     image: mongo
     environment: []
