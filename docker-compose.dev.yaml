@@ -13,7 +13,6 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      -
-        type: bind
-        source: ./Database
-        target: /data/db
+      - morphicdb:/datadb
+volumes:
+  morphicdb:
