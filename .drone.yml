@@ -9,7 +9,11 @@ pipeline:
     image: mcr.microsoft.com/dotnet/core/sdk:3.1
     commands:
       - dotnet test
-
+    environment:
+      DATABASESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017"
+      DATABASESETTINGS__DATABASE:          "Morphic"
+      LOGGING__LOGLEVEL__DEFAULT:          "Debug"
+    
 services:
   database:
     image: mongo
