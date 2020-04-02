@@ -1,5 +1,7 @@
 A C# implementation of a simple Morphic Lite HTTP API to serve and store user preferences.
 
+[![Build Status](https://cloud.drone.io/api/badges/oregondesignservices/MorphicLiteServer/status.svg)](https://cloud.drone.io/oregondesignservices/MorphicLiteServer)
+
 See the [API Docs](Documentation/API.md)
 
 Development
