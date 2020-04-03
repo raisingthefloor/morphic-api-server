@@ -17,7 +17,7 @@ resources:
     - container: mongo
       image: mongo
       ports:
-        - 27017
+        - 27017:27017
 
 pool:
   vmImage: "ubuntu-18.04"
