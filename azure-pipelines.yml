@@ -18,9 +18,6 @@ resources:
       image: mongo
       ports: 27017
 
-services:
-  mongo: mongo
-
 pool:
   vmImage: "ubuntu-18.04"
 
@@ -30,6 +27,8 @@ stages:
       - job: Build
         variables:
           APPSETTINGS_FILENAME: appsettings.Integration.json
+        services:
+          mongo: mongo
         steps:
           - task: DotNetCoreCLI@2
             displayName: Restore
