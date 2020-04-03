@@ -26,8 +26,6 @@ stages:
   - stage: Build
     jobs:
       - job: Build
-        variables:
-          APPSETTINGS_FILENAME: appsettings.Integration.json
         services:
           mongo: mongo
         steps:
