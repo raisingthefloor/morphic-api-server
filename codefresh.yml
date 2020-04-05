@@ -1,0 +1,57 @@
+# More examples of Codefresh YAML can be found at
+# https://codefresh.io/docs/docs/yaml-examples/examples/
+
+version: "1.0"
+# Stages can help you organize your steps in stages
+stages:
+  - "clone"
+  - "buildTest"
+  - "IntegrationTest"
+  - "finalBuild"
+
+steps:
+  clone:
+    title: "Cloning repository"
+    type: "git-clone"
+    repo: "oregondesignservices/MorphicLiteServer"
+    # CF_BRANCH value is auto set when pipeline is triggered
+    # Learn more at codefresh.io/docs/docs/codefresh-yaml/variables/
+    revision: "${{CF_BRANCH}}"
+    git: "github"
+    stage: "clone"
+    
+  buildTest:
+    title: "Building Final Docker Image"
+    type: "build"
+    image_name: "oregondesignservices/MorphicLiteServerBuildEnv"
+    working_directory: "${{clone}}"
+    tag: "${{CF_BRANCH_TAG_NORMALIZED}}"
+    dockerfile: "Dockerfile"
+    target: "build-env"
+
+  IntegrationTest:
+    type: composition
+    title: Integration Test
+    description: Test with Mongo
+    working_directory: "${{clone}}"
+    composition:
+      version: '2'
+      services:
+        mongo:
+          image: mongo
+    composition_candidates:
+      morphicServer:
+        image: "oregondesignservices/MorphicLiteServerBuildEnv:${{CF_BRANCH_TAG_NORMALIZED}}"
+        command: dotnet test
+        environment:
+          APPSETTINGS_FILENAME:  "appsettings.Integration.json"
+    composition_variables: []
+
+  finalBuild:
+    title: "Building Final Docker Image"
+    type: "build"
+    image_name: "oregondesignservices/MorphicLiteServer"
+    working_directory: "${{clone}}"
+    tag: "${{CF_BRANCH_TAG_NORMALIZED}}"
+    dockerfile: "Dockerfile"
+
