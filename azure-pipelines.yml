@@ -18,9 +18,9 @@ pool:
   vmImage: "ubuntu-18.04"
 
 stages:
-  - stage: Build-Env
+  - stage: BuildEnv
     jobs:
-      - job: Build-Env
+      - job: BuildEnv
         steps:
           - task: Docker@2
             displayName: Build stage 1
