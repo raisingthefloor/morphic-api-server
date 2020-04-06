@@ -18,22 +18,25 @@ pool:
   vmImage: "ubuntu-18.04"
 
 stages:
-  - stage: Build
+  - stage: Build-Env
     jobs:
-      - job: Build
-        services:
-          mongo: mongo
+      - job: Build-Env
         steps:
           - task: Docker@2
             displayName: Build stage 1
             inputs:
               command: 'build'
               Dockerfile: Dockerfile
+              repository: oregondesignservices/MorphicLiteServerBuildEnv
               buildContext: .
               arguments: --target build-env
               tags: |
                 $(Build.BuildNumber)
                 build-env
+  - stage: Build
+    jobs:
+      - job: Build
+        steps:
           - task: Docker@2
             displayName: Build stage 2
             inputs:
