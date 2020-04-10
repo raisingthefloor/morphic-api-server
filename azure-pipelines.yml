@@ -7,12 +7,17 @@
 trigger:
   - master
 
+container: mcr.microsoft.com/dotnet/core/sdk:3.1
+
 resources:
   containers:
     - container: mongo
       image: mongo
       ports:
         - 27017:27017
+
+services:
+  mongo: mongo
 
 pool:
   vmImage: "ubuntu-18.04"
