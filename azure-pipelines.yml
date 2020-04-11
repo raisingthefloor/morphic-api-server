@@ -21,6 +21,8 @@ stages:
   - stage: BuildEnv
     jobs:
       - job: BuildEnv
+        services:
+          mongo: mongo
         steps:
           - task: Docker@2
             displayName: Build stage 1
