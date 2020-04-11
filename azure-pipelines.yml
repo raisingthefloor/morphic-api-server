@@ -28,31 +28,16 @@ stages:
               command: 'build'
               Dockerfile: Dockerfile
               buildContext: .
-              arguments: --target build-env
-          - task: Docker@2
-            displayName: Save intermediary
+              arguments: --target build-env --tag MorphicLiteServerBuildEnv:$(Build.BuildNumber)
+          - task: CmdLine@2
             inputs:
-              command: 'push'
-              repository: oregondesignservices/MorphicLiteServerBuildEnv
-              tags: |
-                $(Build.BuildNumber)
-      - job: TestBuildEnv
-        dependsOn: BuildEnv
-        container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
-        steps:
-          - task: DotNetCoreCli@2
-            displayName: Run integration test with mongo
-            inputs:
-              command: 'test'
-      - job: BuildFull
-        dependsOn: TestBuildEnv
-        container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
-        steps:
+              script: 'docker run MorphicLiteServerBuildEnv:$(Build.BuildNumber) --entrypoint "dotnet test"
           - task: Docker@2
             displayName: Build stage 2
             inputs:
               command: 'buildAndPush'
               Dockerfile: Dockerfile
               buildContext: .
+              containerRegistry: oregondesignservices/MorphicLiteServerBuildEnv
               tags: |
                 $(Build.BuildNumber)
