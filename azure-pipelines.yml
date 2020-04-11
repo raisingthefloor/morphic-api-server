@@ -38,6 +38,6 @@ stages:
               command: 'buildAndPush'
               Dockerfile: Dockerfile
               buildContext: .
-              containerRegistry: oregondesignservices/MorphicLiteServerBuildEnv
+              repository: oregondesignservices/MorphicLiteServerBuildEnv
               tags: |
                 $(Build.BuildNumber)
