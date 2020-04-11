@@ -37,6 +37,7 @@ stages:
               tags: |
                 $(Build.BuildNumber)
       - job: TestBuildEnv
+        dependsOn: BuildEnv
         container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
         steps:
           - task: DotNetCoreCli@2
@@ -44,6 +45,7 @@ stages:
             inputs:
               command: 'test'
       - job: BuildFull
+        dependsOn: TestBuildEnv
         container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
         steps:
           - task: Docker@2
