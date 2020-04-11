@@ -32,11 +32,11 @@ stages:
               arguments: --target build-env
               tags: |
                 $(Build.BuildNumber)
-                build-env
-  - stage: Build
-    jobs:
-      - job: Build
-        steps:
+          - task DotNetCoreCli@2
+            target:
+              container: oregondesignservices/MorphicLiteServerBuildEnv:$(Build.BuildNumber)
+            displayName: Run integration test with mongo
+            command: 'test'
           - task: Docker@2
             displayName: Build stage 2
             inputs:
