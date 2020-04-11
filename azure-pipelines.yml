@@ -35,7 +35,7 @@ stages:
           - task: DotNetCoreCli@2
             displayName: Run integration test with mongo
             target:
-              container: oregondesignservices/MorphicLiteServerBuildEnv:$(Build.BuildNumber)
+              container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
             inputs:
               command: 'test'
           - task: Docker@2
