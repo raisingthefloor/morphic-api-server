@@ -31,12 +31,11 @@ stages:
               Dockerfile: Dockerfile
               buildContext: .
               arguments: --target build-env --tag morphicliteserverbuildenv:$(Build.BuildNumber)
-          - task: CmdLine@2
+          - script: docker run --entrypoint "/usr/bin/dotnet" morphicliteserverbuildenv:$(Build.BuildNumber) test 
             displayName: Integration Test
             env:
               APPSETTINGS_FILENAME: appsettings.Integration.json
             inputs:
-              script: docker run --entrypoint "/usr/bin/dotnet" morphicliteserverbuildenv:$(Build.BuildNumber) test 
           - task: Docker@2
             displayName: Build stage 2
             inputs:
