@@ -7,17 +7,12 @@
 trigger:
   - master
 
-container: mcr.microsoft.com/dotnet/core/sdk:3.1
-
 resources:
   containers:
     - container: mongo
       image: mongo
       ports:
         - 27017:27017
-
-services:
-  mongo: mongo
 
 pool:
   vmImage: "ubuntu-18.04"
@@ -26,6 +21,9 @@ stages:
   - stage: BuildEnv
     jobs:
       - job: BuildEnv
+        container: mcr.microsoft.com/dotnet/core/sdk:3.1
+        services:
+          mongo: mongo
         steps:
           - task: Docker@2
             displayName: Build stage 1
@@ -41,6 +39,9 @@ stages:
   - stage: Build
     jobs:
       - job: Build
+        container: mcr.microsoft.com/dotnet/core/sdk:3.1
+        services:
+          mongo: mongo
         steps:
           - task: Docker@2
             displayName: Build stage 2
