@@ -36,16 +36,13 @@ stages:
               repository: oregondesignservices/MorphicLiteServerBuildEnv
               tags: |
                 $(Build.BuildNumber)
-    jobs:
       - job: TestBuildEnv
+        container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
         steps:
           - task: DotNetCoreCli@2
             displayName: Run integration test with mongo
-            target:
-              container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
             inputs:
               command: 'test'
-    jobs:
       - job: TestBuildEnv
         container: MorphicLiteServerBuildEnv:$(Build.BuildNumber)
         steps:
