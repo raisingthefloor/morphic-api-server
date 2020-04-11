@@ -1,3 +1,5 @@
+Database/
+.git/
 bin/
 obj/
 MorphicServer/bin/
