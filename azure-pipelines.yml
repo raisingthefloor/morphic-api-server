@@ -33,6 +33,8 @@ stages:
               arguments: --target build-env --tag morphicliteserverbuildenv:$(Build.BuildNumber)
           - task: CmdLine@2
             displayName: Integration Test
+            env:
+              APPSETTINGS_FILENAME: appsettings.Integration.json
             inputs:
               script: docker run --entrypoint "/usr/bin/dotnet" morphicliteserverbuildenv:$(Build.BuildNumber) test 
           - task: Docker@2
