@@ -27,9 +27,13 @@ stages:
             inputs:
               command: 'build'
               Dockerfile: Dockerfile
-              repository: oregondesignservices/MorphicLiteServerBuildEnv
               buildContext: .
               arguments: --target build-env
+          - task: Docker@2
+            displayName: Save intermediary
+            inputs:
+              command: 'push'
+              repository: oregondesignservices/MorphicLiteServerBuildEnv
               tags: |
                 $(Build.BuildNumber)
           - task: DotNetCoreCli@2
@@ -41,7 +45,7 @@ stages:
           - task: Docker@2
             displayName: Build stage 2
             inputs:
-              command: 'build'
+              command: 'buildAndPush'
               Dockerfile: Dockerfile
               buildContext: .
               tags: |
