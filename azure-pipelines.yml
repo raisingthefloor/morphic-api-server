@@ -47,7 +47,7 @@ stages:
             inputs:
               command: 'publish'
               outputDir: MorphicServer
-  - stage: build and publish docker image
+  - stage: docker
     jobs:
       - job: build_and_publish_image
         steps: 
