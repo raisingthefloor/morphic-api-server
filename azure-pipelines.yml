@@ -64,4 +64,3 @@ stages:
               Dockerfile: Dockerfile
               tags: |
                 latest
-                test-tag2
