@@ -11,7 +11,7 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  imageName: 'morphicworld/morphiclite'
+  imageName: 'morphiclite'
 
 resources:
   containers:
@@ -61,7 +61,7 @@ stages:
             displayName: Push image
             inputs:
               containerRegistry: $(dockerHub)
-              repository: $(imageName)
+              repository: morphicworld/$(imageName)
               command: push
               tags: |
                 latest
