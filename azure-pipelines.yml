@@ -54,16 +54,15 @@ stages:
           - task: Docker@2
             displayName: Build an image
             inputs:
-              repository: $(imageName)
+              containerRegistry: morphicworld dockerhub
+              repository: morphiclite
               command: build
               Dockerfile: Dockerfile
           - task: Docker@2
             displayName: Push image
             inputs:
-              containerRegistry: |
-                $(dockerHub)/morphicworld
-              repository: |
-                $(imageName)
+              containerRegistry: morphicworld dockerhub
+              repository: morphiclite
               command: push
               tags: |
                 latest
