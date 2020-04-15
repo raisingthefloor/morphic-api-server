@@ -60,8 +60,10 @@ stages:
           - task: Docker@2
             displayName: Push image
             inputs:
-              containerRegistry: $(dockerHub)/morphicworld
-              repository: $(imageName)
+              containerRegistry: |
+                $(dockerHub)/morphicworld
+              repository: |
+                $(imageName)
               command: push
               tags: |
                 latest
