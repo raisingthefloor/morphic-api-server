@@ -12,7 +12,8 @@ trigger:
       - "release/*"
       - "hotfix/*"
   tags:
-    - "v*"
+   include: 
+     - "v*"
 
 
 variables:
