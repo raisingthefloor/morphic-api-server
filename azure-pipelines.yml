@@ -11,6 +11,7 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
+  imageName: 'morphicworld/morphiclite'
 
 resources:
   containers:
@@ -46,3 +47,21 @@ stages:
             inputs:
               command: 'publish'
               outputDir: MorphicServer
+  - stage: build and publish docker image
+    jobs:
+      - job: publish image
+        steps: 
+          - task: Docker@2
+            displayName: Build an image
+            inputs:
+              repository: $(imageName)
+              command: build
+              Dockerfile: Dockerfile
+          - task: Docker@2
+            displayName: Push image
+            inputs:
+            containerRegistry: $(dockerHub)
+            repository: $(imageName)
+            command: push
+            tags: |
+                latest
