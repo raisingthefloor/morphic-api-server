@@ -61,11 +61,11 @@ namespace MorphicServer
                 app.UseDeveloperExceptionPage();
             }
             app.UseRouting();
-            app.UseHttpMetrics();
+            //app.UseHttpMetrics(); // doesn't work. Probably because we have our own mapping, and something is missing
+            app.UseRequestMiddleware();
             app.UseEndpoints(Endpoint.All);
             app.UseEndpoints(endpoints =>
             {
-                endpoints.MapHealthChecks("/health");
                 endpoints.MapMetrics();
             });
         }
