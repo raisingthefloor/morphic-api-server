@@ -4,6 +4,7 @@ A C# implementation of a simple Morphic Lite HTTP API to serve and store user pr
 
 See the [API Docs](Documentation/API.md)
 
+For logging setup and configuration: https://github.com/serilog/serilog/wiki/Formatting-Output#formatting-json
 Development
 =====
 
