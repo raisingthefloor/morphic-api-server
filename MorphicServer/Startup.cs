@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Prometheus;
 
 namespace MorphicServer
 {
@@ -59,7 +60,13 @@ namespace MorphicServer
                 app.UseDeveloperExceptionPage();
             }
             app.UseRouting();
+            //app.UseHttpMetrics(); // doesn't work. Probably because we have our own mapping, and something is missing
+            app.UseRequestMiddleware();
             app.UseEndpoints(Endpoint.All);
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapMetrics();
+            });
         }
     }
 }
