@@ -27,6 +27,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Prometheus;
 
 namespace MorphicServer
 {
@@ -48,6 +49,7 @@ namespace MorphicServer
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddRouting();
+            services.AddHealthChecks();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -59,7 +61,13 @@ namespace MorphicServer
                 app.UseDeveloperExceptionPage();
             }
             app.UseRouting();
+            app.UseHttpMetrics();
             app.UseEndpoints(Endpoint.All);
+            app.UseEndpoints(endpoints =>
+            {
+                endpoints.MapHealthChecks("/health");
+                endpoints.MapMetrics();
+            });
         }
     }
 }
