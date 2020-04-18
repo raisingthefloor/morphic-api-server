@@ -29,6 +29,9 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 namespace MorphicServer
 {
@@ -36,6 +39,12 @@ namespace MorphicServer
     {
         public static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(new CompactJsonFormatter())
+                .CreateLogger();
             CreateHostBuilder(args).Build().Run();
         }
 
@@ -45,7 +54,8 @@ namespace MorphicServer
             builder.ConfigureWebHostDefaults(webBuilder =>
             {
                 webBuilder.UseStartup<Startup>();
-            });
+            })
+            .UseSerilog();
             return builder;
         }
     }

@@ -27,12 +27,12 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Serilog;
 
 namespace MorphicServer
 {
     public class Startup
     {
-
         public Startup(IConfiguration configuration)
         {
             Configuration = configuration;
@@ -49,7 +49,6 @@ namespace MorphicServer
             services.AddSingleton<Database>();
             services.AddRouting();
         }
-
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
@@ -59,6 +58,7 @@ namespace MorphicServer
                 app.UseDeveloperExceptionPage();
             }
             app.UseRouting();
+            app.UseSerilogRequestLogging();
             app.UseEndpoints(Endpoint.All);
         }
     }
