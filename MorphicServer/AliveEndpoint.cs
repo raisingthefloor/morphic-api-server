@@ -40,7 +40,6 @@ namespace MorphicServer
         [Method]
         public async Task Get()
         {
-            await Respond("");
         }
     }
 }
