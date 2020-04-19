@@ -10,8 +10,8 @@ public class RequestMiddleware
 {
     private readonly ILogger _logger;
     private readonly RequestDelegate _next;
-    private readonly string counter_metric_name = "http_server_request";
-    private readonly string histo_metric_name = "http_server_request_duration";
+    private readonly string counter_metric_name = "http_server_requests";
+    private readonly string histo_metric_name = "http_server_requests_duration";
 
     public RequestMiddleware(
         RequestDelegate next
