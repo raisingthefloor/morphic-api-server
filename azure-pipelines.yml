@@ -21,15 +21,21 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   imageName: 'morphiclite'
-  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+  ${ if eq($(Build.SourceBranchName), 'master') }}:
     imageTags: |
       stable
-  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+      $(Build.BuildNumber)
+      $(Build.SourceVersion)
+  ${{ if eq($(Build.SourceBranchName), 'develop') }}:
     imageTags: |
       latest
-  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
+      $(Build.BuildNumber)
+      $(Build.SourceVersion)
+  ${{ if startsWith($(Build.SourceBranch), 'refs/tags') }}:
     imageTags: |
-      ${{ variables['Build.SourceBranchName'] }}
+      $(Build.SourceBranchName)
+      $(Build.BuildNumber)
+      $(Build.SourceVersion)
 
 resources:
   containers:
