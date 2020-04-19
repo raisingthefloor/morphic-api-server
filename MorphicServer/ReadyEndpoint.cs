@@ -21,25 +21,32 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using Serilog;
 
 namespace MorphicServer
 {
     /// <summary>And endpoint to check server readiness</summary>
     [Path("/ready")]
-    public class ReadyEndpoint: Endpoint
+    public class ReadyEndpoint : Endpoint
     {
-
         /// <summary>Check any dependencies here, like mongo</summary>
         public override async Task LoadResource()
         {
+            if (!Context.GetDatabase().IsClusterConnected)
+            {
+                Log.Logger.Error("MongoDB Not connected");
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
         }
 
         [Method]
         public async Task Get()
         {
+            Log.Logger.Debug("Ready");
         }
     }
 }

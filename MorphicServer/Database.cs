@@ -30,6 +30,7 @@ using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver.Core.Clusters;
 
 namespace MorphicServer
 {
@@ -75,6 +76,14 @@ namespace MorphicServer
     public void DeleteDatabase()
         {
             Client.DropDatabase(Morphic.DatabaseNamespace.DatabaseName);
+        }
+
+        public bool IsClusterConnected
+        {
+            get
+            {
+                return Client.Cluster.Description.State == ClusterState.Connected;
+            }
         }
 
         /// <summary>The MongoDB collections within the database</summary>
