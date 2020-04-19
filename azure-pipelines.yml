@@ -24,18 +24,14 @@ variables:
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     imageTags: |
       stable
-      $(Build.BuildNumber)
-      $(Build.SourceVersion)
+      stable-$(Build.BuildNumber)
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     imageTags: |
       latest
-      $(Build.BuildNumber)
-      $(Build.SourceVersion)
+      develop-$(Build.BuildNumber)
   ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
     imageTags: |
       $(Build.SourceBranchName)
-      $(Build.BuildNumber)
-      $(Build.SourceVersion)
 
 resources:
   containers:
