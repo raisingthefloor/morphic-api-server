@@ -21,7 +21,7 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   imageName: 'morphiclite'
-  ${ if eq($(Build.SourceBranchName), 'master') }}:
+  ${{ if eq($(Build.SourceBranchName), 'master') }}:
     imageTags: |
       stable
       $(Build.BuildNumber)
