@@ -1,6 +1,8 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -19,14 +21,21 @@ namespace MorphicServer
             var user = await AuthenticatedUser(request);
             if (user == null)
             {
+                Log.Logger.Information("USER_MISSING");
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
-            var token = new AuthToken(user);
-            await Save(token);
-            var response = new AuthResponse();
-            response.token = token.Id;
-            response.user = user;
-            await Respond(response);
+
+            using (LogContext.PushProperty("UserUid", user.Id))
+            {
+                var token = new AuthToken(user);
+                await Save(token);
+                Log.Logger.Debug("NEW_TOKEN for {UserUid}");
+
+                var response = new AuthResponse();
+                response.token = token.Id;
+                response.user = user;
+                await Respond(response);
+            }
         }
 
         public abstract Task<User?> AuthenticatedUser(T request);
