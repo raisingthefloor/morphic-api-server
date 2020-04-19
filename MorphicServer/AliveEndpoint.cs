@@ -23,7 +23,7 @@
 
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using System.Net;
+using Serilog;
 
 namespace MorphicServer
 {
@@ -40,6 +40,7 @@ namespace MorphicServer
         [Method]
         public async Task Get()
         {
+            Log.Logger.Debug("Alive");
         }
     }
 }
