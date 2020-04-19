@@ -21,14 +21,8 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -53,10 +47,11 @@ namespace MorphicServer
         {
             var builder = Host.CreateDefaultBuilder(args);
             builder.ConfigureWebHostDefaults(webBuilder =>
-            {
-                webBuilder.UseStartup<Startup>();
-            })
-            .UseSerilog();
+                {
+                    webBuilder.UseKestrel(opt => opt.AddServerHeader = false);
+                    webBuilder.UseStartup<Startup>();
+                })
+                .UseSerilog();
             return builder;
         }
     }
