@@ -21,22 +21,29 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
+using System.IO;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Serilog;
-using Serilog.Events;
 using Serilog.Formatting.Compact;
 
 namespace MorphicServer
 {
     public class Program
     {
+        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true, reloadOnChange: false)
+            .AddEnvironmentVariables()
+            .Build();
+
         public static void Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
-                .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+                .ReadFrom.Configuration(Configuration)
                 .Enrich.FromLogContext()
                 .WriteTo.Console(new CompactJsonFormatter())
                 .CreateLogger();
