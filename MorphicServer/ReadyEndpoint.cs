@@ -33,20 +33,17 @@ namespace MorphicServer
     [Path("/ready")]
     public class ReadyEndpoint : Endpoint
     {
+        [Method]
         /// <summary>Check any dependencies here, like mongo</summary>
-        public override async Task LoadResource()
+        public async Task Get()
         {
             if (!Context.GetDatabase().IsClusterConnected)
             {
                 Log.Logger.Error("MongoDB Not connected");
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
-        }
-
-        [Method]
-        public async Task Get()
-        {
             Log.Logger.Debug("Ready");
+            await Response.CompleteAsync();
         }
     }
 }
