@@ -21,13 +21,16 @@ variables:
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
   imageName: 'morphiclite'
+  deployRepoRef: master
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     newDeployTag: stable-$(Build.BuildNumber)
+    deployRepoRef: $(Build.SourceBranch)
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     newDeployTag: develop-$(Build.BuildNumber)
+    deployRepoRef: $(Build.SourceBranch)
     imageTags: |
       latest
       develop-$(Build.BuildNumber)
@@ -41,13 +44,13 @@ resources:
       image: mongo
       ports:
         - 27017:27017
-  repositories: []
-#    - repository: deploy-morphiclite
-#      type: github
-#      endpoint: oregondesignservices-dgomez
-#      name: oregondesignservices/deploy-morphiclite
-#      # Checkout the same branch in the deployment repo as the source code repo
-#      ref: $(Build.SourceBranch)
+  repositories:
+    - repository: deploy-morphiclite
+      type: github
+      endpoint: oregondesignservices-dgomez
+      name: oregondesignservices/deploy-morphiclite
+      # Checkout the same branch in the deployment repo as the source code repo
+      ref: $(deployRepoRef)
 
 pool:
   vmImage: "ubuntu-18.04"
