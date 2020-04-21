@@ -105,6 +105,7 @@ stages:
         steps:
           - checkout: deploy-morphiclite
             persistCredentials: true
+            path: deploy-morphiclite
           - task: Bash@3
             env:
               NEWTAG: $(newDeployTag)
