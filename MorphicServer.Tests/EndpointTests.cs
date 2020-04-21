@@ -32,6 +32,7 @@ using Xunit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Serilog;
 
 namespace MorphicServer.Tests
 {
@@ -65,6 +66,7 @@ namespace MorphicServer.Tests
             var builder = new WebHostBuilder();
             builder.UseConfiguration(config.Build());
             builder.UseStartup<Startup>();
+            builder.UseSerilog();
             Server = new TestServer(builder);
             Client = Server.CreateClient();
             Database = Server.Services.GetService(typeof(Database)) as Database;

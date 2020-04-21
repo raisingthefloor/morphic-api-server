@@ -23,7 +23,7 @@
 
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using System.Net;
+using Serilog;
 
 namespace MorphicServer
 {
@@ -31,15 +31,12 @@ namespace MorphicServer
     [Path("/alive")]
     public class AliveEndpoint: Endpoint
     {
-
         /// <summary>Do nothing. Don't even check dependencies (see ReadyEndpoint). Return 200.</summary>
-        public override async Task LoadResource()
-        {
-        }
-
         [Method]
         public async Task Get()
         {
+            Log.Logger.Debug("Alive");
+            await Response.CompleteAsync();
         }
     }
 }

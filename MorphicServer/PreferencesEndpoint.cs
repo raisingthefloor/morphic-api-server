@@ -24,6 +24,8 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -41,10 +43,18 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var authenticatedUser = await RequireUser();
-            if (authenticatedUser.PreferencesId != Id){
-                throw new HttpError(HttpStatusCode.Forbidden);
+            using (LogContext.PushProperty("AuthenticatedUserUid", authenticatedUser.Id))
+            using (LogContext.PushProperty("AuthenticatedUserPreferenceId", authenticatedUser.PreferencesId))
+            using (LogContext.PushProperty("RequestedPreferencesUid", Id))
+            {
+                if (authenticatedUser.PreferencesId != Id)
+                {
+                    Log.Logger.Information("PREFERENCE_ACCESS_DENIED: {AuthenticatedUserUid} may not request preferences {Id}");
+                    throw new HttpError(HttpStatusCode.Forbidden);
+                }
+                Log.Logger.Debug("PREFERENCE_LOADED");
+                Preferences = await Load<Preferences>(Id);
             }
-            Preferences = await Load<Preferences>(Id);
         }
 
         /// <summary>The preferences data populated by <code>LoadResource()</code></summary>

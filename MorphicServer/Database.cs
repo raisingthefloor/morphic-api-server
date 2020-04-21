@@ -30,6 +30,9 @@ using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Driver.Core.Clusters;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -59,6 +62,13 @@ namespace MorphicServer
         {
             Client = new MongoClient(settings.ConnectionString);
             Morphic = Client.GetDatabase(settings.DatabaseName);
+            
+            using (LogContext.PushProperty("DBSettings", Client.Settings.ToString()))
+            using (LogContext.PushProperty("DBName", settings.DatabaseName))
+            {
+                Log.Logger.Information("Opened DB");
+            }
+
             CollectionByType[typeof(Preferences)] = Morphic.GetCollection<Preferences>("Preferences");
             CollectionByType[typeof(User)] = Morphic.GetCollection<User>("User");
             CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
@@ -75,6 +85,14 @@ namespace MorphicServer
     public void DeleteDatabase()
         {
             Client.DropDatabase(Morphic.DatabaseNamespace.DatabaseName);
+        }
+
+        public bool IsClusterConnected
+        {
+            get
+            {
+                return Client.Cluster.Description.State == ClusterState.Connected;
+            }
         }
 
         /// <summary>The MongoDB collections within the database</summary>

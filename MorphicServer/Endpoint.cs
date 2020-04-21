@@ -32,6 +32,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Primitives;
 using MorphicServer.Attributes;
 using System.Linq;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -96,37 +98,41 @@ namespace MorphicServer
             endpoint.Context = context;
             endpoint.Request = context.Request;
             endpoint.Response = context.Response;
-            try
+            using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
+            using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
             {
-                if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
+                try
                 {
-                    Func<Task> call = async () => {
-                        endpoint.PopulateParameterFields();
-                        await endpoint.LoadResource();
-                        if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
-                        {
-                            await task;
-                        }
-                    };
-                    if (methodInfo.GetRunInTransaction())
+                    if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
                     {
-                        await endpoint.WithTransaction(async (session) =>
+                        Func<Task> call = async () =>
+                        {
+                            endpoint.PopulateParameterFields();
+                            await endpoint.LoadResource();
+                            if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
+                            {
+                                await task;
+                            }
+                        };
+                        if (methodInfo.GetRunInTransaction())
+                        {
+                            await endpoint.WithTransaction(async (session) => { await call(); });
+                        }
+                        else
                         {
                             await call();
-                        });
+                        }
                     }
                     else
                     {
-                        await call();
+                        // If the class doesn't have a matching method, respond with MethodNotAllowed
+                        context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
                     }
                 }
-                else
+                catch (HttpError error)
                 {
-                    // If the class doesn't have a matching method, respond with MethodNotAllowed
-                    context.Response.StatusCode = (int)HttpStatusCode.MethodNotAllowed;
+                    await context.Response.WriteError(error, context.RequestAborted);
                 }
-            }catch (HttpError error){
-                await context.Response.WriteError(error, context.RequestAborted);
             }
         }
 
@@ -145,8 +151,14 @@ namespace MorphicServer
                     {
                         if (type.GetCustomAttribute(typeof(Path)) is Path attr)
                         {
-                            var generic = run.MakeGenericMethod(new Type[] { type });
-                            endpoints.Map(attr.Template, generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                            using (LogContext.PushProperty("MorphicEndpoint", type.ToString()))
+                            using (LogContext.PushProperty("MorphicEndpointPath", attr.Template))
+                            {
+                                Log.Logger.Debug("Mapping MorphicEndpoint");
+                                var generic = run.MakeGenericMethod(new Type[] {type});
+                                endpoints.Map(attr.Template,
+                                    generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                            }
                         }
                     }
                 }

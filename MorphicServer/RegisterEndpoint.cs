@@ -25,6 +25,8 @@ using System;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -69,22 +71,30 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
-            var request = await Request.ReadJson<RegsiterUsernameRequest>();
+            var request = await Request.ReadJson<RegisterUsernameRequest>();
             if (request.username == "" || request.password == ""){
+                 
+                Log.Logger.Information("MISSING_USERNAME_PASSWORD");
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
-            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
-            if (existing != null)
+
+            using (LogContext.PushProperty("username", request.username))
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
+                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
+                if (existing != null)
+                {
+                    Log.Logger.Information("USER_EXISTS({username})");
+                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
+                }
+                var cred = new UsernameCredential();
+                cred.Id = request.username;
+                cred.SavePassword(request.password);
+                await Register(cred, request);
+                Log.Logger.Information("NEW_USER({username})");
             }
-            var cred = new UsernameCredential();
-            cred.Id = request.username;
-            cred.SavePassword(request.password);
-            await Register(cred, request);
         }
 
-        class RegsiterUsernameRequest : RegisterRequest
+        class RegisterUsernameRequest : RegisterRequest
         {
             public string username { get; set; } = "";
             public string password { get; set; } = "";
