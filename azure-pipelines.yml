@@ -42,13 +42,12 @@ resources:
       ports:
         - 27017:27017
   repositories:
-  ${{ if ne(variables['newDeployTag'], '') }}:
-    - repository: deploy-morphiclite
-      type: github
-      endpoint: oregondesignservices-dgomez
-      name: oregondesignservices/deploy-morphiclite
-      # Checkout the same branch in the deployment repo as the source code repo
-      ref: $(Build.SourceBranch)
+#    - repository: deploy-morphiclite
+#      type: github
+#      endpoint: oregondesignservices-dgomez
+#      name: oregondesignservices/deploy-morphiclite
+#      # Checkout the same branch in the deployment repo as the source code repo
+#      ref: $(Build.SourceBranch)
 
 pool:
   vmImage: "ubuntu-18.04"
@@ -99,8 +98,9 @@ stages:
       - job: update_deploy_tag
         condition: ne(variables['newDeployTag'], '')
         steps:
-          - checkout: deploy-morphiclite
+          - checkout: git@github.com:oregondesignservices/deploy-morphiclite.git@$(Build.SourceBranch)
             persistCredentials: true
+            path: deploy-morphiclite
           - task: Bash@3
             env:
               NEWTAG: $(newDeployTag)
