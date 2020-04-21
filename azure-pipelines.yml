@@ -109,16 +109,17 @@ stages:
           - task: Bash@3
             env:
               NEWTAG: $(newDeployTag)
-              #BRANCH: $(Build.SourceBranchName)
+              BRANCH: $(deployRepoRef)
             inputs:
               targetType: 'inline'
               workingDirectory: base/
               script: |
                 set -e
+                set -x
                 echo "installing kustomize"
                 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
 
-                #git checkout ${BRANCH}
+                git checkout ${BRANCH}
 
                 ls -al
                 echo "setting new image tag"
