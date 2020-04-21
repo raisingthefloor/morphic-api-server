@@ -36,7 +36,11 @@ variables:
   ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
     imageTags: |
       $(Build.SourceBranchName)
-  
+
+  # pipelines require that all repositories are accessible before you ever use them.
+  # Since we want to push tag changes from master to master (and develop to develop)
+  # but do NOT want to push tag changes on PR branches, we simply set the deploy repo
+  # branch to master. We won't use it anyway.
   ${{ if eq(variables['deployRepoRef'], '') }}:
     deployRepoRef: master
 
@@ -49,9 +53,8 @@ resources:
   repositories:
     - repository: deploy-morphiclite
       type: github
-      endpoint: oregondesignservices-dgomez
+      endpoint: oregondesignservices
       name: oregondesignservices/deploy-morphiclite
-      # Checkout the same branch in the deployment repo as the source code repo
       ref: $(deployRepoRef)
 
 pool:
