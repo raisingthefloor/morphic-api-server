@@ -52,7 +52,7 @@ resources:
       endpoint: oregondesignservices-dgomez
       name: oregondesignservices/deploy-morphiclite
       # Checkout the same branch in the deployment repo as the source code repo
-      ref: $(deployRepoRef)
+      ref: master
 
 pool:
   vmImage: "ubuntu-18.04"
