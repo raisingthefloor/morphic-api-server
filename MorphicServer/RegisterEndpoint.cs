@@ -71,7 +71,7 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
-            var request = await HttpRequestExtensions.ReadJson<RegisterUsernameRequest>(Request);
+            var request = await Request.ReadJson<RegisterUsernameRequest>();
             if (request.username == "" || request.password == ""){
                  
                 Log.Logger.Information("MISSING_USERNAME_PASSWORD");
@@ -86,7 +86,6 @@ namespace MorphicServer
                     Log.Logger.Information("USER_EXISTS({username})");
                     throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
                 }
-
                 var cred = new UsernameCredential();
                 cred.Id = request.username;
                 cred.SavePassword(request.password);
