@@ -23,13 +23,13 @@ variables:
   imageName: 'morphiclite'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     newDeployTag: stable-$(Build.BuildNumber)
-    deployRepoRef: refs/heads/master
+    deployRepoRef: master
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
     newDeployTag: develop-$(Build.BuildNumber)
-    deployRepoRef: refs/heads/master
+    deployRepoRef: develop
     imageTags: |
       latest
       develop-$(Build.BuildNumber)
@@ -38,7 +38,7 @@ variables:
       $(Build.SourceBranchName)
   
   ${{ if eq(variables['deployRepoRef'], '') }}:
-    deployRepoRef: refs/heads/master
+    deployRepoRef: master
 
 resources:
   containers:
@@ -52,7 +52,7 @@ resources:
       endpoint: oregondesignservices-dgomez
       name: oregondesignservices/deploy-morphiclite
       # Checkout the same branch in the deployment repo as the source code repo
-      ref: master
+      ref: $(deployRepoRef)
 
 pool:
   vmImage: "ubuntu-18.04"
