@@ -101,9 +101,8 @@ stages:
       - job: update_deploy_tag
         condition: ne(variables['newDeployTag'], '')
         steps:
-          - checkout: git@github.com:oregondesignservices/deploy-morphiclite.git@$(Build.SourceBranch)
+          - checkout: deploy-morphiclite
             persistCredentials: true
-            path: deploy-morphiclite
           - task: Bash@3
             env:
               NEWTAG: $(newDeployTag)
