@@ -22,10 +22,12 @@ variables:
   buildConfiguration: 'Release'
   imageName: 'morphiclite'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    newDeployTag: stable-$(Build.BuildNumber)
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    newDeployTag: develop-$(Build.BuildNumber)
     imageTags: |
       latest
       develop-$(Build.BuildNumber)
@@ -39,6 +41,13 @@ resources:
       image: mongo
       ports:
         - 27017:27017
+  repositories:
+    - repository: deploy-morphiclite
+      type: github
+      endpoint: oregondesignservices
+      name: oregondesignservices/deploy-morphiclite
+      # Checkout the same branch in the deployment repo as the source code repo
+      ref: $(Build.SourceBranch)
 
 pool:
   vmImage: "ubuntu-18.04"
@@ -84,3 +93,34 @@ stages:
               command: buildAndPush
               Dockerfile: Dockerfile
               tags: $(imageTags)
+  - stage: update_deploy_tag
+    jobs:
+      - job: update_deploy_tag
+        condition: ne(variables['newDeployTag'], '')
+        steps:
+          - checkout: deploy-morphiclite
+            persistCredentials: true
+          - task: Bash@3
+            env:
+              NEWTAG: $(newDeployTag)
+              #BRANCH: $(Build.SourceBranchName)
+            inputs:
+              targetType: 'inline'
+              workingDirectory: deploy-morphiclite/base/
+              script: |
+                set -e
+                echo "installing kustomize"
+                curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+
+                #git checkout ${BRANCH}
+
+                ls -al
+                echo "setting new image tag"
+                ./kustomize edit set image morphicworld/morphiclite=morphicworld/morphiclite:${NEWTAG}
+
+                cat kustomization.yaml
+
+                git config --global user.email "buildmaster@raisingthefloor.org"
+                git config --global user.name "buildmaster"
+                git commit kustomization.yaml -m "buildmaster: updating tag to ${NEWTAG}"
+                git push
