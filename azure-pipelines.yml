@@ -42,6 +42,7 @@ resources:
       ports:
         - 27017:27017
   repositories:
+  ${{ if ne(variables['newDeployTag'], '') }}:
     - repository: deploy-morphiclite
       type: github
       endpoint: oregondesignservices-dgomez
