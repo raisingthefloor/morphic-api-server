@@ -41,7 +41,7 @@ resources:
       image: mongo
       ports:
         - 27017:27017
-  repositories:
+  repositories: []
 #    - repository: deploy-morphiclite
 #      type: github
 #      endpoint: oregondesignservices-dgomez
