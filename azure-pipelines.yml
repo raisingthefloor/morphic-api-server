@@ -23,7 +23,7 @@ variables:
   imageName: 'morphiclite'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     newDeployTag: stable-$(Build.BuildNumber)
-    deployRepoRef: master
+    deployRepoRef: xyz
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
@@ -112,7 +112,7 @@ stages:
               #BRANCH: $(Build.SourceBranchName)
             inputs:
               targetType: 'inline'
-              workingDirectory: deploy-morphiclite/base/
+              workingDirectory: base/
               script: |
                 set -e
                 echo "installing kustomize"
