@@ -36,9 +36,7 @@ variables:
   ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
     imageTags: |
       $(Build.SourceBranchName)
-  ${{ if startsWith(variables['Build.SourceBranch'], 'feature') }}:
-    # since we won't be modifying the deployment repo, we set "master" here
-    # so the pipeline doesn't explode on trying to find the branch.
+  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/feature') }}:
     deployRepoRef: master
 
 resources:
