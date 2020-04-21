@@ -23,7 +23,7 @@ variables:
   imageName: 'morphiclite'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
     newDeployTag: stable-$(Build.BuildNumber)
-    deployRepoRef: xyz
+    deployRepoRef: master
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
