@@ -36,7 +36,8 @@ variables:
   ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
     imageTags: |
       $(Build.SourceBranchName)
-  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/feature') }}:
+  
+  ${{ if eq(variables['deployRepoRef'], '') }}:
     deployRepoRef: master
 
 resources:
