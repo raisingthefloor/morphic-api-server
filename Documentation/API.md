@@ -162,7 +162,7 @@ Immediately log the user in and return an authentication token.
       <td>Optional</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -175,6 +175,18 @@ Immediately log the user in and return an authentication token.
       <td>The user object</td>
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="4"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Key already exists</td>
+      <td colspan="2"><code>"existing_key"</code></td>
     </tr>
   </tbody>
 </table>
@@ -217,7 +229,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -230,6 +242,12 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>The user object</td>
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates failed authentication</td>
     </tr>
   </tbody>
 </table>
@@ -262,7 +280,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -275,6 +293,12 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>The user object</td>
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates failed authentication</td>
     </tr>
   </tbody>
 </table>
@@ -301,7 +325,7 @@ Get the user object for the given `id`
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>id</code></th>
@@ -327,6 +351,18 @@ Get the user object for the given `id`
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
   </tbody>
 </table>
 
@@ -365,6 +401,24 @@ Save the user object for the given `id`
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
   </tbody>
 </table>
 
@@ -388,7 +442,7 @@ Get the preferences object for the given `id`.
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>id</code></th>
@@ -407,6 +461,24 @@ Get the preferences object for the given `id`.
       <td>The dictionary of solution-specific preferences.  The keys are solution identifiers.  Each solution can have a completely arbitrary object for its preferences.</td>
       <td><code>{String: Object}</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>404</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates invalid preferences id</td>
     </tr>
   </tbody>
 </table>
@@ -439,6 +511,30 @@ Save the user object for the given `id`
       <td>The dictionary of solution-specific preferences.  The keys are solution identifiers.  Each solution can have a completely arbitrary object for its preferences.</td>
       <td><code>{String: Object}</code></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>404</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates invalid preferences id</td>
     </tr>
   </tbody>
 </table>
