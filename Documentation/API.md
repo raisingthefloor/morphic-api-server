@@ -120,8 +120,10 @@ Immediately log the user in and return an authentication token.
   </tbody>
 </table>
 
-<a name="endpoint-register-key"></a>/v1/register/key
+<a name="endpoint-register-key"></a>/v1/register/key (Disabled)
 ------------------
+
+*Temporarily disabled until we need it*
 
 ### POST
 
@@ -180,7 +182,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="4"><code>error</code></th>
+      <th rowspan="2"><code>error</code></th>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
@@ -247,13 +249,37 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td colspan="4">Empty indicates failed authentication</td>
+      <th rowspan="3"><code>error</code></th>
+      <td>Invalid credentials, including missing fields</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Account is temporarily locked</td>
+      <td colspan="2"><code>"locked"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.timeout</code></th>
+      <td><code>locked</code> duration in seconds until unlocked</td>
+      <td><code>Number</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>
 
-<a name="endpoint-auth-key"></a>/v1/auth/key
+<a name="endpoint-auth-key"></a>/v1/auth/key (Disabled)
 ------------------
+
+*Temporarily disabled until we need it*
 
 ### POST
 
@@ -298,7 +324,13 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td colspan="4">Empty indicates failed authentication</td>
+      <th rowspan="3"><code>error</code></th>
+      <td>Invalid credentials, including missing fields</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
     </tr>
   </tbody>
 </table>
