@@ -33,6 +33,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Driver.Core.Clusters;
 using Serilog;
 using Serilog.Context;
+using System.Linq;
 
 namespace MorphicServer
 {
@@ -102,15 +103,15 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<T?> Get<T>(string id, Session? session = null) where T: Record
+        public async Task<T?> Get<T>(string id, Session? session = null) where T: struct, Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.FindAsync(session.Handle, record => record.Id == id)).FirstOrDefault();
+                    return (await collection.FindAsync(session.Handle, record => record.Id == id)).FirstOrNull();
                 }
-                return (await collection.FindAsync(record => record.Id == id)).FirstOrDefault();
+                return (await collection.FindAsync(record => record.Id == id)).FirstOrNull();
             }
             return null;
         }
@@ -119,7 +120,7 @@ namespace MorphicServer
         /// <remarks>
         /// The destination collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Save<T>(T obj, Session? session = null) where T: Record
+        public async Task<bool> Save<T>(T obj, Session? session = null) where T: struct, Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
@@ -138,7 +139,7 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Delete<T>(T obj, Session? session = null) where T: Record
+        public async Task<bool> Delete<T>(T obj, Session? session = null) where T: struct, Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
@@ -188,14 +189,20 @@ namespace MorphicServer
             // upgrade the database.  We need some kind of locking system, or this initialization/upgrade code should move to a
             // script that gets run prior to spinning up instances.
             var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
-            var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
-            if (info == null){
+            if (collection.FindSync(info => info.Id == "0").FirstOrNull() is DatabaseInfo info)
+            {
+                // check for upgrade needed
+            }
+            else
+            {
+                // Create a new database
                 Morphic.CreateCollection("Preferences");
                 Morphic.CreateCollection("User");
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
                 Morphic.CreateCollection("AuthToken");
                 info = new DatabaseInfo();
+                info.Id = "0";
                 info.Version = 1;
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
@@ -209,11 +216,11 @@ namespace MorphicServer
         /// <remarks>
         /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
         /// </remarks>
-        class DatabaseInfo
+        struct DatabaseInfo
         {
             [BsonId]
-            public string Id { get; set; } = "0";
-            public int Version { get; set; } = 0;
+            public string Id { get; set; }
+            public int Version { get; set; }
         }
 
         /// <summary>A database transaction session</summary>
@@ -252,6 +259,18 @@ namespace MorphicServer
 
         }
 
+    }
+
+    public static class ListExtensions
+    {
+        public static T? FirstOrNull<T>(this IAsyncCursor<T> list) where T: struct
+        {
+            try{
+                return list.First();
+            }catch{
+                return null;
+            }
+        }
     }
 
 }

@@ -27,8 +27,12 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
-    public class KeyCredential: Credential
+    public struct KeyCredential : Credential
     {
+
+        [BsonId]
+        public string Id { get; set; }
+        public string? UserId { get; set; }
     }
 
     public static class KeyCredentialDatabase
@@ -36,10 +40,11 @@ namespace MorphicServer
         public static async Task<User?> UserForKey(this Database db, string key)
         {
             var credential = await db.Get<KeyCredential>(key);
-            if (credential == null || credential.UserId == null){
-                return null;
+            if (credential?.UserId is string userId)
+            {
+                return await db.Get<User>(credential?.UserId);
             }
-            return await db.Get<User>(credential.UserId);
+            return null;
         }
     }
 }

@@ -25,15 +25,19 @@ using System;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
-    public class UsernameCredential: Credential
+    public struct UsernameCredential: Credential
     {
-        public int? PasswordIterationCount;
-        public string? PasswordFunction;
-        public string? PasswordSalt;
-        public string? PasswordHash;
+        [BsonId]
+        public string Id { get; set; }
+        public string? UserId { get; set; }
+        public int? PasswordIterationCount { get; set; }
+        public string? PasswordFunction { get; set; }
+        public string? PasswordSalt { get; set; }
+        public string? PasswordHash { get; set; }
 
         public void SavePassword(string password)
         {
@@ -91,10 +95,14 @@ namespace MorphicServer
         public static async Task<User?> UserForUsername(this Database db, string username, string password)
         {
             var credential = await db.Get<UsernameCredential>(username);
-            if (credential == null || credential.UserId == null || !credential.IsValidPassword(password)){
-                return null;
+            if (credential?.UserId is string userId)
+            {
+                if (credential?.IsValidPassword(password) ?? false)
+                {
+                    return await db.Get<User>(userId);
+                }
             }
-            return await db.Get<User>(credential.UserId);
+            return null;
         }
     }
 }

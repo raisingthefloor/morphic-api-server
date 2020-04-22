@@ -31,7 +31,7 @@ using Serilog.Context;
 namespace MorphicServer
 {
 
-    public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
+    public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: struct, Credential
     {
 
         protected async Task Register(CredentialType credential, RegisterRequest request)
@@ -57,10 +57,10 @@ namespace MorphicServer
 
         }
 
-        protected class RegisterRequest
+        protected interface RegisterRequest
         {
-            public string? firstName { get; set; }
-            public string? lastName { get; set; }
+            string? firstName { get; set; }
+            string? lastName { get; set; }
         }
     }
 
@@ -94,10 +94,12 @@ namespace MorphicServer
             }
         }
 
-        class RegisterUsernameRequest : RegisterRequest
+        struct RegisterUsernameRequest : RegisterRequest
         {
-            public string username { get; set; } = "";
-            public string password { get; set; } = "";
+            public string? firstName { get; set; }
+            public string? lastName { get; set; }
+            public string username { get; set; }
+            public string password { get; set; }
         }
 
         class BadRequestResponse
@@ -135,9 +137,11 @@ namespace MorphicServer
             await Register(cred, request);
         }
 
-        class RegsiterKeyRequest : RegisterRequest
+        struct RegsiterKeyRequest : RegisterRequest
         {
-            public string key { get; set; } = "";
+            public string? firstName { get; set; }
+            public string? lastName { get; set; }
+            public string key { get; set; }
         }
 
         class BadRequestResponse

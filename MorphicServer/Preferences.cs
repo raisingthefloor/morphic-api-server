@@ -30,8 +30,11 @@ namespace MorphicServer
 {
 
     /// <summary>Dummy data model for preferences</summary>
-    public class Preferences : Record
+    public struct Preferences : Record
     {
+        [BsonId]
+        public string Id { get; set; }
+
         public string? UserId { get; set; }
 
         /// <summary>The user's default preferences</summary>

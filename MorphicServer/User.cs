@@ -26,8 +26,10 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
-    public class User: Record
+    public struct User: Record
     {
+        [BsonId]
+        public string Id { get; set; }
         public string? FirstName { get; set; }
         public string? LastName { get; set; }
         public string? PreferencesId { get; set; }

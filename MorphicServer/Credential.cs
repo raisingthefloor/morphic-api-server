@@ -1,7 +1,7 @@
 namespace MorphicServer
 {
-    public class Credential: Record
+    public interface Credential: Record
     {
-        public string? UserId;
+        string? UserId { get; set; }
     }
 }

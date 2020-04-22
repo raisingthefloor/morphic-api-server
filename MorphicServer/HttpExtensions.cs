@@ -64,7 +64,7 @@ namespace MorphicServer
     {
 
         /// <summary>Deserialize the request JSON body into an object</summary>
-        public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
+        public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: struct
         {
             if (request.ContentType == "application/json; charset=utf-8")
             {

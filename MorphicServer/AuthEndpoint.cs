@@ -11,31 +11,29 @@ namespace MorphicServer
     /// <remarks>
     /// Subclasses are only responsible for providing a request data model and an AuthenticatedUser implementation
     /// </remarks>
-    public abstract class AuthEndpoint<T>: Endpoint where T: class
+    public abstract class AuthEndpoint<T>: Endpoint where T: struct
     {
 
         /// <summary>Parse the request JSON, call AuthenticatedUser, and respond with a token or error</summary>
         public async Task Authenticate()
         {
             var request = await Request.ReadJson<T>();
-            var user = await AuthenticatedUser(request);
-            if (user == null)
+            if (await AuthenticatedUser(request) is User user)
             {
-                Log.Logger.Information("USER_MISSING");
-                throw new HttpError(HttpStatusCode.BadRequest);
-            }
+                using (LogContext.PushProperty("UserUid", user.Id))
+                {
+                    var token = new AuthToken(user);
+                    await Save(token);
+                    Log.Logger.Debug("NEW_TOKEN for {UserUid}");
 
-            using (LogContext.PushProperty("UserUid", user.Id))
-            {
-                var token = new AuthToken(user);
-                await Save(token);
-                Log.Logger.Debug("NEW_TOKEN for {UserUid}");
-
-                var response = new AuthResponse();
-                response.token = token.Id;
-                response.user = user;
-                await Respond(response);
+                    var response = new AuthResponse();
+                    response.token = token.Id;
+                    response.user = user;
+                    await Respond(response);
+                }
             }
+            Log.Logger.Information("USER_MISSING");
+            throw new HttpError(HttpStatusCode.BadRequest);
         }
 
         public abstract Task<User?> AuthenticatedUser(T request);
@@ -43,23 +41,23 @@ namespace MorphicServer
     }
 
     /// <summary>Model for authentication responses</summary>
-    public class AuthResponse
+    public struct AuthResponse
     {
         public string? token { get; set; }
         public User? user { get; set; }
     }
 
     /// <summary>Model for authentication requests using a username</summary>
-    public class AuthUsernameRequest
+    public struct AuthUsernameRequest
     {
-        public string username { get; set; } = "";
-        public string password { get; set; } = "";
+        public string username { get; set; }
+        public string password { get; set; }
     }
 
     /// <summary>Model for authentication requests using a key</summary>
-    public class AuthKeyRequest
+    public struct AuthKeyRequest
     {
-        public string key { get; set; } = "";
+        public string key { get; set; }
     }
 
     /// <summary>Authenticate with a username</summary>

@@ -28,10 +28,8 @@ using MongoDB.Bson.Serialization.IdGenerators;
 
 namespace MorphicServer
 {
-    public class Record
+    public interface Record
     {
-
-        [BsonId]
-        public string Id { get; set; } = "";
+        string Id { get; set; }
     }
 }

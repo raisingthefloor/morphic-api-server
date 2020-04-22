@@ -204,17 +204,17 @@ namespace MorphicServer
             return Task.CompletedTask;
         }
 
-        public async Task<T> Load<T>(string id) where T: Record
+        public async Task<T> Load<T>(string id) where T: struct, Record
         {
             var db = Context.GetDatabase();
             T? record = await db.Get<T>(id, ActiveSession);
             if (record == null){
                 throw new HttpError(HttpStatusCode.NotFound);
             }
-            return record;
+            return record.Value;
         }
 
-        public async Task Save<T>(T obj) where T: Record
+        public async Task Save<T>(T obj) where T: struct, Record
         {
             var db = Context.GetDatabase();
             var success = await db.Save<T>(obj, ActiveSession);
@@ -223,7 +223,7 @@ namespace MorphicServer
             }
         }
 
-        public async Task Delete<T>(T obj) where T: Record
+        public async Task Delete<T>(T obj) where T: struct, Record
         {
             var db = Context.GetDatabase();
             var success = await db.Delete<T>(obj, ActiveSession);
@@ -242,10 +242,10 @@ namespace MorphicServer
         public async Task<User> RequireUser()
         {
             var user = await Context.GetUser();
-            if (user == null){
-                throw new HttpError(HttpStatusCode.Unauthorized);
+            if (user is User user_){
+                return user_;
             }
-            return user;
+            throw new HttpError(HttpStatusCode.Unauthorized);
         }
 
         public Database.Session? ActiveSession;
@@ -280,8 +280,9 @@ namespace MorphicServer
             var db = context.GetDatabase();
             var providedToken = context.Request.Headers["X-Morphic-Auth-Token"].FirstOrDefault();
             var token = await db.Get<AuthToken>(providedToken);
-            if (token != null && token.UserId != null){
-                return await db.Get<User>(token.UserId);
+            if (token?.UserId is string userId)
+            {
+                return await db.Get<User>(userId);
             }
             return null;
         }
