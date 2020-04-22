@@ -89,12 +89,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="3"><code>error</code></td>
-      <td>Specific error</td>
-      <td>String</td>
-      <td>Optional</td>
-    </tr>
-    <tr>
+      <th rowspan="4"><code>error</code></th>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
@@ -103,10 +98,24 @@ Immediately log the user in and return an authentication token.
       <td colspan="2"><code>"existing_username"</code></td>
     </tr>
     <tr>
-      <th><code>details</code></td>
-      <td>Extra information for specific errors</td>
-      <td>object</td>
+      <td>Known bad password</td>
+      <td colspan="2"><code>"bad_password"</code></td>
+    </tr>
+    <tr>
+      <td>Password is too short</td>
+      <td colspan="2"><code>"short_password"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.minimum_length</code></th>
+      <td><code>short_password</code> minimum password length</td>
+      <td><code>Number</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>
