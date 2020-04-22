@@ -89,7 +89,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td rowspan="3"><code>error</code></td>
+      <th rowspan="3"><code>error</code></td>
       <td>Specific error</td>
       <td>String</td>
       <td>Optional</td>
@@ -103,7 +103,7 @@ Immediately log the user in and return an authentication token.
       <td colspan="2"><code>"existing_username"</code></td>
     </tr>
     <tr>
-      <td><code>details</code></td>
+      <th><code>details</code></td>
       <td>Extra information for specific errors</td>
       <td>object</td>
       <td>Optional</td>
