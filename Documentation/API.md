@@ -11,7 +11,7 @@ Endpoints
   * [`/v1/auth/key`](#endpoint-auth-key)
 * [User Data](#section-user-data)
   * [`/v1/users/{id}`](#endpoint-user)
-  * [`/v1/preferences/{id}`](#endpoint-preferences)
+  * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
 
 
 <a name="section-user-registration"></a>User Registration
@@ -336,10 +336,10 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-user"></a>/v1/preferences/{id}
+<a name="endpoint-user"></a>/v1/users/{uid}/preferences/{id}
 ------------------
 
-A preference id can be found in the `PreferencesId` property of a user object.
+A preference id can be found in the `preferences_id` property of a user object.
 
 ### GET
 
