@@ -33,7 +33,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -71,7 +71,7 @@ Immediately log the user in and return an authentication token.
       <td>Optional</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -84,6 +84,29 @@ Immediately log the user in and return an authentication token.
       <td>The user object</td>
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td rowspan="3"><code>error</code></td>
+      <td>Specific error</td>
+      <td>String</td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Username already exists</td>
+      <td colspan="2"><code>"existing_username"</code></td>
+    </tr>
+    <tr>
+      <td><code>details</code></td>
+      <td>Extra information for specific errors</td>
+      <td>object</td>
+      <td>Optional</td>
     </tr>
   </tbody>
 </table>
@@ -104,7 +127,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -165,7 +188,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -216,7 +239,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -264,7 +287,7 @@ Get the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
@@ -309,12 +332,12 @@ Save the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
@@ -351,7 +374,7 @@ Get the preferences object for the given `id`.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
@@ -390,12 +413,12 @@ Save the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
