@@ -72,11 +72,22 @@ namespace MorphicServer
         public async Task Put()
         {
             var updated = await Request.ReadJson<Preferences>();
+            using (LogContext.PushProperty("RequestedPreferencesUid", Id))
+            {
+                if (updated.Default == null)
+                {
+                    Log.Logger.Warning("Deleting Default preferences. updated.Default is null");
+                }
+                else
+                {
+                    Log.Logger.Information("Updating preferences 'Default'");
+                }
+            }
             Preferences.Default = updated.Default;
             await Save(Preferences);
         }
 
-        /// <summary>Update the user's preferences</summary>
+        /// <summary>Delete the user's preferences</summary>
         [Method]
         public async Task Delete()
         {
