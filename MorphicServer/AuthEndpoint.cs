@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Context;
 
@@ -45,20 +46,25 @@ namespace MorphicServer
     /// <summary>Model for authentication responses</summary>
     public class AuthResponse
     {
+        [JsonPropertyName("token")]
         public string? token { get; set; }
+        [JsonPropertyName("user")]
         public User? user { get; set; }
     }
 
     /// <summary>Model for authentication requests using a username</summary>
     public class AuthUsernameRequest
     {
+        [JsonPropertyName("username")]
         public string username { get; set; } = "";
+        [JsonPropertyName("password")]
         public string password { get; set; } = "";
     }
 
     /// <summary>Model for authentication requests using a key</summary>
     public class AuthKeyRequest
     {
+        [JsonPropertyName("key")]
         public string key { get; set; } = "";
     }
 
