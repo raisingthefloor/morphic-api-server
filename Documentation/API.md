@@ -4,20 +4,20 @@ Endpoints
 =========
 
 * [User Registration](#section-user-registration)
-  * [`/register/username`](#endpoint-register-username)
-  * [`/register/key`](#endpoint-register-key)
+  * [`/v1/register/username`](#endpoint-register-username)
+  * [`/v1/register/key`](#endpoint-register-key)
 * [Authentication](#section-authentication)
-  * [`/auth/username`](#endpoint-auth-username)
-  * [`/auth/key`](#endpoint-auth-key)
+  * [`/v1/auth/username`](#endpoint-auth-username)
+  * [`/v1/auth/key`](#endpoint-auth-key)
 * [User Data](#section-user-data)
-  * [`/users/{id}`](#endpoint-user)
-  * [`/preferences/{id}`](#endpoint-preferences)
+  * [`/v1/users/{id}`](#endpoint-user)
+  * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
 
 
 <a name="section-user-registration"></a>User Registration
 =================
 
-<a name="endpoint-register-username"></a>/register/username
+<a name="endpoint-register-username"></a>/v1/register/username
 ------------------
 
 ### POST
@@ -33,7 +33,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -53,19 +53,25 @@ Immediately log the user in and return an authentication token.
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>firstName</code></th>
+      <th><code>email</code></th>
+      <td>The user's email</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>first_name</code></th>
       <td>The user's first name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th><code>lastName</code></th>
+      <th><code>last_name</code></th>
       <td>The user's last name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -79,11 +85,45 @@ Immediately log the user in and return an authentication token.
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="4"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Username already exists</td>
+      <td colspan="2"><code>"existing_username"</code></td>
+    </tr>
+    <tr>
+      <td>Known bad password</td>
+      <td colspan="2"><code>"bad_password"</code></td>
+    </tr>
+    <tr>
+      <td>Password is too short</td>
+      <td colspan="2"><code>"short_password"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.minimum_length</code></th>
+      <td><code>short_password</code> minimum password length</td>
+      <td><code>Number</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
-<a name="endpoint-register-key"></a>/register/key
+<a name="endpoint-register-key"></a>/v1/register/key (Disabled)
 ------------------
+
+*Temporarily disabled until we need it*
 
 ### POST
 
@@ -98,7 +138,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -112,19 +152,19 @@ Immediately log the user in and return an authentication token.
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>firstName</code></th>
+      <th><code>first_name</code></th>
       <td>The user's first name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th><code>lastName</code></th>
+      <th><code>last_name</code></th>
       <td>The user's last name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -138,6 +178,18 @@ Immediately log the user in and return an authentication token.
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="2"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Key already exists</td>
+      <td colspan="2"><code>"existing_key"</code></td>
+    </tr>
   </tbody>
 </table>
 
@@ -145,7 +197,7 @@ Immediately log the user in and return an authentication token.
 <a name="section-authentication"></a>Authentication
 =================
 
-<a name="endpoint-auth-username"></a>/auth/username
+<a name="endpoint-auth-username"></a>/v1/auth/username
 ------------------
 
 ### POST
@@ -159,7 +211,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -179,7 +231,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -193,11 +245,41 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="3"><code>error</code></th>
+      <td>Invalid credentials, including missing fields</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Account is temporarily locked</td>
+      <td colspan="2"><code>"locked"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.timeout</code></th>
+      <td><code>locked</code> duration in seconds until unlocked</td>
+      <td><code>Number</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
-<a name="endpoint-auth-key"></a>/auth/key
+<a name="endpoint-auth-key"></a>/v1/auth/key (Disabled)
 ------------------
+
+*Temporarily disabled until we need it*
 
 ### POST
 
@@ -210,7 +292,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
@@ -224,7 +306,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
       <th><code>token</code></th>
@@ -238,6 +320,18 @@ token that can be used in `X-Morphic-Auth-Token` headers.
       <td><a href="#endpoint-user"><code>User</code></a></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="3"><code>error</code></th>
+      <td>Invalid credentials, including missing fields</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
+    </tr>
   </tbody>
 </table>
 
@@ -245,7 +339,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
 <a name="section-user-data"></a>User Data
 =================
 
-<a name="endpoint-user"></a>/users/{id}
+<a name="endpoint-user"></a>/v1/users/{id}
 ------------------
 
 ### GET
@@ -258,36 +352,48 @@ Get the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
-      <th><code>Id</code></th>
+      <th><code>id</code></th>
       <td>The user's unique ID</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>PreferencesId</code></th>
+      <th><code>preferences_id</code></th>
       <td>The ID for the user's preferences</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>FirstName</code></th>
+      <th><code>first_name</code></th>
       <td>The user's first name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th><code>LastName</code></th>
+      <th><code>last_name</code></th>
       <td>The user's last name</td>
       <td><code>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
     </tr>
   </tbody>
 </table>
@@ -303,12 +409,12 @@ Save the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
@@ -316,24 +422,42 @@ Save the user object for the given `id`
       <th colspan="4">Request Body</th>
     </tr>
     <tr>
-      <th><code>FirstName</code></th>
+      <th><code>first_name</code></th>
       <td>The user's first name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
     <tr>
-      <th><code>LastName</code></th>
+      <th><code>last_name</code></th>
       <td>The user's last name</td>
       <td><code>String</code></td>
       <td>Optional</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
   </tbody>
 </table>
 
-<a name="endpoint-user"></a>/preferences/{id}
+<a name="endpoint-user"></a>/v1/users/{uid}/preferences/{id}
 ------------------
 
-A preference id can be found in the `PreferencesId` property of a user object.
+A preference id can be found in the `preferences_id` property of a user object.
 
 ### GET
 
@@ -345,30 +469,48 @@ Get the preferences object for the given `id`.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Response Body</th>
+      <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
-      <th><code>Id</code></th>
+      <th><code>id</code></th>
       <td>The preferences unique ID</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>UserId</code></th>
+      <th><code>user_id</code></th>
       <td>The ID for the user that owns the preferences</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>Default</code></th>
+      <th><code>default</code></th>
       <td>The dictionary of solution-specific preferences.  The keys are solution identifiers.  Each solution can have a completely arbitrary object for its preferences.</td>
       <td><code>{String: Object}</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>404</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates invalid preferences id</td>
     </tr>
   </tbody>
 </table>
@@ -384,12 +526,12 @@ Save the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th>Content-Type</th>
+      <th><code>Content-Type</code></th>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <th>X-Morphic-Auth-Token</th>
+      <th><code>X-Morphic-Auth-Token</code></th>
       <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
@@ -397,10 +539,34 @@ Save the user object for the given `id`
       <th colspan="4">Request Body</th>
     </tr>
     <tr>
-      <th><code>Default</code></th>
+      <th><code>default</code></th>
       <td>The dictionary of solution-specific preferences.  The keys are solution identifiers.  Each solution can have a completely arbitrary object for its preferences.</td>
       <td><code>{String: Object}</code></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>404</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates invalid preferences id</td>
     </tr>
   </tbody>
 </table>

@@ -31,9 +31,13 @@ namespace MorphicServer
 {
 
     /// <summary>And endpoint representing user preferences</summary>
-    [Path("/preferences/{id}")]
+    [Path("/users/{userid}/preferences/{id}")]
     public class PreferencesEndpoint: Endpoint
     {
+
+        /// <summary>The user id to use, populated from the request URL</summary>
+        [Parameter]
+        public string UserId = "";
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
         [Parameter]
@@ -47,7 +51,7 @@ namespace MorphicServer
             using (LogContext.PushProperty("AuthenticatedUserPreferenceId", authenticatedUser.PreferencesId))
             using (LogContext.PushProperty("RequestedPreferencesUid", Id))
             {
-                if (authenticatedUser.PreferencesId != Id)
+                if (authenticatedUser.Id != UserId || authenticatedUser.PreferencesId != Id)
                 {
                     Log.Logger.Information("PREFERENCE_ACCESS_DENIED: {AuthenticatedUserUid} may not request preferences {Id}");
                     throw new HttpError(HttpStatusCode.Forbidden);
@@ -72,11 +76,22 @@ namespace MorphicServer
         public async Task Put()
         {
             var updated = await Request.ReadJson<Preferences>();
+            using (LogContext.PushProperty("RequestedPreferencesUid", Id))
+            {
+                if (updated.Default == null)
+                {
+                    Log.Logger.Warning("Deleting Default preferences. updated.Default is null");
+                }
+                else
+                {
+                    Log.Logger.Information("Updating preferences 'Default'");
+                }
+            }
             Preferences.Default = updated.Default;
             await Save(Preferences);
         }
 
-        /// <summary>Update the user's preferences</summary>
+        /// <summary>Delete the user's preferences</summary>
         [Method]
         public async Task Delete()
         {

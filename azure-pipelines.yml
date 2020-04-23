@@ -22,10 +22,14 @@ variables:
   buildConfiguration: 'Release'
   imageName: 'morphiclite'
   ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    newDeployTag: stable-$(Build.BuildNumber)
+    deployRepoRef: master
     imageTags: |
       stable
       stable-$(Build.BuildNumber)
   ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    newDeployTag: develop-$(Build.BuildNumber)
+    deployRepoRef: develop
     imageTags: |
       latest
       develop-$(Build.BuildNumber)
@@ -33,12 +37,25 @@ variables:
     imageTags: |
       $(Build.SourceBranchName)
 
+  # pipelines require that all repositories are accessible before you ever use them.
+  # Since we want to push tag changes from master to master (and develop to develop)
+  # but do NOT want to push tag changes on PR branches, we simply set the deploy repo
+  # branch to master. We won't use it anyway.
+  ${{ if eq(variables['deployRepoRef'], '') }}:
+    deployRepoRef: master
+
 resources:
   containers:
     - container: mongo
       image: mongo
       ports:
         - 27017:27017
+  repositories:
+    - repository: deploy-morphiclite
+      type: github
+      endpoint: oregondesignservices
+      name: oregondesignservices/deploy-morphiclite
+      ref: $(deployRepoRef)
 
 pool:
   vmImage: "ubuntu-18.04"
@@ -84,3 +101,36 @@ stages:
               command: buildAndPush
               Dockerfile: Dockerfile
               tags: $(imageTags)
+  - stage: update_deploy_tag
+    jobs:
+      - job: update_deploy_tag
+        condition: ne(variables['newDeployTag'], '')
+        steps:
+          - checkout: deploy-morphiclite
+            persistCredentials: true
+            path: deploy-morphiclite
+          - task: Bash@3
+            env:
+              NEWTAG: $(newDeployTag)
+              BRANCH: $(deployRepoRef)
+            inputs:
+              targetType: 'inline'
+              workingDirectory: base/
+              script: |
+                set -e
+                set -x
+                echo "installing kustomize"
+                curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+
+                git checkout ${BRANCH}
+
+                ls -al
+                echo "setting new image tag"
+                ./kustomize edit set image morphicworld/morphiclite=morphicworld/morphiclite:${NEWTAG}
+
+                cat kustomization.yaml
+
+                git config --global user.email "buildmaster@raisingthefloor.org"
+                git config --global user.name "buildmaster"
+                git commit kustomization.yaml -m "buildmaster: updating tag to ${NEWTAG}"
+                git push

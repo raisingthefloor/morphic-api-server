@@ -28,6 +28,8 @@ using System.Text.Json;
 using System;
 using System.Net;
 using System.Text.Encodings.Web;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -80,7 +82,10 @@ namespace MorphicServer
                 }
                 catch (Exception e)
                 {
-                    var x = e;
+                    using (LogContext.PushProperty("exception", e))
+                    {
+                        Log.Logger.Information("Could not deserialize payload");
+                    }
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
