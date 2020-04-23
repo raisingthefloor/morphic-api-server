@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -28,8 +29,11 @@ namespace MorphicServer
 {
     public class User: Record
     {
+        [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
+        [JsonPropertyName("last_name")]
         public string? LastName { get; set; }
+        [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
     }
 }

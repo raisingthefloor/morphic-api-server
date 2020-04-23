@@ -79,20 +79,20 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
 
             // POST, success with first/last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing"", ""first_name"": ""Test"", ""last_name"": ""User""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -107,16 +107,16 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Test", property.GetString());
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("User", property.GetString());
 
@@ -130,7 +130,7 @@ namespace MorphicServer.Tests
             json = await response.Content.ReadAsStringAsync();
             document = JsonDocument.Parse(json);
             element = document.RootElement;
-            Assert.True(element.TryGetProperty("Error", out property));
+            Assert.True(element.TryGetProperty("error", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("ExistingUsername", property.GetString());
         }
@@ -174,20 +174,20 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
 
             // POST, success with first/last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""key"": ""testkey2"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""key"": ""testkey2"", ""first_name"": ""Test"", ""last_name"": ""User""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -202,16 +202,16 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Test", property.GetString());
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("User", property.GetString());
 
@@ -225,7 +225,7 @@ namespace MorphicServer.Tests
             json = await response.Content.ReadAsStringAsync();
             document = JsonDocument.Parse(json);
             element = document.RootElement;
-            Assert.True(element.TryGetProperty("Error", out property));
+            Assert.True(element.TryGetProperty("error", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("ExistingKey", property.GetString());
         }

@@ -25,6 +25,7 @@ using System;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Context;
 
@@ -59,7 +60,9 @@ namespace MorphicServer
 
         protected class RegisterRequest
         {
+            [JsonPropertyName("first_name")]
             public string? firstName { get; set; }
+            [JsonPropertyName("last_name")]
             public string? lastName { get; set; }
         }
     }
@@ -96,12 +99,15 @@ namespace MorphicServer
 
         class RegisterUsernameRequest : RegisterRequest
         {
+            [JsonPropertyName("username")]
             public string username { get; set; } = "";
+            [JsonPropertyName("password")]
             public string password { get; set; } = "";
         }
 
         class BadRequestResponse
         {
+            [JsonPropertyName("error")]
             public string Error { get; set; }
 
             BadRequestResponse(string error)
@@ -120,7 +126,7 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
-            var request = await Request.ReadJson<RegsiterKeyRequest>();
+            var request = await Request.ReadJson<RegisterKeyRequest>();
             if (request.key == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest);
@@ -135,13 +141,15 @@ namespace MorphicServer
             await Register(cred, request);
         }
 
-        class RegsiterKeyRequest : RegisterRequest
+        class RegisterKeyRequest : RegisterRequest
         {
+            [JsonPropertyName("key")]
             public string key { get; set; } = "";
         }
 
         class BadRequestResponse
         {
+            [JsonPropertyName("error")]
             public string Error { get; set; }
 
             BadRequestResponse(string error)

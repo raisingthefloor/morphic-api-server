@@ -109,10 +109,10 @@ namespace MorphicServer.Tests
             var document = JsonDocument.Parse(json);
             var element = document.RootElement;
             JsonElement property;
-            Assert.True(element.TryGetProperty("Id", out property));
+            Assert.True(element.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(userInfo1.PreferencesId, property.GetString());
-            Assert.True(element.TryGetProperty("Default", out property));
+            Assert.True(element.TryGetProperty("default", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
         }
 
@@ -126,14 +126,14 @@ namespace MorphicServer.Tests
             var userid = Guid.NewGuid().ToString();
             var uuid = Guid.NewGuid().ToString();
             var request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userid}/preferences/{uuid}");
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, unknown prefs, unauth
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{uuid}");
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
@@ -141,21 +141,21 @@ namespace MorphicServer.Tests
             // PUT, unknown user
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userid}/preferences/{uuid}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // PUT, unknown prefs
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{uuid}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // PUT, known user, unauth
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{uuid}");
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
@@ -163,7 +163,7 @@ namespace MorphicServer.Tests
             // PUT, known prefs, unauth
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userid}/preferences/{userInfo1.PreferencesId}");
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
@@ -171,7 +171,7 @@ namespace MorphicServer.Tests
             // PUT, known user & prefs, unauth
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
@@ -180,7 +180,7 @@ namespace MorphicServer.Tests
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
@@ -188,21 +188,21 @@ namespace MorphicServer.Tests
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // POST, not allowed
             request = new HttpRequestMessage(HttpMethod.Post, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
 
             // PUT, success
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(0, response.Content.Headers.ContentLength);
@@ -215,13 +215,13 @@ namespace MorphicServer.Tests
             var document = JsonDocument.Parse(json);
             var element = document.RootElement;
             JsonElement property;
-            Assert.True(element.TryGetProperty("Id", out property));
+            Assert.True(element.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(userInfo1.PreferencesId, property.GetString());
-            Assert.True(element.TryGetProperty("UserId", out property));
+            Assert.True(element.TryGetProperty("user_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(userInfo1.Id, property.GetString());
-            Assert.True(element.TryGetProperty("Default", out property));
+            Assert.True(element.TryGetProperty("default", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var defaults = property;
             Assert.True(defaults.TryGetProperty("org.raisingthefloor.solution", out property));
@@ -262,38 +262,38 @@ namespace MorphicServer.Tests
             // PUT, bad solution (not an object)
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": 1}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": 1}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": ""test""}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": ""test""}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": true}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": true}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": false}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": false}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Default"": {""org.raisingthefloor.solution"": []}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": []}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // PUT, ignored fields
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
-            request.Content = new StringContent(@"{""Id"": ""newid"", ""UserId"": ""newuserid"", ""Default"": {""org.raisingthefloor.solution"": {""first"": 12, ""second"": ""changed"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""id"": ""newid"", ""user_id"": ""newuserid"", ""default"": {""org.raisingthefloor.solution"": {""first"": 12, ""second"": ""changed"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(0, response.Content.Headers.ContentLength);
@@ -305,13 +305,13 @@ namespace MorphicServer.Tests
             json = await response.Content.ReadAsStringAsync();
             document = JsonDocument.Parse(json);
             element = document.RootElement;
-            Assert.True(element.TryGetProperty("Id", out property));
+            Assert.True(element.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(userInfo1.PreferencesId, property.GetString());
-            Assert.True(element.TryGetProperty("UserId", out property));
+            Assert.True(element.TryGetProperty("user_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(userInfo1.Id, property.GetString());
-            Assert.True(element.TryGetProperty("Default", out property));
+            Assert.True(element.TryGetProperty("default", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             defaults = property;
             Assert.True(defaults.TryGetProperty("org.raisingthefloor.solution", out property));

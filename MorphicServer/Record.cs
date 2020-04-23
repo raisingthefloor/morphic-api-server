@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.IdGenerators;
@@ -32,6 +33,7 @@ namespace MorphicServer
     {
 
         [BsonId]
+        [JsonPropertyName("id")]
         public string Id { get; set; } = "";
     }
 }

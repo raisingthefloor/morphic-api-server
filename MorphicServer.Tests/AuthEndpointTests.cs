@@ -96,15 +96,15 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
         }
 
@@ -158,15 +158,15 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
         }
 

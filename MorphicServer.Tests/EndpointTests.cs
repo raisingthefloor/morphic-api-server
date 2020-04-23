@@ -87,8 +87,8 @@ namespace MorphicServer.Tests
             ++TestUserCount;
             var content = new Dictionary<string, object>();
             content.Add("key", $"testkey{TestUserCount}");
-            content.Add("firstName", firstName);
-            content.Add("lastName", lastName);
+            content.Add("first_name", firstName);
+            content.Add("last_name", lastName);
             var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
@@ -106,10 +106,10 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             var id = property.GetString();
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             var preferencesId = property.GetString();
             return new UserInfo()

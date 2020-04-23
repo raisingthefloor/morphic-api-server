@@ -32,6 +32,7 @@ namespace MorphicServer
     /// <summary>Dummy data model for preferences</summary>
     public class Preferences : Record
     {
+        [JsonPropertyName("user_id")]
         public string? UserId { get; set; }
 
         /// <summary>The user's default preferences</summary>
@@ -39,6 +40,7 @@ namespace MorphicServer
         // and mongoDB doesn't allow dots in field keys.  Since we're unlikely to need to run queries
         // within the solution preferences, we don't lose any functionality by storing serialized JSON.
         [BsonSerializer(typeof(Database.JsonSerializer<Dictionary<string, SolutionPreferences>>))]
+        [JsonPropertyName("default")]
         public Dictionary<string, SolutionPreferences>? Default { get; set; }
     }
 
@@ -48,6 +50,7 @@ namespace MorphicServer
         /// <summary>Arbitrary preferences specific to the solution</summary>
         [JsonExtensionData]
         [BsonExtraElements]
+        [JsonPropertyName("values")]
         public Dictionary<string, object>? Values { get; set; }
     }
 }

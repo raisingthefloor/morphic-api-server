@@ -120,7 +120,8 @@ stages:
                 set -e
                 set -x
                 echo "installing kustomize"
-                curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+                wget "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" -O install_kustomize.sh
+                bash install_kustomize.sh
 
                 git checkout ${BRANCH}
 
