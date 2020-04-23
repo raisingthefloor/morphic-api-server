@@ -243,6 +243,7 @@ namespace MorphicServer
         {
             var user = await Context.GetUser();
             if (user == null){
+                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
                 throw new HttpError(HttpStatusCode.Unauthorized);
             }
             return user;
@@ -278,10 +279,17 @@ namespace MorphicServer
         public static async Task<User?> GetUser(this HttpContext context)
         {
             var db = context.GetDatabase();
-            var providedToken = context.Request.Headers["X-Morphic-Auth-Token"].FirstOrDefault();
-            var token = await db.Get<AuthToken>(providedToken);
-            if (token != null && token.UserId != null){
-                return await db.Get<User>(token.UserId);
+            if (context.Request.Headers["Authorization"].FirstOrDefault() is string authorization)
+            {
+                if (authorization.StartsWith("Bearer "))
+                {
+                    var providedToken = authorization.Substring(7);
+                    var token = await db.Get<AuthToken>(providedToken);
+                    if (token != null && token.UserId != null)
+                    {
+                        return await db.Get<User>(token.UserId);
+                    }
+                }
             }
             return null;
         }
