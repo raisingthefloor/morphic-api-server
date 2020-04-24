@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
@@ -75,19 +76,21 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterUsernameRequest>();
-            if (request.username == "" || request.password == ""){
+            if (String.IsNullOrWhiteSpace(request.username) || String.IsNullOrWhiteSpace(request.password)){
                  
                 Log.Logger.Information("MISSING_USERNAME_PASSWORD");
-                throw new HttpError(HttpStatusCode.BadRequest);
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
+            checkPassword(request.password);
+            
             using (LogContext.PushProperty("username", request.username))
             {
                 var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
                 if (existing != null)
                 {
                     Log.Logger.Information("USER_EXISTS({username})");
-                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingUsername);
+                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
                 }
                 var cred = new UsernameCredential();
                 cred.Id = request.username;
@@ -97,6 +100,28 @@ namespace MorphicServer
             }
         }
 
+        static private readonly int MinPasswordLength = 8;
+        public static readonly ReadOnlyCollection<string> BadPassword = new ReadOnlyCollection<string>(
+            new string[] {
+                "password",
+                "testing"
+            }
+        );
+
+        private void checkPassword(String password)
+        {
+            if (password.Length < MinPasswordLength)
+            {
+                Log.Logger.Information("SHORT_PASSWORD({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
+            }
+
+            if (BadPassword.Contains(password))
+            {
+                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
+            }
+        }
         class RegisterUsernameRequest : RegisterRequest
         {
             [JsonPropertyName("username")]
@@ -105,17 +130,24 @@ namespace MorphicServer
             public string password { get; set; } = "";
         }
 
-        class BadRequestResponse
+        class BadRequestResponseUser : BadRequestResponse
         {
-            [JsonPropertyName("error")]
-            public string Error { get; set; }
+            public static readonly BadRequestResponse ExistingUsername = new BadRequestResponseUser("existing_username");
+            public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
+            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser("short_password", MinPasswordLength);
+            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
 
-            BadRequestResponse(string error)
+            [JsonPropertyName(".minimum_length")] 
+            public int MinimumLength { get; set; }
+
+            public BadRequestResponseUser(string error, int i) : base(error)
             {
-                Error = error;
+                MinimumLength = i;
             }
 
-            public static BadRequestResponse ExistingUsername = new BadRequestResponse("ExistingUsername");
+            private BadRequestResponseUser(string error) : base(error)
+            {
+            }
         }
     }
 
@@ -127,14 +159,14 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterKeyRequest>();
-            if (request.key == "")
+            if (String.IsNullOrWhiteSpace(request.key))
             {
-                throw new HttpError(HttpStatusCode.BadRequest);
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseKey.MissingRequired);
             }
             var existing = await Context.GetDatabase().Get<KeyCredential>(request.key, ActiveSession);
             if (existing != null)
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponse.ExistingKey);
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseKey.ExistingKey);
             }
             var cred = new KeyCredential();
             cred.Id = request.key;
@@ -147,17 +179,25 @@ namespace MorphicServer
             public string key { get; set; } = "";
         }
 
-        class BadRequestResponse
+        class BadRequestResponseKey : BadRequestResponse
         {
-            [JsonPropertyName("error")]
-            public string Error { get; set; }
+            public static readonly BadRequestResponse ExistingKey = new BadRequestResponseKey("existing_key");
+            public static readonly BadRequestResponse MissingRequired = new BadRequestResponseKey("missing_required");
 
-            BadRequestResponse(string error)
+            public BadRequestResponseKey(string error) : base(error)
             {
-                Error = error;
             }
+        }
+    }
 
-            public static BadRequestResponse ExistingKey = new BadRequestResponse("ExistingKey");
+    public class BadRequestResponse
+    {
+        [JsonPropertyName("error")] 
+        public string Error { get; set; }
+
+        public BadRequestResponse(string error)
+        {
+            Error = error;
         }
     }
 }

@@ -129,5 +129,20 @@ namespace MorphicServer.Tests
             public string AuthToken { get; set; }
         }
 
+        public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error)
+        {
+            JsonElement property;
+
+            Assert.Equal(code, response.StatusCode);
+            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
+            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
+            var json = await response.Content.ReadAsStringAsync();
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            Assert.True(element.TryGetProperty("error", out property));
+            Assert.Equal(JsonValueKind.String, property.ValueKind);
+            Assert.Equal(error, property.GetString());
+            return element;
+        }
     }
 }
