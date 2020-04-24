@@ -69,7 +69,7 @@ namespace MorphicServer
     }
 
     /// <summary>Create a new user with a username</summary>
-    [Path("/register/username")]
+    [Path("/v1/register/username")]
     public class RegisterUsernameEndpoint: RegisterEndpoint<UsernameCredential>
     {
         [Method]
@@ -152,7 +152,7 @@ namespace MorphicServer
     }
 
     /// <summary>Create a new user with a username</summary>
-    [Path("/register/key")]
+    [Path("/v1/register/key")]
     public class RegisterKeyEndpoint: RegisterEndpoint<KeyCredential>
     {
         [Method]

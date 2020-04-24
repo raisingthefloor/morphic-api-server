@@ -89,7 +89,7 @@ namespace MorphicServer.Tests
             content.Add("key", $"testkey{TestUserCount}");
             content.Add("first_name", firstName);
             content.Add("last_name", lastName);
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
