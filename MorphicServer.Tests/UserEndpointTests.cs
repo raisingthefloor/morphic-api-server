@@ -25,6 +25,7 @@ using System;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Linq;
 using Xunit;
 using System.Text.Json;
@@ -46,10 +47,11 @@ namespace MorphicServer.Tests
             var request = new HttpRequestMessage(HttpMethod.Get, $"/users/{uuid}");
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // GET, unknown
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{uuid}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
@@ -58,17 +60,18 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{userInfo1.Id}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // GET, known, forbidden
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{userInfo2.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, success
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -103,10 +106,11 @@ namespace MorphicServer.Tests
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, unknown
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{uuid}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -117,31 +121,32 @@ namespace MorphicServer.Tests
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known, forbidden
             uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo2.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // POST, not allowed
             request = new HttpRequestMessage(HttpMethod.Post, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
 
             // PUT, success
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(0, response.Content.Headers.ContentLength);
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
             Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
@@ -164,13 +169,13 @@ namespace MorphicServer.Tests
 
             // PUT, ingored fields
             request = new HttpRequestMessage(HttpMethod.Put, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Again"", ""id"": ""newid"", ""preferences_id"": ""newprefsid""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(0, response.Content.Headers.ContentLength);
             request = new HttpRequestMessage(HttpMethod.Get, $"/users/{userInfo1.Id}");
-            request.Headers.Add(AuthTokenHeaderName, userInfo1.AuthToken);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
             Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
