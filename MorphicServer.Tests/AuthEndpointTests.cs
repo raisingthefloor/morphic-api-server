@@ -37,13 +37,13 @@ namespace MorphicServer.Tests
         [Fact]
         public async Task TestUsername()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/username");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/username");
             request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not supported
-            var path = "/auth/username";
+            var path = "/v1/auth/username";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
@@ -111,13 +111,13 @@ namespace MorphicServer.Tests
         [Fact]
         public async Task TestKey()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
             request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not supported
-            var path = "/auth/key";
+            var path = "/v1/auth/key";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);

@@ -69,7 +69,7 @@ namespace MorphicServer
     }
 
     /// <summary>Authenticate with a username</summary>
-    [Path("/auth/username")]
+    [Path("/v1/auth/username")]
     public class AuthUsernameEndpoint: AuthEndpoint<AuthUsernameRequest>
     {
 
@@ -87,7 +87,7 @@ namespace MorphicServer
     }
 
     /// <summary>Authenticate with a key</summary>
-    [Path("/auth/key")]
+    [Path("/v1/auth/key")]
     public class AuthKeyEndpoint: AuthEndpoint<AuthKeyRequest>
     {
         public override async Task<User?> AuthenticatedUser(AuthKeyRequest request)
