@@ -38,7 +38,7 @@ namespace MorphicServer.Tests
         public async Task TestRegisterUsername()
         {
             // GET, not supported
-            var path = "/register/username";
+            var path = "/v1/register/username";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
@@ -139,7 +139,7 @@ namespace MorphicServer.Tests
         public async Task TestRegisterKey()
         {
             // GET, not supported
-            var path = "/register/key";
+            var path = "/v1/register/key";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);

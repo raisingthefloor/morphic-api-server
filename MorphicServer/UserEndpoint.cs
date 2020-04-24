@@ -30,7 +30,7 @@ using Serilog.Context;
 namespace MorphicServer
 {
     /// <summary>And endpoint representing user preferences</summary>
-    [Path("/users/{id}")]
+    [Path("/v1/users/{id}")]
     public class UserEndpoint: Endpoint
     {
 
