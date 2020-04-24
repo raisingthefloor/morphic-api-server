@@ -24,7 +24,6 @@
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
-using System.Linq;
 using Xunit;
 using System.Text.Json;
 using System.Text;
@@ -45,33 +44,66 @@ namespace MorphicServer.Tests
 
             // POST, missing content type
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing""}", Encoding.UTF8);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
             // POST, missing username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
 
             // POST, missing password
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""username"": ""test1""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+
+            // POST, blank password
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": """"}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+
+            // POST, whitespace password
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""             ""}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""\t""}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+
+            // POST, short password
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""short""}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            JsonElement element;
+            element = await assertJsonError(response, HttpStatusCode.BadRequest, "short_password");
+            JsonElement property;
+            Assert.True(element.TryGetProperty(".minimum_length", out property));
+            Assert.Equal(JsonValueKind.Number, property.ValueKind);
+            Assert.Equal(8, property.GetInt16());
+            
+            // POST, known bad password
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""password""}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
             Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
             var json = await response.Content.ReadAsStringAsync();
             var document = JsonDocument.Parse(json);
-            var element = document.RootElement;
-            JsonElement property;
+            element = document.RootElement;
             Assert.Equal(JsonValueKind.Object, element.ValueKind);
             Assert.True(element.TryGetProperty("token", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
@@ -92,7 +124,7 @@ namespace MorphicServer.Tests
 
             // POST, success with first/last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing"", ""first_name"": ""Test"", ""last_name"": ""User""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing123"", ""first_name"": ""Test"", ""last_name"": ""User""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -122,17 +154,9 @@ namespace MorphicServer.Tests
 
             // POST, duplicate username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing123"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
-            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
-            json = await response.Content.ReadAsStringAsync();
-            document = JsonDocument.Parse(json);
-            element = document.RootElement;
-            Assert.True(element.TryGetProperty("error", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("ExistingUsername", property.GetString());
+            await assertJsonError(response, HttpStatusCode.BadRequest, "existing_username");
         }
 
         [Fact]
@@ -154,8 +178,8 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+            
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
@@ -219,15 +243,7 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Content = new StringContent(@"{""key"": ""testkey2"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
-            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
-            json = await response.Content.ReadAsStringAsync();
-            document = JsonDocument.Parse(json);
-            element = document.RootElement;
-            Assert.True(element.TryGetProperty("error", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("ExistingKey", property.GetString());
+            await assertJsonError(response, HttpStatusCode.BadRequest, "existing_key");
         }
 
     }

@@ -38,7 +38,7 @@ namespace MorphicServer.Tests
         public async Task TestUsername()
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/register/username");
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -50,13 +50,13 @@ namespace MorphicServer.Tests
 
             // POST, missing content type
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing""}", Encoding.UTF8);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
             // POST, missing username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -80,7 +80,7 @@ namespace MorphicServer.Tests
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
