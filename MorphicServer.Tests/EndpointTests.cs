@@ -52,9 +52,6 @@ namespace MorphicServer.Tests
         /// <summary>The expected character set for JSON requests and responses</sumary>
         protected const string JsonCharacterSet = "utf-8";
 
-        /// <summary>The name of the header for morphic authoriziation tokens</summary>
-        protected const string AuthTokenHeaderName = "X-Morphic-Auth-Token";
-
         /// <summary>A reference to the test database</summary>
         private Database Database;
 

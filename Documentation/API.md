@@ -75,7 +75,7 @@ Immediately log the user in and return an authentication token.
     </tr>
     <tr>
       <th><code>token</code></th>
-      <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
+      <td>The token string to use in the <code>Authorization</code> header</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -168,7 +168,7 @@ Immediately log the user in and return an authentication token.
     </tr>
     <tr>
       <th><code>token</code></th>
-      <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
+      <td>The token string to use in the <code>Authorization</code> header</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -203,7 +203,7 @@ Immediately log the user in and return an authentication token.
 ### POST
 
 Authenticate the given username/password credentials and return a
-token that can be used in `X-Morphic-Auth-Token` headers.
+token that can be used in `Authorization` headers.
 
 <table>
   <tbody>
@@ -235,7 +235,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
     </tr>
     <tr>
       <th><code>token</code></th>
-      <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
+      <td>The token string to use in the <code>Authorization</code> header</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -284,7 +284,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
 ### POST
 
 Authenticate the given secret key credentials and return a
-token that can be used in `X-Morphic-Auth-Token` headers.
+token that can be used in `Authorization` headers.
 
 <table>
   <tbody>
@@ -310,7 +310,7 @@ token that can be used in `X-Morphic-Auth-Token` headers.
     </tr>
     <tr>
       <th><code>token</code></th>
-      <td>The token string to use in the <code>X-Morphic-Auth-Token</code> header</td>
+      <td>The token string to use in the <code>Authorization</code> header</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -352,8 +352,8 @@ Get the user object for the given `id`
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th><code>X-Morphic-Auth-Token</code></th>
-      <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -382,6 +382,14 @@ Get the user object for the given `id`
       <td>The user's last name</td>
       <td><code>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Headers</th>
+    </tr>
+    <tr>
+      <th><code>WWW-Authenticate</code></th>
+      <td colspan="2"><code>Bearer</code></td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>401</code> Response Body</th>
@@ -414,8 +422,8 @@ Save the user object for the given `id`
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>X-Morphic-Auth-Token</code></th>
-      <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -438,6 +446,14 @@ Save the user object for the given `id`
     </tr>
     <tr>
       <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Headers</th>
+    </tr>
+    <tr>
+      <th><code>WWW-Authenticate</code></th>
+      <td colspan="2"><code>Bearer</code></td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>401</code> Response Body</th>
@@ -469,8 +485,8 @@ Get the preferences object for the given `id`.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <th><code>X-Morphic-Auth-Token</code></th>
-      <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -493,6 +509,14 @@ Get the preferences object for the given `id`.
       <td>The dictionary of solution-specific preferences.  The keys are solution identifiers.  Each solution can have a completely arbitrary object for its preferences.</td>
       <td><code>{String: Object}</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Headers</th>
+    </tr>
+    <tr>
+      <th><code>WWW-Authenticate</code></th>
+      <td colspan="2"><code>Bearer</code></td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>401</code> Response Body</th>
@@ -531,8 +555,8 @@ Save the user object for the given `id`
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>X-Morphic-Auth-Token</code></th>
-      <td colspan="2">Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -549,6 +573,14 @@ Save the user object for the given `id`
     </tr>
     <tr>
       <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>401</code> Response Headers</th>
+    </tr>
+    <tr>
+      <th><code>WWW-Authenticate</code></th>
+      <td colspan="2"><code>Bearer</code></td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>401</code> Response Body</th>
