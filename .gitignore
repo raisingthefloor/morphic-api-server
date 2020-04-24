@@ -10,3 +10,5 @@ MorphicServer.Tests/obj/*
 **/!.vscode/extensions.json
 Database/*
 **/.vs
+.idea
+*.iml
