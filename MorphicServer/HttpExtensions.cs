@@ -47,6 +47,12 @@ namespace MorphicServer
                 {
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 };
+                // For BadRequestResponse omit empty 'details'
+                if (obj.GetType() == typeof(BadRequestResponse) ||
+                    obj.GetType().IsSubclassOf(typeof(BadRequestResponse)))
+                {
+                    options.IgnoreNullValues = true;
+                }
                 await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), options, cancellationToken);
             }
             await response.CompleteAsync();
