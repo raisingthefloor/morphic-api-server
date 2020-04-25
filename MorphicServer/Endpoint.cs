@@ -99,7 +99,7 @@ namespace MorphicServer
             "HTTP Request Duration",
             labelNames);
         
-            /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
+        /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
