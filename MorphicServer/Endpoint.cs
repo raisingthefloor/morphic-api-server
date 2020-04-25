@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Net;
 using System.Threading.Tasks;
@@ -29,9 +30,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 using MorphicServer.Attributes;
 using System.Linq;
+using Prometheus;
 using Serilog;
 using Serilog.Context;
 
@@ -85,12 +86,25 @@ namespace MorphicServer
         public HttpResponse Response { get; private set; }
         #pragma warning restore CS8618
 
+        private static readonly string counter_metric_name = "http_server_requests";
+        private static readonly string histo_metric_name = "http_server_requests_duration";
+
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
         public static async Task Run<T>(HttpContext context) where T: Endpoint, new()
         {
+            var labelNames = new[] {"path", "method", "status"};
+            var counter = Metrics.CreateCounter(counter_metric_name, "HTTP Requests Total",
+                new CounterConfiguration
+                {
+                    LabelNames = labelNames
+                });
+            var histogram = Metrics.CreateHistogram(histo_metric_name, "HTTP Request Duration",
+                labelNames);
+
+
             // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
             // us to construct with a generic.  However, it means we need to populate some fields here instead
             // of in a constructor.
@@ -98,9 +112,29 @@ namespace MorphicServer
             endpoint.Context = context;
             endpoint.Request = context.Request;
             endpoint.Response = context.Response;
+            var method = context.Request.Method;
+            var statusCode = 500;
+            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
+            var path = context.Request.Path.ToString();
+            if (pathAttr?.Template == null)
+            {
+                Log.Logger.Error("No Path on endpoint");
+            }
+            else
+            {
+                path = pathAttr.Template;
+            }
+
+            if (String.IsNullOrEmpty(path))
+            {
+                Log.Logger.Error("Unknown path");
+                path = "(unknown)";
+            }
+
             using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
             using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
             {
+                var stopWatch = Stopwatch.StartNew();
                 try
                 {
                     if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
@@ -122,16 +156,33 @@ namespace MorphicServer
                         {
                             await call();
                         }
+                        if (path != "/metrics" && path != "/alive" && path != "/ready")
+                        {
+                            statusCode = context.Response.StatusCode;
+                            counter.Labels(path, method, statusCode.ToString()).Inc();
+                        }
                     }
                     else
                     {
                         // If the class doesn't have a matching method, respond with MethodNotAllowed
                         context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
+                        statusCode = context.Response.StatusCode;
+                        // TODO the path here is the full path, not the parameterized one. Need to fix this, but how to find? 
+                        counter.Labels(path, method, statusCode.ToString()).Inc();
                     }
                 }
                 catch (HttpError error)
                 {
+                    statusCode = (int) error.Status;
+                    counter.Labels(path, method, statusCode.ToString()).Inc();
                     await context.Response.WriteError(error, context.RequestAborted);
+                }
+                finally
+                {
+                    stopWatch.Stop();
+                    histogram.Labels(path, method, statusCode.ToString())
+                        .Observe(stopWatch.Elapsed.TotalSeconds);
+
                 }
             }
         }
