@@ -152,7 +152,9 @@ namespace MorphicServer
     }
 
     /// <summary>Create a new user with a username</summary>
-    [Path("/v1/register/key")]
+    // Disabling until we have a legitimate use case.  Not removing because we expect
+    // to re-enable at some point down the line for something like a USB stick login.
+    // [Path("/v1/register/key")]
     public class RegisterKeyEndpoint: RegisterEndpoint<KeyCredential>
     {
         [Method]

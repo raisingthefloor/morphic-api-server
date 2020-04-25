@@ -87,7 +87,9 @@ namespace MorphicServer
     }
 
     /// <summary>Authenticate with a key</summary>
-    [Path("/v1/auth/key")]
+    // Disabling until we have a legitimate use case.  Not removing because we expect
+    // to re-enable at some point down the line for something like a USB stick login.
+    // [Path("/v1/auth/key")]
     public class AuthKeyEndpoint: AuthEndpoint<AuthKeyRequest>
     {
         public override async Task<User?> AuthenticatedUser(AuthKeyRequest request)

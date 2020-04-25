@@ -109,6 +109,16 @@ namespace MorphicServer.Tests
         }
 
         [Fact]
+        public async Task TestKeyDisabled()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
+            request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        // Disabled until we re-enabled the endpoint
+        // [Fact]
         public async Task TestKey()
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
