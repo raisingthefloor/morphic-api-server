@@ -84,9 +84,12 @@ namespace MorphicServer.Tests
             JsonElement element;
             element = await assertJsonError(response, HttpStatusCode.BadRequest, "short_password");
             JsonElement property;
-            Assert.True(element.TryGetProperty(".minimum_length", out property));
-            Assert.Equal(JsonValueKind.Number, property.ValueKind);
-            Assert.Equal(8, property.GetInt16());
+            Assert.True(element.TryGetProperty("details", out property));
+            Assert.Equal(JsonValueKind.Object, property.ValueKind);
+            var details = property;
+            JsonElement minimum_length;
+            Assert.True(details.TryGetProperty("minimum_length", out minimum_length));
+            Assert.Equal(6, minimum_length.GetInt16());
             
             // POST, known bad password
             request = new HttpRequestMessage(HttpMethod.Post, path);
