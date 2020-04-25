@@ -167,7 +167,6 @@ namespace MorphicServer
                         // If the class doesn't have a matching method, respond with MethodNotAllowed
                         context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
                         statusCode = context.Response.StatusCode;
-                        // TODO the path here is the full path, not the parameterized one. Need to fix this, but how to find? 
                         counter.Labels(path, method, statusCode.ToString()).Inc();
                     }
                 }
