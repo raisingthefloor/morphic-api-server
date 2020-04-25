@@ -156,7 +156,7 @@ namespace MorphicServer
                         {
                             await call();
                         }
-                        if (path != "/metrics" && path != "/alive" && path != "/ready")
+                        if (path != "/alive" && path != "/ready")
                         {
                             statusCode = context.Response.StatusCode;
                             counter.Labels(path, method, statusCode.ToString()).Inc();
@@ -179,9 +179,11 @@ namespace MorphicServer
                 finally
                 {
                     stopWatch.Stop();
-                    histogram.Labels(path, method, statusCode.ToString())
-                        .Observe(stopWatch.Elapsed.TotalSeconds);
-
+                    if (path != "/alive" && path != "/ready")
+                    {
+                        histogram.Labels(path, method, statusCode.ToString())
+                            .Observe(stopWatch.Elapsed.TotalSeconds);
+                    }
                 }
             }
         }
