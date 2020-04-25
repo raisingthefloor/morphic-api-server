@@ -88,23 +88,23 @@ namespace MorphicServer
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
+        private static readonly string[] labelNames = new[] {"path", "method", "status"};
 
-        /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
+        private static readonly Counter counter = Metrics.CreateCounter(counter_metric_name, "HTTP Requests Total",
+            new CounterConfiguration
+            {
+                LabelNames = labelNames
+            });
+        private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
+            "HTTP Request Duration",
+            labelNames);
+        
+            /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
         public static async Task Run<T>(HttpContext context) where T: Endpoint, new()
         {
-            var labelNames = new[] {"path", "method", "status"};
-            var counter = Metrics.CreateCounter(counter_metric_name, "HTTP Requests Total",
-                new CounterConfiguration
-                {
-                    LabelNames = labelNames
-                });
-            var histogram = Metrics.CreateHistogram(histo_metric_name, "HTTP Request Duration",
-                labelNames);
-
-
             // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
             // us to construct with a generic.  However, it means we need to populate some fields here instead
             // of in a constructor.
