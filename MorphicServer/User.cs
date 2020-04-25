@@ -29,6 +29,11 @@ namespace MorphicServer
 {
     public class User: Record
     {
+        // TODO Must get this encrypted
+        [JsonPropertyName("email")]
+        public string? Email { get; set; }
+        [JsonIgnoreAttribute]
+        public bool EmailVerified { get; set; }
         [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
         [JsonPropertyName("last_name")]

@@ -27,7 +27,9 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using Serilog;
 using Serilog.Context;
 
@@ -43,6 +45,8 @@ namespace MorphicServer
             prefs.Id = Guid.NewGuid().ToString();
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
+            user.Email = request.email;
+            user.EmailVerified = false;
             user.FirstName = request.firstName;
             user.LastName = request.lastName;
             user.PreferencesId = prefs.Id;
@@ -62,6 +66,8 @@ namespace MorphicServer
 
         protected class RegisterRequest
         {
+            [JsonPropertyName("email")]
+            public string? email { get; set; }
             [JsonPropertyName("first_name")]
             public string? firstName { get; set; }
             [JsonPropertyName("last_name")]
@@ -77,12 +83,33 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterUsernameRequest>();
-            if (String.IsNullOrWhiteSpace(request.username) || String.IsNullOrWhiteSpace(request.password)){
-                 
+            if (String.IsNullOrWhiteSpace(request.username) || String.IsNullOrWhiteSpace(request.password))
+            {
                 Log.Logger.Information("MISSING_USERNAME_PASSWORD");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
+            if (String.IsNullOrWhiteSpace(request.email))
+            {
+                Log.Logger.Information("MISSING_EMAIL");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
+            }
+
+            if (!IsValidEmail(request.email))
+            {
+                Log.Logger.Information("MALFORMED_EMAIL");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
+            }
+            else
+            {
+                var existing = await Context.GetDatabase().Get<User>(a => a.Email == request.email, ActiveSession);
+                if (existing != null)
+                {
+                    Log.Logger.Information("EMAIL_EXISTS({username})");
+                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingEmail);
+                }
+            }
+            
             checkPassword(request.password);
             
             using (LogContext.PushProperty("username", request.username))
@@ -101,6 +128,19 @@ namespace MorphicServer
             }
         }
 
+        private bool IsValidEmail(string emailaddress)
+        {
+            try
+            {
+                new MailAddress(emailaddress);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+        
         static private readonly int MinPasswordLength = 6;
         public static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
             new string[] {
@@ -134,6 +174,8 @@ namespace MorphicServer
         class BadRequestResponseUser : BadRequestResponse
         {
             public static readonly BadRequestResponse ExistingUsername = new BadRequestResponseUser("existing_username");
+            public static readonly BadRequestResponse ExistingEmail = new BadRequestResponseUser("existing_email");
+            public static readonly BadRequestResponse MalformedEmail = new BadRequestResponseUser("malformed_email");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
             public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
                 "short_password",

@@ -86,10 +86,14 @@ namespace MorphicServer.Tests
         {
             ++TestUserCount;
             var content = new Dictionary<string, object>();
-            content.Add("username", $"user{TestUserCount}");
-            content.Add("password", "thisisatestpassword");
+            var username = $"user{TestUserCount}";
+            var password = "thisisatestpassword";
+            var email = $"user{TestUserCount}" + "@example.com";
+            content.Add("username", username);
+            content.Add("password", password);
             content.Add("first_name", firstName);
             content.Add("last_name", lastName);
+            content.Add("email", email);
             var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/username");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
@@ -109,15 +113,24 @@ namespace MorphicServer.Tests
             var user = property;
             Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
+            Assert.NotEqual("", property.GetString());
             var id = property.GetString();
             Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
+            Assert.NotEqual("", property.GetString());
             var preferencesId = property.GetString();
+            Assert.False(user.TryGetProperty("EmailVerified", out property));
+
             return new UserInfo()
             {
                 Id = id,
                 PreferencesId = preferencesId,
-                AuthToken = token
+                AuthToken = token,
+                Username = username,
+                Password = password,
+                Email = email,
+                FirstName = firstName,
+                LastName = lastName
             };
         }
 
@@ -128,6 +141,13 @@ namespace MorphicServer.Tests
             public string Id { get; set; }
             public string PreferencesId { get; set; }
             public string AuthToken { get; set; }
+            
+            public string Username { get; set; }
+            public string Password { get; set; }
+            public string Email { get; set; }
+            
+            public string FirstName { get; set; }
+            public string LastName { get; set; }
         }
 
         public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error)
