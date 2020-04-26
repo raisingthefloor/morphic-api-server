@@ -21,42 +21,56 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Text.Json.Serialization;
+using Serilog;
 
 namespace MorphicServer
 {
     public class User: Record
     {
-        private string? _email;
-        
-        // TODO Must get this encrypted
         [JsonIgnoreAttribute]
-        public string? EmailHash {
-            get
-            {
-                return _email;
-            }
-            set
-            {
-                if (value != null)
-                {
-                    var hashedData = new HashedData(value, "");
-                    _email = hashedData.ToCombinedString();
-                }
-                else
-                {
-                    _email = null;
-                }
-            }
-        }
-        
+        public string? EmailHash { get; set; }
+        [JsonIgnoreAttribute]
+        public string? EmailEncrypted { get; set; }
         [JsonIgnoreAttribute]
         public bool EmailVerified { get; set; }
+        
         [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
         [JsonPropertyName("last_name")]
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
+
+        public void SetEmail(string email)
+        {
+            if (!String.IsNullOrWhiteSpace(EmailHash) && HashedData.FromCombinedString(EmailHash).Equals(email))
+            {
+                return;
+            }
+            EmailHash = HashedData.FromString(email, "").ToCombinedString();
+            EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
+            EmailVerified = false;
+        }
+
+        public string GetEmail()
+        {
+            if (String.IsNullOrWhiteSpace(EmailEncrypted))
+            {
+                return "";
+            }
+
+            var plainText = EncryptedField.FromCombinedString(EmailEncrypted).Decrypt(out var isPrimary);
+            if (!isPrimary)
+            {
+                // The encryption key used is not the primary key. It's an older one.
+                // This means we need to re-encrypt the data and save it back to the DB
+                // TODO implement key-rollover background task
+                Log.Logger.Error("TODO Need to re-encrypt with primary in background");
+            }
+
+            return plainText;
+        }
     }
 }

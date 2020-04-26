@@ -21,10 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
 using System.Threading.Tasks;
-using System.Security.Cryptography;
-using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace MorphicServer
 {
@@ -37,7 +34,7 @@ namespace MorphicServer
 
         public void SavePassword(string password)
         {
-            var hashedData = new HashedData(password);
+            var hashedData = HashedData.FromString(password);
             PasswordFunction = hashedData.HashFunction;
             PasswordSalt = hashedData.Salt;
             PasswordIterationCount = hashedData.IterationCount;

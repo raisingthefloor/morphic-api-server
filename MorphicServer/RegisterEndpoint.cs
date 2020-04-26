@@ -96,8 +96,7 @@ namespace MorphicServer
                 
                 var user = new User();
                 user.Id = Guid.NewGuid().ToString();
-                user.EmailHash = request.Email;
-                user.EmailVerified = false;
+                user.SetEmail(request.Email);
                 user.FirstName = request.FirstName;
                 user.LastName = request.LastName;
                 await Register(cred, user);
@@ -163,7 +162,7 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
-            var hashedData = new HashedData(email, "");
+            var hashedData = HashedData.FromString(email, "");
             var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hashedData.ToCombinedString(), ActiveSession);
             if (existingEmail != null)
             {
