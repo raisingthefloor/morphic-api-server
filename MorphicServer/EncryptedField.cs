@@ -51,6 +51,13 @@ namespace MorphicServer
     {
         private const string Aes256CbcString = "AES-256-CBC";
 
+        /// <summary>
+        /// Initialize the object from constituent parts.
+        /// </summary>
+        /// <param name="keyName">The name of the key. This is used to find the decryption key later.</param>
+        /// <param name="cipher">The cipher (and mode) to use.</param>
+        /// <param name="iv">Initialization Vector (IV)</param>
+        /// <param name="cipherText">The encrypted data</param>
         public EncryptedField(string keyName, string cipher, string iv, string cipherText)
         {
             KeyName = keyName;
@@ -59,11 +66,31 @@ namespace MorphicServer
             CipherText = cipherText;
         }
 
+        /// <summary>
+        /// The Name of the key that encrypted the data. This is used to find the decryption key later.
+        /// </summary>
         public string KeyName { get; }
+
+        /// <summary>
+        /// The Cipher (and mode) used. Currently supported: see Aes256CbcString
+        /// </summary>
         public string Cipher { get; }
+
+        /// <summary>
+        /// The Initialization Vector (IV) for the encryption.
+        /// </summary>
         public string Iv { get; }
+
+        /// <summary>
+        /// The encrypted text.
+        /// </summary>
         public string CipherText { get; }
 
+        /// <summary>
+        /// Create a new EncryptedField class from plaintext. The returned object contains the encrypted data.
+        /// </summary>
+        /// <param name="plainText"></param>
+        /// <returns></returns>
         public static EncryptedField FromPlainText(string plainText)
         {
             var iv = RandomIv();
@@ -80,6 +107,11 @@ namespace MorphicServer
             return encryptedData;
         }
 
+        /// <summary>
+        /// Import the encrypted data from a previously combined string of format "{Cipher}:{KeyName}:{Iv}:{CipherText}"
+        /// </summary>
+        /// <param name="combinedString"></param>
+        /// <returns></returns>
         public static EncryptedField FromCombinedString(string combinedString)
         {
             var parts = combinedString.Split(":");
@@ -91,6 +123,10 @@ namespace MorphicServer
             return encryptedField;
         }
 
+        /// <summary>
+        /// Convert the data into a colon-delimited string: "{Cipher}:{KeyName}:{Iv}:{CipherText}"
+        /// </summary>
+        /// <returns></returns>
         public string ToCombinedString()
         {
             return $"{Cipher}:{KeyName}:{Iv}:{CipherText}";
@@ -119,41 +155,16 @@ namespace MorphicServer
             throw new UnknownCipherModeException(Cipher);
         }
 
-        public class EncryptedFieldException : Exception
-        {
-            protected EncryptedFieldException(string error) : base(error)
-            {
-            }
-        }
+        // Helper functions
 
-        public class PlainTextEmptyException : EncryptedFieldException
-        {
-            public PlainTextEmptyException(string error) : base(error)
-            {
-            }
-        }
-
-        public class CipherTextEmptyException : EncryptedFieldException
-        {
-            public CipherTextEmptyException(string error) : base(error)
-            {
-            }
-        }
-
-        public class KeyArgumentBad : EncryptedFieldException
-        {
-            public KeyArgumentBad(string error) : base(error)
-            {
-            }
-        }
-
-        public class IvArgumentBad : EncryptedFieldException
-        {
-            public IvArgumentBad(string error) : base(error)
-            {
-            }
-        }
-
+        /// <summary>
+        /// Encrypt data using AES-256-CBC
+        /// </summary>
+        /// <param name="plainText">The plaintext</param>
+        /// <param name="key">they key in bytes</param>
+        /// <param name="iv">they IV in bytes</param>
+        /// <returns></returns>
+        /// <exception cref="PlainTextEmptyException"></exception>
         private static byte[] EncryptStringToBytes_Aes256CBC(string plainText, byte[] key, byte[] iv)
         {
             // Check arguments.
@@ -196,6 +207,14 @@ namespace MorphicServer
             return encrypted;
         }
 
+        /// <summary>
+        /// data using AES-256-CBC
+        /// </summary>
+        /// <param name="cipherText">The encrypted data</param>
+        /// <param name="key">they key in bytes</param>
+        /// <param name="iv">they IV in bytes</param>
+        /// <returns></returns>
+        /// <exception cref="CipherTextEmptyException"></exception>
         private static string DecryptStringFromBytes_Aes256CBC(byte[] cipherText, byte[] key, byte[] iv)
         {
             // Check arguments.
@@ -239,12 +258,53 @@ namespace MorphicServer
             return plaintext;
         }
 
+        /// <summary>
+        /// Create a random IV of size 16 bytes (suitable for AES-256 encryption).
+        /// </summary>
+        /// <returns></returns>
         private static string RandomIv()
         {
             var iv = new byte[16];
             var provider = RandomNumberGenerator.Create();
             provider.GetBytes(iv);
             return Convert.ToBase64String(iv);
+        }
+
+        // custom exceptions for this class.
+
+        public class EncryptedFieldException : Exception
+        {
+            protected EncryptedFieldException(string error) : base(error)
+            {
+            }
+        }
+
+        public class PlainTextEmptyException : EncryptedFieldException
+        {
+            public PlainTextEmptyException(string error) : base(error)
+            {
+            }
+        }
+
+        public class CipherTextEmptyException : EncryptedFieldException
+        {
+            public CipherTextEmptyException(string error) : base(error)
+            {
+            }
+        }
+
+        public class KeyArgumentBad : EncryptedFieldException
+        {
+            public KeyArgumentBad(string error) : base(error)
+            {
+            }
+        }
+
+        public class IvArgumentBad : EncryptedFieldException
+        {
+            public IvArgumentBad(string error) : base(error)
+            {
+            }
         }
 
         private class UnknownCipherModeException : EncryptedFieldException

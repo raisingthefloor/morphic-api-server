@@ -27,12 +27,27 @@ using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace MorphicServer
 {
+    /// <summary>
+    /// Class to hash and compare data.
+    /// </summary>
     public class HashedData
     {
-        public int IterationCount;
-        public string HashFunction;
-        public string Salt;
-        public string Hash;
+        /// <summary>
+        /// Number of iterations for the hash functions
+        /// </summary>
+        public int IterationCount { get; }
+        /// <summary>
+        /// The hash function to use. Currently supported: see Pbkdf2Sha512
+        /// </summary>
+        public string HashFunction { get; }
+        /// <summary>
+        /// Salt to add to the hashing (google Rainbow Tables)
+        /// </summary>
+        public string Salt { get; }
+        /// <summary>
+        /// The hashed data
+        /// </summary>
+        public string Hash { get; }
 
         private const String Pbkdf2Sha512 = "PBKDF2-SHA512";
         private const int IterationCountPbkdf2 = 10000;
@@ -44,6 +59,12 @@ namespace MorphicServer
             }
         }
 
+        /// <summary>
+        /// Create a HashedData object from data and optionally salt.
+        /// </summary>
+        /// <param name="data">the data to hash</param>
+        /// <param name="salt">(Optional) If not provided, a random salt will be created</param>
+        /// <returns></returns>
         public static HashedData FromString(string data, string? salt = null)
         {
             var s = salt ?? RandomSalt();
