@@ -137,13 +137,13 @@ namespace MorphicServer
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
             public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
                 "short_password",
-                new Dictionary<string, int>
+                new Dictionary<string, object>
                 {
                     {"minimum_length", MinPasswordLength}
                 });
             public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
 
-            public BadRequestResponseUser(string error, Dictionary<string, int> details) : base(error, details)
+            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
             {
             }
 
@@ -200,13 +200,13 @@ namespace MorphicServer
         public string Error { get; set; }
 
         [JsonPropertyName("details")]
-        public Dictionary<string, int>? Details { get; set; }
+        public Dictionary<string, object>? Details { get; set; }
 
         public BadRequestResponse(string error)
         {
             Error = error;
         }
-        public BadRequestResponse(string error, Dictionary<string, int> details)
+        public BadRequestResponse(string error, Dictionary<string, object> details)
         {
             Error = error;
             Details = details;
