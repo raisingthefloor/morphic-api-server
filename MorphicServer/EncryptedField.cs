@@ -27,6 +27,26 @@ using System.Security.Cryptography;
 
 namespace MorphicServer
 {
+    /// <summary>
+    /// EncryptedField class: Uses AES-256-CBC encryption with an IV and a share secret.
+    /// 
+    /// Encryption is always with the primary (env-var "MORPHIC_ENC_KEY_PRIMARY") key.
+    ///
+    /// Decryption is with the name of the key used before. An indication is given when a
+    /// field is decrypted and found to be using a non-primary key.
+    ///
+    /// Key Rollover: When after decryption the caller sees that the decryption key used was not
+    /// the primary, the caller should then proceed to re-encrypting the data (which will then use
+    /// the primary key). Thus, key-rollover is achieved one by one. If necessary, a data-migration
+    /// framework may need to be provided (future work) so that data can be re-encrypted in bulk in
+    /// one go.
+    ///
+    /// It is up to the caller to save the encrypted data any way they want. For ease of use
+    /// "combinedString" functions are provided which combine the various fields into a
+    /// colon-delimited fields (none of the fields can contain colons, so this is safe).
+    ///
+    /// The KeyStorage class is used to manage the keys.
+    /// </summary>
     public class EncryptedField
     {
         private const string Aes256CbcString = "AES-256-CBC";
@@ -87,7 +107,7 @@ namespace MorphicServer
         {
             if (Cipher == Aes256CbcString)
             {
-                var keyInfo = KeyStorage.GetKey(KeyName); 
+                var keyInfo = KeyStorage.GetKey(KeyName);
                 isPrimary = keyInfo.IsPrimary;
                 var plainText = DecryptStringFromBytes_Aes256CBC(
                     Convert.FromBase64String(CipherText),
@@ -105,6 +125,7 @@ namespace MorphicServer
             {
             }
         }
+
         public class PlainTextEmptyException : EncryptedFieldException
         {
             public PlainTextEmptyException(string error) : base(error)
