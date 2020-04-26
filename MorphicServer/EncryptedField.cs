@@ -65,7 +65,7 @@ namespace MorphicServer
             var parts = combinedString.Split(":");
             var encryptedField = new EncryptedField(
                 parts[1],
-                parts[2],
+                parts[0],
                 parts[2],
                 parts[3]);
             return encryptedField;
