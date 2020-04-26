@@ -115,6 +115,7 @@ namespace MorphicServer
             var method = context.Request.Method;
             var statusCode = 500;
             var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
+            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetrics)) as OmitMetrics;
             var path = context.Request.Path.ToString();
             if (pathAttr?.Template == null)
             {
@@ -156,7 +157,7 @@ namespace MorphicServer
                         {
                             await call();
                         }
-                        if (path != "/alive" && path != "/ready")
+                        if (omitMetrics == null)
                         {
                             statusCode = context.Response.StatusCode;
                             counter.Labels(path, method, statusCode.ToString()).Inc();
@@ -179,7 +180,7 @@ namespace MorphicServer
                 finally
                 {
                     stopWatch.Stop();
-                    if (path != "/alive" && path != "/ready")
+                    if (omitMetrics == null)
                     {
                         histogram.Labels(path, method, statusCode.ToString())
                             .Observe(stopWatch.Elapsed.TotalSeconds);
