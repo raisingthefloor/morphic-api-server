@@ -64,8 +64,8 @@ namespace MorphicServer
         {
             var parts = combinedString.Split(":");
             var encryptedField = new EncryptedField(
-                parts[0],
                 parts[1],
+                parts[2],
                 parts[2],
                 parts[3]);
             return encryptedField;
@@ -73,7 +73,7 @@ namespace MorphicServer
 
         public string ToCombinedString()
         {
-            return $"{KeyName}:{Cipher}:{Iv}:{CipherText}";
+            return $"{Cipher}:{KeyName}:{Iv}:{CipherText}";
         }
 
         /// <summary>
