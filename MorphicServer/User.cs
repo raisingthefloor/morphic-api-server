@@ -22,16 +22,34 @@
 // * Consumer Electronics Association Foundation
 
 using System.Text.Json.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
     public class User: Record
     {
+        private string? _email;
+        
         // TODO Must get this encrypted
-        [JsonPropertyName("email")]
-        public string? Email { get; set; }
+        [JsonIgnoreAttribute]
+        public string? EmailHash {
+            get
+            {
+                return _email;
+            }
+            set
+            {
+                if (value != null)
+                {
+                    var hashedData = new HashedData(value, "");
+                    _email = hashedData.ToString();
+                }
+                else
+                {
+                    _email = null;
+                }
+            }
+        }
+        
         [JsonIgnoreAttribute]
         public bool EmailVerified { get; set; }
         [JsonPropertyName("first_name")]
