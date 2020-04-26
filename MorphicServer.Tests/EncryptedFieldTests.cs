@@ -48,6 +48,10 @@ namespace MorphicServer.Tests
             Assert.Throws<KeyStorage.HexStringFormatException>(() => KeyStorage.GetKey(badKeyName));
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
             
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{badKeyData}");
+            Assert.Throws<KeyStorage.BadKeyFormat>(() => KeyStorage.GetKey(badKeyName));
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+
             var keyName = "TEST_KEY";
             var keyData = "8C532F0C2CCE7AF471111285340B6353FCB327DF9AB9F0121731F403E3FFDC7C";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{keyName}:{keyData}");

@@ -22,7 +22,6 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Serilog;
@@ -68,41 +67,49 @@ namespace MorphicServer
             {
                 var myKeyArray = new List<KeyInfo>();
 
-                string primary = Environment.GetEnvironmentVariable(EncryptionKeyPrimary) ?? "";
-                if (String.IsNullOrWhiteSpace(primary))
+                string keyValue = Environment.GetEnvironmentVariable(EncryptionKeyPrimary) ?? "";
+                if (String.IsNullOrWhiteSpace(keyValue))
                 {
                     throw new EmptyKey(EncryptionKeyPrimary);
                 }
 
-                var parts = primary.Split(":");
-                var key = new KeyInfo(parts[0], HexStringToBytes(parts[1]), true);
+                var key = KeyInfoFromEnvValue(EncryptionKeyPrimary, keyValue, true);
                 myKeyArray.Add(key);
 
                 // Look for the rollover keys. We allow multiple to give us time to move off of keys
-                foreach (DictionaryEntry de in Environment.GetEnvironmentVariables())
+                foreach (var envKey in Environment.GetEnvironmentVariables().Keys)
                 {
-                    string deKey = de.Key.ToString() ?? "";
-                    string deValue = de.Value?.ToString() ?? "";
-                    if (String.IsNullOrWhiteSpace(deKey) || String.IsNullOrWhiteSpace(deValue))
+                    if (envKey == null || !envKey.ToString()!.StartsWith(EncryptionKeyRolloverPrefix))
+                        continue;
+
+                    keyValue = Environment.GetEnvironmentVariable(envKey!.ToString() ?? "") ?? "";
+                    if (String.IsNullOrWhiteSpace(keyValue) || String.IsNullOrWhiteSpace(keyValue))
                     {
                         continue;
                     }
-                    if (deKey.StartsWith(EncryptionKeyRolloverPrefix))
+
+                    key = KeyInfoFromEnvValue(envKey.ToString()!, keyValue, false);
+                    if (myKeyArray.FirstOrDefault(k => k.KeyName == key.KeyName) != null)
                     {
-                        parts = deValue.Split(":");
-                        if (myKeyArray.FirstOrDefault(k => k.KeyName == parts[0]) != null)
-                        {
-                            throw new DuplicateKey(parts[0]);
-                        }
-                        key = new KeyInfo(parts[0], HexStringToBytes(parts[1]), false);
-                        myKeyArray.Add(key);
+                        throw new DuplicateKey(key.KeyName);
                     }
+                    myKeyArray.Add(key);
                 }
                 _keyArray = myKeyArray;
                 Log.Logger.Debug($"Loaded {_keyArray.Count} keys");
             }
         }
 
+        private static KeyInfo KeyInfoFromEnvValue(string keySourceName, string keyString, bool isPrimary)
+        {
+            var parts = keyString.Split(":");
+            if (parts.Length != 2)
+            {
+                throw new BadKeyFormat(keySourceName);
+            }
+            return new KeyInfo(parts[0], HexStringToBytes(parts[1]), isPrimary);
+        }
+        
         public static byte[] HexStringToBytes(string hexString)
         {
             if (String.IsNullOrWhiteSpace(hexString))
@@ -170,6 +177,15 @@ namespace MorphicServer
                 
             }
         }
+
+        public class BadKeyFormat : Exception
+        {
+            public BadKeyFormat(string error) : base(error)
+            {
+                
+            }
+        }
+        
         public class HexStringFormatException : Exception
         {
             public HexStringFormatException(string error) : base(error)
