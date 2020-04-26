@@ -43,17 +43,30 @@ namespace MorphicServer
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
 
+        /// <summary>
+        /// Default salt for user-email hashing. Why do we need default salt? We need to be able to search
+        /// for the email. If we use random salt for every entry this becomes prohibitively expensive 
+        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
+        /// PII and searchability: It's not perfect, but it's sufficient. 
+        /// </summary>
+        const string DefaultUserEmailSalt = "N9DtOumwMC7A9KJLB3oCbA==";
+        
         public void SetEmail(string email)
         {
             if (!String.IsNullOrWhiteSpace(EmailHash) && HashedData.FromCombinedString(EmailHash).Equals(email))
             {
                 return;
             }
-            EmailHash = HashedData.FromString(email, "").ToCombinedString();
+            EmailHash = HashedData.FromString(email, DefaultUserEmailSalt).ToCombinedString();
             EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
             EmailVerified = false;
         }
 
+        public static string UserEmailHashCombined(string email)
+        {
+            return HashedData.FromString(email, User.DefaultUserEmailSalt).ToCombinedString();
+        }
+        
         public string GetEmail()
         {
             if (String.IsNullOrWhiteSpace(EmailEncrypted))

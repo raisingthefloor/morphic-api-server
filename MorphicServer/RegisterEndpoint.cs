@@ -162,8 +162,8 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
-            var hashedData = HashedData.FromString(email, "");
-            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hashedData.ToCombinedString(), ActiveSession);
+            var hash = User.UserEmailHashCombined(email);
+            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hash, ActiveSession);
             if (existingEmail != null)
             {
                 Log.Logger.Information("EMAIL_EXISTS({username})");
