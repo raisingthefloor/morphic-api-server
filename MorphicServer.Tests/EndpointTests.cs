@@ -73,6 +73,7 @@ namespace MorphicServer.Tests
             Server = new TestServer(builder);
             Client = Server.CreateClient();
             Database = Server.Services.GetService(typeof(Database)) as Database;
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TESTKEY:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995");
         }
 
         /// <summary>Delete the test database after every test case so each test can start fresh</summary>

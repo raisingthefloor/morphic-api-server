@@ -35,7 +35,8 @@ namespace MorphicServer.Tests
         public void TestKeyLoading()
         {
             KeyStorage.ClearKeys();
-            
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+
             var oddKeyName = "ODD_NUMBER_LETTERS";
             var oddKeyData = "123";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{oddKeyName}:{oddKeyData}");
@@ -95,6 +96,7 @@ namespace MorphicServer.Tests
         public void TestEncryption()
         {
             KeyStorage.ClearKeys();
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
             bool isPrimary;
             var keyName = "TEST_KEY";
@@ -124,6 +126,7 @@ namespace MorphicServer.Tests
         public void TestRolloverEncryption()
         {
             KeyStorage.ClearKeys();
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
             bool isPrimary;
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
