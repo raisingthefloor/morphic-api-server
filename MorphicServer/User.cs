@@ -41,7 +41,7 @@ namespace MorphicServer
                 if (value != null)
                 {
                     var hashedData = new HashedData(value, "");
-                    _email = hashedData.ToString();
+                    _email = hashedData.ToCombinedString();
                 }
                 else
                 {

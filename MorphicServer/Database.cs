@@ -197,7 +197,12 @@ namespace MorphicServer
             var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
             if (info == null){
                 Morphic.CreateCollection("Preferences");
+                
                 Morphic.CreateCollection("User");
+                var users = Morphic.GetCollection<User>("User");
+                users.Indexes.CreateOne(new CreateIndexModel<User>(
+                    Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
+                
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
                 Morphic.CreateCollection("AuthToken");
@@ -206,7 +211,8 @@ namespace MorphicServer
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
                 options.ExpireAfter = TimeSpan.Zero;
-                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(
+                    Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
                 collection.InsertOne(info);
             }
         }

@@ -164,7 +164,7 @@ namespace MorphicServer
             }
 
             var hashedData = new HashedData(email, "");
-            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hashedData.ToString(), ActiveSession);
+            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hashedData.ToCombinedString(), ActiveSession);
             if (existingEmail != null)
             {
                 Log.Logger.Information("EMAIL_EXISTS({username})");

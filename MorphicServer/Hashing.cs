@@ -34,9 +34,17 @@ namespace MorphicServer
         public string Salt;
         public string Hash;
 
+        private const String PBKDF_SHA512 = "PBKDF-SHA512";
+            
+        class HashedDataException : Exception
+        {
+            public HashedDataException(String error) : base(error)
+            {
+            }
+        }
         public HashedData(string data, string? salt = null)
         {
-            HashFunction = "SHA512";
+            HashFunction = PBKDF_SHA512;
             Salt = salt ?? RandomSalt();
             IterationCount = 10000;
             Hash = DerivedHash(data);
@@ -50,7 +58,18 @@ namespace MorphicServer
             Hash = hash;
         }
 
-        public override string ToString()
+        public HashedData FromCombinedString(String hashedCombinedString)
+        {
+            var parts = hashedCombinedString.Split(":");
+            if (parts.Length != 4)
+            {
+                throw new HashedDataException("combined string does not have enough parts");
+            }
+            int iterations = Int32.Parse(parts[0]);
+            return new HashedData(iterations, parts[1], parts[2], parts[3]);
+        }
+        
+        public string ToCombinedString()
         {
             return $"{IterationCount}:{HashFunction}:{Salt}:{Hash}";
         }
@@ -66,7 +85,7 @@ namespace MorphicServer
             KeyDerivationPrf function;
             int keyLength;
 
-            if (HashFunction == "SHA512")
+            if (HashFunction == PBKDF_SHA512)
             {
                 function = KeyDerivationPrf.HMACSHA512;
                 keyLength = 64;
