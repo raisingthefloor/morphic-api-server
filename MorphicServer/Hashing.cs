@@ -34,20 +34,21 @@ namespace MorphicServer
         public string Salt;
         public string Hash;
 
-        private const String PBKDF_SHA512 = "PBKDF-SHA512";
-            
+        private const String Pbkdf2Sha512 = "PBKDF2-SHA512";
+        private const int IterationCountPbkdf2 = 10000;
+
         class HashedDataException : Exception
         {
             public HashedDataException(String error) : base(error)
             {
             }
         }
-        public HashedData(string data, string? salt = null)
+
+        public static HashedData FromString(string data, string? salt = null)
         {
-            HashFunction = PBKDF_SHA512;
-            Salt = salt ?? RandomSalt();
-            IterationCount = 10000;
-            Hash = DerivedHash(data);
+            var s = salt ?? RandomSalt();
+            return new HashedData(IterationCountPbkdf2, Pbkdf2Sha512, s,
+                DoHash(IterationCountPbkdf2, Pbkdf2Sha512, s, data));
         }
 
         public HashedData(int iterationCount, string hashFunction, string salt, string hash)
@@ -58,34 +59,35 @@ namespace MorphicServer
             Hash = hash;
         }
 
-        public HashedData FromCombinedString(String hashedCombinedString)
+        public static HashedData FromCombinedString(String hashedCombinedString)
         {
             var parts = hashedCombinedString.Split(":");
             if (parts.Length != 4)
             {
                 throw new HashedDataException("combined string does not have enough parts");
             }
-            int iterations = Int32.Parse(parts[0]);
-            return new HashedData(iterations, parts[1], parts[2], parts[3]);
+
+            int iterations = Int32.Parse(parts[1]);
+            return new HashedData(iterations, parts[0], parts[2], parts[3]);
         }
-        
+
         public string ToCombinedString()
         {
-            return $"{IterationCount}:{HashFunction}:{Salt}:{Hash}";
+            return $"{HashFunction}:{IterationCount}:{Salt}:{Hash}";
         }
-        
+
         public bool Equals(string data)
         {
-            var hash = DerivedHash(data);
+            var hash = DoHash(IterationCount, HashFunction, Salt, data);
             return hash == Hash;
         }
 
-        private string DerivedHash(string data)
+        private static string DoHash(int iterations, string hashFunction, string salt, string data)
         {
             KeyDerivationPrf function;
             int keyLength;
 
-            if (HashFunction == PBKDF_SHA512)
+            if (hashFunction == Pbkdf2Sha512)
             {
                 function = KeyDerivationPrf.HMACSHA512;
                 keyLength = 64;
@@ -95,9 +97,9 @@ namespace MorphicServer
                 throw new Exception("Invalid Key Derivation Function");
             }
 
-            var salt = Convert.FromBase64String(Salt);
-            var hash = KeyDerivation.Pbkdf2(data, salt, function, IterationCount, keyLength);
-            return Convert.ToBase64String(hash);
+            var s = Convert.FromBase64String(salt);
+            var h = KeyDerivation.Pbkdf2(data, s, function, iterations, keyLength);
+            return Convert.ToBase64String(h);
         }
 
         private static string RandomSalt()
