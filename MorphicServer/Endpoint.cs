@@ -116,15 +116,7 @@ namespace MorphicServer
             var statusCode = 500;
             var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
             var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetrics)) as OmitMetrics;
-            var path = context.Request.Path.ToString();
-            if (pathAttr?.Template == null)
-            {
-                Log.Logger.Error("No Path on endpoint");
-            }
-            else
-            {
-                path = pathAttr.Template;
-            }
+            var path = pathAttr?.Template;
 
             if (String.IsNullOrEmpty(path))
             {
