@@ -49,7 +49,7 @@ namespace MorphicServer.Tests
         /// <summary>The expected Media Type for JSON requests and responses</summary>
         protected const string JsonMediaType = "application/json";
 
-        /// <summary>The expected character set for JSON requests and responses</sumary>
+        /// <summary>The expected character set for JSON requests and responses</summary>
         protected const string JsonCharacterSet = "utf-8";
 
         /// <summary>A reference to the test database</summary>
@@ -58,6 +58,7 @@ namespace MorphicServer.Tests
         /// <summary>Create a test database, test http server, and client connection to the test server</summary>
         public EndpointTests()
         {
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TESTKEY:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995");
             var config = new ConfigurationBuilder();
             var settingsFile = Environment.GetEnvironmentVariable("APPSETTINGS_FILENAME") ?? "appsettings.Test.json";
             config.AddJsonFile(settingsFile);
@@ -73,7 +74,6 @@ namespace MorphicServer.Tests
             Server = new TestServer(builder);
             Client = Server.CreateClient();
             Database = Server.Services.GetService(typeof(Database)) as Database;
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TESTKEY:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995");
         }
 
         /// <summary>Delete the test database after every test case so each test can start fresh</summary>
