@@ -108,6 +108,13 @@ namespace MorphicServer
             return await Get<T>(record => record.Id == id, session);
         }
 
+        /// <summary>
+        /// Fetch a record from the database using a linq filter.
+        /// </summary>
+        /// <param name="filter">Linq filter</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T">The type of the record/collection</typeparam>
+        /// <returns></returns>
         public async Task<T?> Get<T>(Expression<Func<T, bool>> filter, Session? session = null) where T: Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
