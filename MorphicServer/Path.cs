@@ -44,7 +44,7 @@ namespace MorphicServer.Attributes
         }
 
         /// <summary name="template">The URL path template, like <code>"/some/path/{param}"</code></summary>
-        public string? Template
+        public string Template
         {
             get { return template; }
         }
