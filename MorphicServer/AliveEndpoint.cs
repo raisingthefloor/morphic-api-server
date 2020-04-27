@@ -29,6 +29,7 @@ namespace MorphicServer
 {
     /// <summary>And endpoint indicating aliveness</summary>
     [Path("/alive")]
+    [OmitMetrics]
     public class AliveEndpoint: Endpoint
     {
         /// <summary>Do nothing. Don't even check dependencies (see ReadyEndpoint). Return 200.</summary>
