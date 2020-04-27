@@ -24,6 +24,7 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using Prometheus;
 
 namespace MorphicServer
 {
@@ -50,6 +51,18 @@ namespace MorphicServer
     public class EncryptedField
     {
         private const string Aes256CbcString = "AES-256-CBC";
+
+        private const string EncryptionTimingMetricsName = "encryption_duration";
+        private static readonly Histogram EncryptionHistogram = Metrics.CreateHistogram(
+            EncryptionTimingMetricsName,
+            "Encryption Duration",
+            new[] {"cipher"});
+
+        private const string DecryptionTimingMetricsName = "decryption_duration";
+        private static readonly Histogram DecryptionHistogram = Metrics.CreateHistogram(
+            DecryptionTimingMetricsName,
+            "Decryption Duration",
+            new[] {"cipher"});
 
         /// <summary>
         /// Initialize the object from constituent parts.
@@ -95,16 +108,19 @@ namespace MorphicServer
         {
             var iv = RandomIv();
             var key = KeyStorage.GetPrimary();
-            var encryptedData = new EncryptedField(
-                key.KeyName,
-                Aes256CbcString,
-                iv,
-                Convert.ToBase64String(
-                    EncryptStringToBytes_Aes256CBC(
-                        plainText,
-                        key.KeyData, // we always encrypt with the primary
-                        Convert.FromBase64String(iv))));
-            return encryptedData;
+            using (EncryptionHistogram.Labels(Aes256CbcString).NewTimer())
+            {
+                var encryptedData = new EncryptedField(
+                    key.KeyName,
+                    Aes256CbcString,
+                    iv,
+                    Convert.ToBase64String(
+                        EncryptStringToBytes_Aes256CBC(
+                            plainText,
+                            key.KeyData, // we always encrypt with the primary
+                            Convert.FromBase64String(iv))));
+                return encryptedData;
+            }
         }
 
         /// <summary>
@@ -143,13 +159,16 @@ namespace MorphicServer
         {
             if (Cipher == Aes256CbcString)
             {
-                var keyInfo = KeyStorage.GetKey(KeyName);
-                isPrimary = keyInfo.IsPrimary;
-                var plainText = DecryptStringFromBytes_Aes256CBC(
-                    Convert.FromBase64String(CipherText),
-                    keyInfo.KeyData,
-                    Convert.FromBase64String(Iv));
-                return plainText;
+                using (DecryptionHistogram.Labels(Aes256CbcString).NewTimer())
+                {
+                    var keyInfo = KeyStorage.GetKey(KeyName);
+                    isPrimary = keyInfo.IsPrimary;
+                    var plainText = DecryptStringFromBytes_Aes256CBC(
+                        Convert.FromBase64String(CipherText),
+                        keyInfo.KeyData,
+                        Convert.FromBase64String(Iv));
+                    return plainText;
+                }
             }
 
             throw new UnknownCipherModeException(Cipher);
