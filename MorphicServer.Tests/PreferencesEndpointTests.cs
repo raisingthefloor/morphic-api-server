@@ -350,57 +350,57 @@ namespace MorphicServer.Tests
             // DELETE, unknown user, unauth
             var userid = Guid.NewGuid().ToString();
             var uuid = Guid.NewGuid().ToString();
-            var request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userid}/preferences/{uuid}");
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{uuid}");
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
             // DELETE, unknown prefs, unauth
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{uuid}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
             // DELETE, unknown user
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userid}/preferences/{uuid}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{uuid}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // DELETE, unknown prefs
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{uuid}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // DELETE, known user, unauth
             uuid = Guid.NewGuid().ToString();
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{uuid}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
             // DELETE, known prefs, unauth
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userid}/preferences/{userInfo1.PreferencesId}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{userInfo1.PreferencesId}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
             // DELETE, known user & prefs, unauth
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 
             // DELETE, known user, forbidden prefs
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // DELETE, known prefs, forbidden user
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // DELETE, success
-            request = new HttpRequestMessage(HttpMethod.Delete, $"/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
