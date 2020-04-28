@@ -52,9 +52,6 @@ namespace MorphicServer.Tests
         /// <summary>The expected character set for JSON requests and responses</sumary>
         protected const string JsonCharacterSet = "utf-8";
 
-        /// <summary>The name of the header for morphic authoriziation tokens</summary>
-        protected const string AuthTokenHeaderName = "X-Morphic-Auth-Token";
-
         /// <summary>A reference to the test database</summary>
         private Database Database;
 
@@ -89,10 +86,11 @@ namespace MorphicServer.Tests
         {
             ++TestUserCount;
             var content = new Dictionary<string, object>();
-            content.Add("key", $"testkey{TestUserCount}");
+            content.Add("username", $"user{TestUserCount}");
+            content.Add("password", "thisisatestpassword");
             content.Add("first_name", firstName);
             content.Add("last_name", lastName);
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/username");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -132,5 +130,22 @@ namespace MorphicServer.Tests
             public string AuthToken { get; set; }
         }
 
+        public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error)
+        {
+            JsonElement property;
+
+            Assert.Equal(code, response.StatusCode);
+            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
+            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
+            var json = await response.Content.ReadAsStringAsync();
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            Assert.True(element.TryGetProperty("error", out property));
+            Assert.Equal(JsonValueKind.String, property.ValueKind);
+            Assert.Equal(error, property.GetString());
+            Assert.True(element.TryGetProperty("details", out property));
+            // don't check value here. Caller can check the details of details.
+            return element;
+        }
     }
 }

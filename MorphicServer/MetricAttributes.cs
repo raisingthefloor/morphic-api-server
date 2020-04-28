@@ -22,29 +22,12 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Threading.Tasks;
-using MorphicServer.Attributes;
-using System.Net;
-using Serilog;
 
-namespace MorphicServer
+namespace MorphicServer.Attributes
 {
-    /// <summary>And endpoint to check server readiness</summary>
-    [Path("/ready")]
-    [OmitMetrics]
-    public class ReadyEndpoint : Endpoint
+    /// <summary>Omit Metrics for endpoints marked with this attribute</summary>
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    sealed class OmitMetrics : Attribute
     {
-        [Method]
-        /// <summary>Check any dependencies here, like mongo</summary>
-        public async Task Get()
-        {
-            if (!Context.GetDatabase().IsClusterConnected)
-            {
-                Log.Logger.Error("MongoDB Not connected");
-                throw new HttpError(HttpStatusCode.InternalServerError);
-            }
-            Log.Logger.Debug("Ready");
-            await Response.CompleteAsync();
-        }
     }
 }

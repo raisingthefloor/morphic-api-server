@@ -31,7 +31,7 @@ namespace MorphicServer
 {
 
     /// <summary>And endpoint representing user preferences</summary>
-    [Path("/users/{userid}/preferences/{id}")]
+    [Path("/v1/users/{userid}/preferences/{id}")]
     public class PreferencesEndpoint: Endpoint
     {
 

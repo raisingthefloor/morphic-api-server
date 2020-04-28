@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Diagnostics;
 using System.Reflection;
 using System.Net;
 using System.Threading.Tasks;
@@ -29,9 +30,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Primitives;
 using MorphicServer.Attributes;
 using System.Linq;
+using Prometheus;
 using Serilog;
 using Serilog.Context;
 
@@ -85,6 +86,19 @@ namespace MorphicServer
         public HttpResponse Response { get; private set; }
         #pragma warning restore CS8618
 
+        private static readonly string counter_metric_name = "http_server_requests";
+        private static readonly string histo_metric_name = "http_server_requests_duration";
+        private static readonly string[] labelNames = new[] {"path", "method", "status"};
+
+        private static readonly Counter counter = Metrics.CreateCounter(counter_metric_name, "HTTP Requests Total",
+            new CounterConfiguration
+            {
+                LabelNames = labelNames
+            });
+        private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
+            "HTTP Request Duration",
+            labelNames);
+        
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
@@ -98,9 +112,22 @@ namespace MorphicServer
             endpoint.Context = context;
             endpoint.Request = context.Request;
             endpoint.Response = context.Response;
+            var method = context.Request.Method;
+            var statusCode = 500;
+            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
+            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetrics)) as OmitMetrics;
+            var path = pathAttr?.Template;
+
+            if (String.IsNullOrEmpty(path))
+            {
+                Log.Logger.Error("Unknown path");
+                path = "(unknown)";
+            }
+
             using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
             using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
             {
+                var stopWatch = Stopwatch.StartNew();
                 try
                 {
                     if (endpoint.MethodInfoForRequestMethod(context.Request.Method) is MethodInfo methodInfo)
@@ -122,16 +149,34 @@ namespace MorphicServer
                         {
                             await call();
                         }
+                        if (omitMetrics == null)
+                        {
+                            statusCode = context.Response.StatusCode;
+                            counter.Labels(path, method, statusCode.ToString()).Inc();
+                        }
                     }
                     else
                     {
                         // If the class doesn't have a matching method, respond with MethodNotAllowed
                         context.Response.StatusCode = (int) HttpStatusCode.MethodNotAllowed;
+                        statusCode = context.Response.StatusCode;
+                        counter.Labels(path, method, statusCode.ToString()).Inc();
                     }
                 }
                 catch (HttpError error)
                 {
+                    statusCode = (int) error.Status;
+                    counter.Labels(path, method, statusCode.ToString()).Inc();
                     await context.Response.WriteError(error, context.RequestAborted);
+                }
+                finally
+                {
+                    stopWatch.Stop();
+                    if (omitMetrics == null)
+                    {
+                        histogram.Labels(path, method, statusCode.ToString())
+                            .Observe(stopWatch.Elapsed.TotalSeconds);
+                    }
                 }
             }
         }
@@ -243,6 +288,7 @@ namespace MorphicServer
         {
             var user = await Context.GetUser();
             if (user == null){
+                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
                 throw new HttpError(HttpStatusCode.Unauthorized);
             }
             return user;
@@ -278,10 +324,17 @@ namespace MorphicServer
         public static async Task<User?> GetUser(this HttpContext context)
         {
             var db = context.GetDatabase();
-            var providedToken = context.Request.Headers["X-Morphic-Auth-Token"].FirstOrDefault();
-            var token = await db.Get<AuthToken>(providedToken);
-            if (token != null && token.UserId != null){
-                return await db.Get<User>(token.UserId);
+            if (context.Request.Headers["Authorization"].FirstOrDefault() is string authorization)
+            {
+                if (authorization.StartsWith("Bearer "))
+                {
+                    var providedToken = authorization.Substring(7);
+                    var token = await db.Get<AuthToken>(providedToken);
+                    if (token != null && token.UserId != null)
+                    {
+                        return await db.Get<User>(token.UserId);
+                    }
+                }
             }
             return null;
         }

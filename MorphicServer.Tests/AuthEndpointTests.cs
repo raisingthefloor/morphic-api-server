@@ -37,26 +37,26 @@ namespace MorphicServer.Tests
         [Fact]
         public async Task TestUsername()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/username");
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/username");
+            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not supported
-            var path = "/auth/username";
+            var path = "/v1/auth/username";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
 
             // POST, missing content type
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing""}", Encoding.UTF8);
+            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
             // POST, missing username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
@@ -80,7 +80,7 @@ namespace MorphicServer.Tests
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -109,15 +109,25 @@ namespace MorphicServer.Tests
         }
 
         [Fact]
+        public async Task TestKeyDisabled()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
+            request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        // Disabled until we re-enabled the endpoint
+        // [Fact]
         public async Task TestKey()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
             request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not supported
-            var path = "/auth/key";
+            var path = "/v1/auth/key";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
