@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
@@ -100,8 +101,8 @@ namespace MorphicServer
             }
         }
 
-        static private readonly int MinPasswordLength = 8;
-        public static readonly ReadOnlyCollection<string> BadPassword = new ReadOnlyCollection<string>(
+        static private readonly int MinPasswordLength = 6;
+        public static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
             new string[] {
                 "password",
                 "testing"
@@ -116,7 +117,7 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
             }
 
-            if (BadPassword.Contains(password))
+            if (BadPasswords.Contains(password))
             {
                 Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
@@ -134,15 +135,16 @@ namespace MorphicServer
         {
             public static readonly BadRequestResponse ExistingUsername = new BadRequestResponseUser("existing_username");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
-            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser("short_password", MinPasswordLength);
+            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
+                "short_password",
+                new Dictionary<string, object>
+                {
+                    {"minimum_length", MinPasswordLength}
+                });
             public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
 
-            [JsonPropertyName(".minimum_length")] 
-            public int MinimumLength { get; set; }
-
-            public BadRequestResponseUser(string error, int i) : base(error)
+            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
             {
-                MinimumLength = i;
             }
 
             private BadRequestResponseUser(string error) : base(error)
@@ -197,9 +199,17 @@ namespace MorphicServer
         [JsonPropertyName("error")] 
         public string Error { get; set; }
 
+        [JsonPropertyName("details")]
+        public Dictionary<string, object>? Details { get; set; }
+
         public BadRequestResponse(string error)
         {
             Error = error;
+        }
+        public BadRequestResponse(string error, Dictionary<string, object> details)
+        {
+            Error = error;
+            Details = details;
         }
     }
 }
