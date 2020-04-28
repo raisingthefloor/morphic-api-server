@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 import json
 
 from morphiclite import MorphicLite, Register, UserAuth, Preferences
