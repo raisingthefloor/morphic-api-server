@@ -53,7 +53,7 @@ namespace MorphicServer.Tests
         protected const string JsonCharacterSet = "utf-8";
 
         /// <summary>A reference to the test database</summary>
-        private Database Database;
+        protected Database Database;
 
         /// <summary>Create a test database, test http server, and client connection to the test server</summary>
         public EndpointTests()
