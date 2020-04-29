@@ -29,6 +29,17 @@ using Serilog.Context;
 
 namespace MorphicServer
 {
+    /// <summary>
+    /// Class to handle bad password lockout. If a user uses a bad password MaxCount times
+    /// over BadPasswordsInTimeSeconds then the logins will be blocked for LockOutForTimeSeconds
+    /// and no further attempts allowed.
+    ///
+    /// Any login attempts, good or bad, will simply be ignored. Specifically bad-password logins will
+    /// not extend the counter. So no matter what happens, after LockOutForTimeSeconds, the record is
+    /// deleted and new logins are allowed (the counter reset, so to speak).
+    ///
+    /// TODO Should a successful login attempt reset (delete) this DB entry?
+    /// </summary>
     public class BadPasswordLockout : Record
     {
         private const int MaxCount = 5;
@@ -44,23 +55,27 @@ namespace MorphicServer
             Touch(BadPasswordsInTimeSeconds);
         }
 
-        public static async Task BadAuthAttempt(Database db, string userId)
+        public static async Task<bool> BadAuthAttempt(Database db, string userId)
         {
             BadPasswordLockout badPasswordLockout = await db.Get<BadPasswordLockout>(userId) ?? new BadPasswordLockout(userId);
             badPasswordLockout.Count++;
+            bool lockedOut = false;
             if (badPasswordLockout.ShouldBlockLogin())
             {
                 // TODO If we do it this way, we keep pushing out the expiration with every new bad login. Maybe we don't want that?
                 badPasswordLockout.Touch(LockOutForTimeSeconds);
                 using (LogContext.PushProperty("UserUid", userId))
                 using (LogContext.PushProperty("BadLoginCount", badPasswordLockout.Count))
-                using (LogContext.PushProperty("Blocked Until", badPasswordLockout.ExpiresAt.ToString(CultureInfo.InvariantCulture)))
+                using (LogContext.PushProperty("Blocked Until", badPasswordLockout.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")))
                 {
                     Log.Logger.Information("Blocking Logins");
                 }
+
+                lockedOut = true;
             }
 
             await db.Save(badPasswordLockout);
+            return lockedOut;
         }
 
         public static async Task<DateTime?> UserLockedOut(Database db, string userId)

@@ -116,7 +116,7 @@ namespace MorphicServer
             var credential = await db.Get<UsernameCredential>(username);
             if (credential == null || credential.UserId == null)
             {
-                Log.Logger.Information("CredentialNotFound"); // let's not log the username. It could be a password.
+                Log.Logger.Information("CredentialNotFound");
                 BadAuthCounter.Labels("CredentialNotFound").Inc();
                 return null;
             }
@@ -128,24 +128,33 @@ namespace MorphicServer
                 {
                     using (LogContext.PushProperty("LockedOutUntil", until))
                     {
-                        Log.Logger.Information("UserLockedOut");
+                        Log.Logger.Information("UserLockedOut due to BadPasswordLockout");
                         BadAuthCounter.Labels("UserLockedOut").Inc();
                         return null;
                     }
                 }
                 if (!credential.IsValidPassword(password))
                 {
-                    await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
-                    Log.Logger.Information("InvalidPassword"); // let's not log the username. It could be a password.
-                    BadAuthCounter.Labels("InvalidPassword").Inc();
+                    var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                    if (lockedOut)
+                    {
+                        // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
+                        BadAuthCounter.Labels("UserLockedOut").Inc();
+                    }
+                    else
+                    {
+                        Log.Logger.Information("InvalidPassword");
+                        BadAuthCounter.Labels("InvalidPassword").Inc();
+                        
+                    }
+
                     return null;
                 }
 
                 var user = await db.Get<User>(credential.UserId);
                 if (user == null)
                 {
-                    Log.Logger.Information(
-                        "UserNotFound from credential"); // let's not log the username. It could be a password.
+                    Log.Logger.Information("UserNotFound from credential");
                     BadAuthCounter.Labels("UserNotFound").Inc();
                     return null;
                 }
