@@ -32,6 +32,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Prometheus;
 using Serilog;
 using Serilog.Context;
@@ -168,6 +169,16 @@ namespace MorphicServer
                     statusCode = (int) error.Status;
                     counter.Labels(path, method, statusCode.ToString()).Inc();
                     await context.Response.WriteError(error, context.RequestAborted);
+                }
+                catch (OperationCanceledException)
+                {
+                    // happens when the remote closes the connection sometimes
+                    Log.Logger.Information("caught OperationCanceledException");
+                }
+                catch (BadHttpRequestException)
+                {
+                    // happens when the remote closes the connection sometimes
+                    Log.Logger.Information("caught BadHttpRequestException");
                 }
                 finally
                 {
