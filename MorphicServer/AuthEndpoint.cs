@@ -45,7 +45,6 @@ namespace MorphicServer
             var user = await AuthenticatedUser(request);
             if (user == null)
             {
-                Log.Logger.Information("USER_MISSING");
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
 
