@@ -74,6 +74,7 @@ namespace MorphicServer
             CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
             CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
             CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
+            CollectionByType[typeof(BadPasswordLockout)] = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
 
         /// <summary>The MongoDB client connection</summary>
@@ -205,13 +206,21 @@ namespace MorphicServer
                 Morphic.CreateCollection("User");
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
+                
                 Morphic.CreateCollection("AuthToken");
-                info = new DatabaseInfo();
-                info.Version = 1;
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
                 options.ExpireAfter = TimeSpan.Zero;
                 authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+                
+                Morphic.CreateCollection("BadPasswordLockout");
+                var badPasswordLockout = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+                options = new CreateIndexOptions();
+                options.ExpireAfter = TimeSpan.Zero;
+                badPasswordLockout.Indexes.CreateOne(new CreateIndexModel<BadPasswordLockout>(Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                info = new DatabaseInfo();
+                info.Version = 1;
                 collection.InsertOne(info);
             }
         }

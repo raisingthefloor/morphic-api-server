@@ -25,10 +25,13 @@ using System;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Prometheus;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
-    public class UsernameCredential: Credential
+    public class UsernameCredential : Credential
     {
         public int? PasswordIterationCount;
         public string? PasswordFunction;
@@ -88,13 +91,70 @@ namespace MorphicServer
 
     public static class UsernameCredentialDatabase
     {
+        private static readonly string counter_metric_name = "morphic_bad_user_auth";
+
+        private static readonly Counter BadAuthCounter = Metrics.CreateCounter(counter_metric_name,
+            "Bad User Authentications",
+            new CounterConfiguration
+            {
+                LabelNames = new[] {"type"}
+            });
+        private static async Task SaveOrLog(Database db, User user)
+        {
+            var saved = await db.Save(user);
+            if (!saved)
+            {
+                using (LogContext.PushProperty("UserId", user.Id))
+                {
+                    Log.Logger.Error("could not save");
+                }
+            }
+        }
+
         public static async Task<User?> UserForUsername(this Database db, string username, string password)
         {
             var credential = await db.Get<UsernameCredential>(username);
-            if (credential == null || credential.UserId == null || !credential.IsValidPassword(password)){
+            if (credential == null || credential.UserId == null)
+            {
+                Log.Logger.Information("CredentialNotFound"); // let's not log the username. It could be a password.
+                BadAuthCounter.Labels("CredentialNotFound").Inc();
                 return null;
             }
-            return await db.Get<User>(credential.UserId);
+
+            using (LogContext.PushProperty("UserUid", credential.UserId))
+            {
+                DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
+                if (until != null)
+                {
+                    using (LogContext.PushProperty("LockedOutUntil", until))
+                    {
+                        Log.Logger.Information("UserLockedOut");
+                        BadAuthCounter.Labels("UserLockedOut").Inc();
+                        return null;
+                    }
+                }
+                if (!credential.IsValidPassword(password))
+                {
+                    await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                    Log.Logger.Information("InvalidPassword"); // let's not log the username. It could be a password.
+                    BadAuthCounter.Labels("InvalidPassword").Inc();
+                    return null;
+                }
+
+                var user = await db.Get<User>(credential.UserId);
+                if (user == null)
+                {
+                    Log.Logger.Information(
+                        "UserNotFound from credential"); // let's not log the username. It could be a password.
+                    BadAuthCounter.Labels("UserNotFound").Inc();
+                    return null;
+                }
+
+                user.TouchLastAuth();
+                // save it, but don't wait for it.
+                await Task.Run(() => SaveOrLog(db, user));
+                return user;
+            }
         }
     }
 }
