@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -35,5 +36,14 @@ namespace MorphicServer
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
+        [JsonIgnoreAttribute]
+        public DateTime LastAuth { get; set; }
+        
+        public void TouchLastAuth()
+        {
+            LastAuth = DateTime.UtcNow;
+        }
+
+
     }
 }

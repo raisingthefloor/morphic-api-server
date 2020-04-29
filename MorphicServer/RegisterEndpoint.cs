@@ -29,7 +29,6 @@ using MorphicServer.Attributes;
 using System.Net;
 using System.Text.Json.Serialization;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -46,6 +45,7 @@ namespace MorphicServer
             user.FirstName = request.firstName;
             user.LastName = request.lastName;
             user.PreferencesId = prefs.Id;
+            user.TouchLastAuth(); // technically, this is an auth, since we return a token!
             credential.UserId = user.Id;
             prefs.UserId = user.Id;
             var token = new AuthToken(user);
@@ -84,21 +84,17 @@ namespace MorphicServer
             }
 
             checkPassword(request.password);
-            
-            using (LogContext.PushProperty("username", request.username))
+
+            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
+            if (existing != null)
             {
-                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
-                if (existing != null)
-                {
-                    Log.Logger.Information("USER_EXISTS({username})");
-                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
-                }
-                var cred = new UsernameCredential();
-                cred.Id = request.username;
-                cred.SavePassword(request.password);
-                await Register(cred, request);
-                Log.Logger.Information("NEW_USER({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
             }
+
+            var cred = new UsernameCredential();
+            cred.Id = request.username;
+            cred.SavePassword(request.password);
+            await Register(cred, request);
         }
 
         static private readonly int MinPasswordLength = 6;
