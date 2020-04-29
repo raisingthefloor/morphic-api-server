@@ -22,10 +22,8 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Globalization;
 using System.Threading.Tasks;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -62,15 +60,10 @@ namespace MorphicServer
             bool lockedOut = false;
             if (badPasswordLockout.ShouldBlockLogin())
             {
-                // TODO If we do it this way, we keep pushing out the expiration with every new bad login. Maybe we don't want that?
                 badPasswordLockout.Touch(LockOutForTimeSeconds);
-                using (LogContext.PushProperty("UserUid", userId))
-                using (LogContext.PushProperty("BadLoginCount", badPasswordLockout.Count))
-                using (LogContext.PushProperty("Blocked Until", badPasswordLockout.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ")))
-                {
-                    Log.Logger.Information("Blocking Logins");
-                }
-
+                Log.Logger.Information(
+                    "Blocking Logins for {UserUid} after {BadLoginCount} attempts. Blocked until {BlockedUntil}",
+                    userId, badPasswordLockout.Count, badPasswordLockout.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"));
                 lockedOut = true;
             }
 
