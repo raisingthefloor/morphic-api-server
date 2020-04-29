@@ -27,7 +27,6 @@ using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 using Prometheus;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -104,10 +103,7 @@ namespace MorphicServer
             var saved = await db.Save(user);
             if (!saved)
             {
-                using (LogContext.PushProperty("UserId", user.Id))
-                {
-                    Log.Logger.Error("could not save");
-                }
+                Log.Logger.Error("could not save {UserId}", user.Id);
             }
         }
 
@@ -121,49 +117,48 @@ namespace MorphicServer
                 return null;
             }
 
-            using (LogContext.PushProperty("UserUid", credential.UserId))
+            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
+            if (until != null)
             {
-                DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
-                if (until != null)
-                {
-                    using (LogContext.PushProperty("LockedOutUntil", until))
-                    {
-                        Log.Logger.Information("UserLockedOut due to BadPasswordLockout");
-                        BadAuthCounter.Labels("UserLockedOut").Inc();
-                        return null;
-                    }
-                }
-                if (!credential.IsValidPassword(password))
-                {
-                    var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
-                    if (lockedOut)
-                    {
-                        // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
-                        BadAuthCounter.Labels("UserLockedOut").Inc();
-                    }
-                    else
-                    {
-                        Log.Logger.Information("InvalidPassword");
-                        BadAuthCounter.Labels("InvalidPassword").Inc();
-                        
-                    }
-
-                    return null;
-                }
-
-                var user = await db.Get<User>(credential.UserId);
-                if (user == null)
-                {
-                    Log.Logger.Information("UserNotFound from credential");
-                    BadAuthCounter.Labels("UserNotFound").Inc();
-                    return null;
-                }
-
-                user.TouchLastAuth();
-                // save it, but don't wait for it.
-                await Task.Run(() => SaveOrLog(db, user));
-                return user;
+                Log.Logger.Information("{UserId} UserLockedOut due to BadPasswordLockout until {LockedOutUntil}",
+                    credential.UserId,
+                    until?.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                BadAuthCounter.Labels("UserLockedOut").Inc();
+                return null;
             }
+
+            if (!credential.IsValidPassword(password))
+            {
+                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                if (lockedOut)
+                {
+                    // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
+                    BadAuthCounter.Labels("UserLockedOut").Inc();
+                }
+                else
+                {
+                    Log.Logger.Information("{UserId} InvalidPassword", credential.UserId);
+                    BadAuthCounter.Labels("InvalidPassword").Inc();
+
+                }
+                return null;
+            }
+
+
+            var user = await db.Get<User>(credential.UserId);
+            if (user == null)
+            {
+                // Not sure how this could happen: It means we have a credential for the user, but no user!
+                // How did the credential get there if there's no user?
+                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                BadAuthCounter.Labels("UserNotFound").Inc();
+                return null;
+            }
+
+            user.TouchLastAuth();
+            // save it, but don't wait for it.
+            await Task.Run(() => SaveOrLog(db, user));
+            return user;
         }
     }
 }
