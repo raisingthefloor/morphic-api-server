@@ -2,4 +2,4 @@
 
 #source ./venv/bin/activate
 
-python3 -m morphiclite.test
+python3 -m morphiclite.test $@
