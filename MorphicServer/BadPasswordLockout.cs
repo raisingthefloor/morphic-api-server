@@ -73,16 +73,17 @@ namespace MorphicServer
 
         public static async Task<DateTime?> UserLockedOut(Database db, string userId)
         {
-            BadPasswordLockout badPasswordLockout = await db.Get<BadPasswordLockout>(userId) ?? new BadPasswordLockout(userId);
-            if (badPasswordLockout.ShouldBlockLogin())
+            var badPasswordLockout = await db.Get<BadPasswordLockout>(userId);
+            if (badPasswordLockout != null && badPasswordLockout.ShouldBlockLogin())
             {
                 return badPasswordLockout.ExpiresAt;
             }
 
+            // user is not locked out
             return null;
         }
 
-        public bool ShouldBlockLogin()
+        private bool ShouldBlockLogin()
         {
             if (Count >= MaxCount)
             {
@@ -91,7 +92,8 @@ namespace MorphicServer
 
             return false;
         }
-        public void Touch(int ttl)
+
+        private void Touch(int ttl)
         {
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, ttl);
         }
