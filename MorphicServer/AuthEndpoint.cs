@@ -43,11 +43,6 @@ namespace MorphicServer
         {
             var request = await Request.ReadJson<T>();
             var user = await AuthenticatedUser(request);
-            if (user == null)
-            {
-                throw new HttpError(HttpStatusCode.BadRequest);
-            }
-
             using (LogContext.PushProperty("UserUid", user.Id))
             {
                 var token = new AuthToken(user);
@@ -61,7 +56,7 @@ namespace MorphicServer
             }
         }
 
-        public abstract Task<User?> AuthenticatedUser(T request);
+        public abstract Task<User> AuthenticatedUser(T request);
 
     }
 
@@ -95,7 +90,7 @@ namespace MorphicServer
     public class AuthUsernameEndpoint: AuthEndpoint<AuthUsernameRequest>
     {
 
-        public override async Task<User?> AuthenticatedUser(AuthUsernameRequest request)
+        public override async Task<User> AuthenticatedUser(AuthUsernameRequest request)
         {
             var db = Context.GetDatabase();
             return await db.UserForUsername(request.username, request.password);
@@ -114,7 +109,7 @@ namespace MorphicServer
     // [Path("/v1/auth/key")]
     public class AuthKeyEndpoint: AuthEndpoint<AuthKeyRequest>
     {
-        public override async Task<User?> AuthenticatedUser(AuthKeyRequest request)
+        public override async Task<User> AuthenticatedUser(AuthKeyRequest request)
         {
             var db = Context.GetDatabase();
             return await db.UserForKey(request.key);

@@ -189,23 +189,4 @@ namespace MorphicServer
             }
         }
     }
-
-    public class BadRequestResponse
-    {
-        [JsonPropertyName("error")] 
-        public string Error { get; set; }
-
-        [JsonPropertyName("details")]
-        public Dictionary<string, object>? Details { get; set; }
-
-        public BadRequestResponse(string error)
-        {
-            Error = error;
-        }
-        public BadRequestResponse(string error, Dictionary<string, object> details)
-        {
-            Error = error;
-            Details = details;
-        }
-    }
 }

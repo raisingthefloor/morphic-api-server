@@ -22,6 +22,8 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
@@ -107,14 +109,14 @@ namespace MorphicServer
             }
         }
 
-        public static async Task<User?> UserForUsername(this Database db, string username, string password)
+        public static async Task<User> UserForUsername(this Database db, string username, string password)
         {
             var credential = await db.Get<UsernameCredential>(username);
             if (credential == null || credential.UserId == null)
             {
                 Log.Logger.Information("CredentialNotFound");
                 BadAuthCounter.Labels("CredentialNotFound").Inc();
-                return null;
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
 
             DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
@@ -124,7 +126,7 @@ namespace MorphicServer
                     credential.UserId,
                     until?.ToString("yyyy-MM-ddTHH:mm:ssZ"));
                 BadAuthCounter.Labels("UserLockedOut").Inc();
-                return null;
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));
             }
 
             if (!credential.IsValidPassword(password))
@@ -141,7 +143,7 @@ namespace MorphicServer
                     BadAuthCounter.Labels("InvalidPassword").Inc();
 
                 }
-                return null;
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
 
 
@@ -152,13 +154,35 @@ namespace MorphicServer
                 // How did the credential get there if there's no user?
                 Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
                 BadAuthCounter.Labels("UserNotFound").Inc();
-                return null;
+                throw new HttpError(HttpStatusCode.InternalServerError);
             }
 
             user.TouchLastAuth();
             // save it, but don't wait for it.
             await Task.Run(() => SaveOrLog(db, user));
             return user;
+        }
+        
+        class BadUserAuthResponse : BadRequestResponse
+        {
+            public static readonly BadRequestResponse InvalidCredentials = new BadUserAuthResponse("invalid_credentials");
+            // Future use: public static readonly BadRequestResponse RateLimited = new BadUserAuthResponse("rate_limited");
+                
+
+            public BadUserAuthResponse(string error) : base(error)
+            {
+            }
+
+            public static BadRequestResponse Locked(DateTime until)
+            {
+                var timeoutSeconds = until - DateTime.UtcNow;
+                var response = new BadUserAuthResponse("locked");
+                response.Details = new Dictionary<string, object>
+                {
+                    {"timeout", (int)timeoutSeconds.TotalSeconds}
+                };
+                return response;
+            }
         }
     }
 }
