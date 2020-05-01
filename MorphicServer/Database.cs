@@ -25,6 +25,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Linq.Expressions;
 using System.Text.Json;
 using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
@@ -74,6 +75,7 @@ namespace MorphicServer
             CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
             CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
             CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
+            CollectionByType[typeof(BadPasswordLockout)] = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
 
         /// <summary>The MongoDB client connection</summary>
@@ -104,23 +106,46 @@ namespace MorphicServer
         /// </remarks>
         public async Task<T?> Get<T>(string id, Session? session = null) where T: Record
         {
+            return await Get<T>(record => record.Id == id, session);
+        }
+
+        /// <summary>
+        /// Fetch a record from the database using a linq filter.
+        /// </summary>
+        /// <param name="filter">Linq filter</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T">The type of the record/collection</typeparam>
+        /// <returns></returns>
+        public async Task<T?> Get<T>(Expression<Func<T, bool>> filter, Session? session = null) where T: Record
+        {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.FindAsync(session.Handle, record => record.Id == id)).FirstOrDefault();
+                    return (await collection.FindAsync(session.Handle, filter)).FirstOrDefault();
                 }
-                return (await collection.FindAsync(record => record.Id == id)).FirstOrDefault();
+                return (await collection.FindAsync(filter)).FirstOrDefault();
             }
             return null;
         }
-
+        
         /// <summary>Create or update a record in the database</summary>
         /// <remarks>
         /// The destination collection is chosen based on the record's type
         /// </remarks>
         public async Task<bool> Save<T>(T obj, Session? session = null) where T: Record
         {
+            if (obj.Created == default)
+            {
+                var now = DateTime.UtcNow;
+                obj.Created = now;
+                obj.Updated = now;
+            }
+            else
+            {
+                obj.Updated = DateTime.UtcNow;
+            }
+
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 var options = new ReplaceOptions();
@@ -191,21 +216,36 @@ namespace MorphicServer
             var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
             if (info == null){
                 Morphic.CreateCollection("Preferences");
+                
                 Morphic.CreateCollection("User");
+                var users = Morphic.GetCollection<User>("User");
+                users.Indexes.CreateOne(new CreateIndexModel<User>(
+                    Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
+                
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
+                
                 Morphic.CreateCollection("AuthToken");
-                info = new DatabaseInfo();
-                info.Version = 1;
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
                 options.ExpireAfter = TimeSpan.Zero;
-                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(
+                    Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                Morphic.CreateCollection("BadPasswordLockout");
+                var badPasswordLockout = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+                options = new CreateIndexOptions();
+                options.ExpireAfter = TimeSpan.Zero;
+                badPasswordLockout.Indexes.CreateOne(new CreateIndexModel<BadPasswordLockout>(Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                info = new DatabaseInfo();
+                info.Version = 1;
                 collection.InsertOne(info);
             }
         }
 
-        /// <summary>A record of the database initilization</summary>
+        /// <summary>A record of the database initialization</summary>
         /// <remarks>
         /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
         /// </remarks>

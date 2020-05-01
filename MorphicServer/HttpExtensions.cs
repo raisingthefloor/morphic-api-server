@@ -80,11 +80,15 @@ namespace MorphicServer
                         return o;
                     }
                 }
+                catch (JsonException e)
+                {
+                    Log.Logger.Information("Could not deserialize payload: {JsonError}", e.Message);
+                }
                 catch (Exception e)
                 {
                     using (LogContext.PushProperty("exception", e))
                     {
-                        Log.Logger.Information("Could not deserialize payload");
+                        Log.Logger.Information("Unknown error during deserialize payload");
                     }
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);

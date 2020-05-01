@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Net;
@@ -32,6 +33,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Prometheus;
 using Serilog;
 using Serilog.Context;
@@ -168,6 +171,16 @@ namespace MorphicServer
                     statusCode = (int) error.Status;
                     counter.Labels(path, method, statusCode.ToString()).Inc();
                     await context.Response.WriteError(error, context.RequestAborted);
+                }
+                catch (OperationCanceledException)
+                {
+                    // happens when the remote closes the connection sometimes
+                    Log.Logger.Information("caught OperationCanceledException");
+                }
+                catch (BadHttpRequestException)
+                {
+                    // happens when the remote closes the connection sometimes
+                    Log.Logger.Information("caught BadHttpRequestException");
                 }
                 finally
                 {
@@ -311,6 +324,28 @@ namespace MorphicServer
             if (!success){
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
+        }
+    }
+
+    /// <summary>
+    /// Base class for error Responses for Morphic APIs.
+    /// </summary>
+    public class BadRequestResponse
+    {
+        [JsonPropertyName("error")] 
+        public string Error { get; set; }
+
+        [JsonPropertyName("details")]
+        public Dictionary<string, object>? Details { get; set; }
+
+        public BadRequestResponse(string error)
+        {
+            Error = error;
+        }
+        public BadRequestResponse(string error, Dictionary<string, object> details)
+        {
+            Error = error;
+            Details = details;
         }
     }
 
