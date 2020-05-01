@@ -75,6 +75,7 @@ namespace MorphicServer
             CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
             CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
             CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
+            CollectionByType[typeof(BadPasswordLockout)] = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
 
         /// <summary>The MongoDB client connection</summary>
@@ -223,19 +224,28 @@ namespace MorphicServer
                 
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
+                
                 Morphic.CreateCollection("AuthToken");
-                info = new DatabaseInfo();
-                info.Version = 1;
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
                 options.ExpireAfter = TimeSpan.Zero;
+
                 authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(
                     Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                Morphic.CreateCollection("BadPasswordLockout");
+                var badPasswordLockout = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+                options = new CreateIndexOptions();
+                options.ExpireAfter = TimeSpan.Zero;
+                badPasswordLockout.Indexes.CreateOne(new CreateIndexModel<BadPasswordLockout>(Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+                info = new DatabaseInfo();
+                info.Version = 1;
                 collection.InsertOne(info);
             }
         }
 
-        /// <summary>A record of the database initilization</summary>
+        /// <summary>A record of the database initialization</summary>
         /// <remarks>
         /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
         /// </remarks>

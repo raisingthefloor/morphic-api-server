@@ -21,11 +21,17 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+
+using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Threading.Tasks;
+using Prometheus;
+using Serilog;
 
 namespace MorphicServer
 {
-    public class UsernameCredential: Credential
+    public class UsernameCredential : Credential
     {
         public int PasswordIterationCount;
         public string PasswordFunction = null!;
@@ -50,13 +56,97 @@ namespace MorphicServer
 
     public static class UsernameCredentialDatabase
     {
-        public static async Task<User?> UserForUsername(this Database db, string username, string password)
+        private static readonly string counter_metric_name = "morphic_bad_user_auth";
+
+        private static readonly Counter BadAuthCounter = Metrics.CreateCounter(counter_metric_name,
+            "Bad User Authentications",
+            new CounterConfiguration
+            {
+                LabelNames = new[] {"type"}
+            });
+        private static async Task SaveOrLog(Database db, User user)
+        {
+            var saved = await db.Save(user);
+            if (!saved)
+            {
+                Log.Logger.Error("could not save {UserId}", user.Id);
+            }
+        }
+
+        public static async Task<User> UserForUsername(this Database db, string username, string password)
         {
             var credential = await db.Get<UsernameCredential>(username);
-            if (credential == null || credential.UserId == null || !credential.IsValidPassword(password)){
-                return null;
+            if (credential == null || credential.UserId == null)
+            {
+                Log.Logger.Information("CredentialNotFound");
+                BadAuthCounter.Labels("CredentialNotFound").Inc();
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
-            return await db.Get<User>(credential.UserId);
+
+            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
+            if (until != null)
+            {
+                Log.Logger.Information("{UserId} UserLockedOut due to BadPasswordLockout until {LockedOutUntil}",
+                    credential.UserId,
+                    until?.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                BadAuthCounter.Labels("UserLockedOut").Inc();
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));
+            }
+
+            if (!credential.IsValidPassword(password))
+            {
+                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                if (lockedOut)
+                {
+                    // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
+                    BadAuthCounter.Labels("UserLockedOut").Inc();
+                }
+                else
+                {
+                    Log.Logger.Information("{UserId} InvalidPassword", credential.UserId);
+                    BadAuthCounter.Labels("InvalidPassword").Inc();
+
+                }
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
+            }
+
+
+            var user = await db.Get<User>(credential.UserId);
+            if (user == null)
+            {
+                // Not sure how this could happen: It means we have a credential for the user, but no user!
+                // How did the credential get there if there's no user?
+                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                BadAuthCounter.Labels("UserNotFound").Inc();
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+
+            user.TouchLastAuth();
+            // save it, but don't wait for it.
+            await Task.Run(() => SaveOrLog(db, user));
+            return user;
+        }
+        
+        class BadUserAuthResponse : BadRequestResponse
+        {
+            public static readonly BadRequestResponse InvalidCredentials = new BadUserAuthResponse("invalid_credentials");
+            // Future use: public static readonly BadRequestResponse RateLimited = new BadUserAuthResponse("rate_limited");
+                
+
+            public BadUserAuthResponse(string error) : base(error)
+            {
+            }
+
+            public static BadRequestResponse Locked(DateTime until)
+            {
+                var timeoutSeconds = until - DateTime.UtcNow;
+                var response = new BadUserAuthResponse("locked");
+                response.Details = new Dictionary<string, object>
+                {
+                    {"timeout", (int)timeoutSeconds.TotalSeconds}
+                };
+                return response;
+            }
         }
     }
 }

@@ -3,7 +3,7 @@ import json
 import logging
 import sys
 
-from morphiclite import MorphicLite, Register, UserAuth, Preferences
+from morphiclite import MorphicLite, Register, UserAuth, Preferences, Users
 
 
 def dict_compare(d1, d2):
@@ -28,8 +28,8 @@ def testrunner(args):
     logger.addHandler(h)
     base_url = args.url
 
-    for repeatAll in range(1, 2):
-        for i in range(1, 1000):
+    for repeatAll in range(1, args.loops+1):
+        for i in range(1, args.nusers+1):
             try:
                 username = "myusername" + str(i)
                 password = "mypassword" + str(i)
@@ -39,25 +39,33 @@ def testrunner(args):
                 except (Register.MorphicRegisterUserExists, Register.MorphicRegisterEmailExists):
                     auth = UserAuth(base_url, logger=logger).doAuth(username, password)
                 logger.debug(json.dumps(auth, indent=4))
-                # {
-                #     "token": "bAGfAo8f9kwt3jH7Xnwz5aO+AhX+MQ/f/rqhteZHCmKChcxhPZz3QyLJOfFz7Bx+EWfNBMqUWSJ2sxXpA4A8Zg==",
-                #     "user": {
-                #         "first_name": null,
-                #         "last_name": null,
-                #         "preferences_id": "133066a8-cc09-4214-902d-40b63e038437",
-                #         "id": "1a4d7d30-0d65-4f7e-b494-2901b2406f5e"
-                #     }
-                # }
 
-                #    "AuthenticatedUserPreferenceId": "133066a8-cc09-4214-902d-40b63e038437",
-                #    "AuthenticatedUserUid": "1a4d7d30-0d65-4f7e-b494-2901b2406f5e",
+                try:
+                    kwargs = {
+                        'url': base_url,
+                        'userId': auth['user']['id'],
+                        'authToken': auth['token'],
+                        'logger': logger
+                    }
+
+                    user = Users(**kwargs).get()
+                    print(user)
+                except Exception as e:
+                    print(e)
 
                 if args.extra_tests:
+                    try:
+                        auth = UserAuth(base_url, logger=logger).doAuth(username, password+"123")
+                    except Exception:
+                        # this is expected!
+                        pass
+
                     try:
                         Register(base_url, logger=logger).get()
                     except MorphicLite.MorphicLiteError as e:
                         # this is expected!
-                        logger.debug("Register GET got: {}", str(e.args))
+                        #logger.debug("Register GET got: {}", str(e.args))
+                        pass
                     else:
                         logger.error("GET Register worked but shouldn't have")
 
@@ -73,13 +81,15 @@ def testrunner(args):
                     try:
                         pref_kls.post()
                     except MorphicLite.MorphicLiteError as e:
-                        logger.debug("Register POST got an {}", str(e.args))
+                        #logger.debug("Register POST got an {message}".format(message=str(e.args)))
+                        pass
                     else:
                         logger.error("POST Register without body worked but shouldn't have")
                     try:
                         pref_kls.getBad()
                     except MorphicLite.MorphicLiteError as e:
-                        logger.debug(e)
+                        #logger.debug(e)
+                        pass
                     else:
                         logger.error("GET Bad Register worked but shouldn't have")
 
@@ -114,13 +124,16 @@ def testrunner(args):
             except MorphicLite.MorphicLiteError as e:
                 logger.error(e)
             except Exception as e:
-                logger.error("Uncaught exception {}", e)
+                logger.error("Uncaught exception {message}".format(message=str(e)))
 
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d','--debug', action='store_true', help='debug')
 parser.add_argument('--url', help='base url', default="http://localhost:5002")
 parser.add_argument('--extra-tests', help='some extra negative tests', action='store_true')
+parser.add_argument('-n', '--nusers', help='number of users', default=1000, type=int)
+parser.add_argument('-l', '--loops', help='number of loops', default=10, type=int)
+
 args = parser.parse_args()
 try:
     testrunner(args)

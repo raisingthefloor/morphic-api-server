@@ -8,9 +8,11 @@ from urllib.error import HTTPError
 
 
 class MorphicLite(object):
-
     class MorphicLiteError(Exception):
         pass
+    class MorphicLiteRequestError(Exception):
+        pass
+
 
     def __init__(self, url, logger):
         self.logger = logger
@@ -43,20 +45,20 @@ class MorphicLite(object):
                     error = json.loads(e.read())
                     raise self.MorphicLiteError(error)
                 else:
-                    raise self.MorphicLiteError(str(e))
+                    raise self.MorphicLiteRequestError(str(e))
             else:
-                raise self.MorphicLiteError(str(e))
+                raise self.MorphicLiteRequestError(str(e))
         except RemoteDisconnected:
-            raise self.MorphicLiteError("remote server disconnected unexpectedly")
+            raise self.MorphicLiteRequestError("remote server disconnected unexpectedly")
         except urllib.error.URLError:
-            raise self.MorphicLiteError("Could not connect to Morphic")
+            raise self.MorphicLiteRequestError("Could not connect to Morphic")
         finally:
             later = time.time()
             self.logger.info("{timeDiff}:{response_code}:{method}:{url}".format(
                 method=method,
-                url = req.get_full_url(),
-                response_code = response_code,
-                timeDiff=(later-now)))
+                url=req.get_full_url(),
+                response_code=response_code,
+                timeDiff=(later - now)))
 
         data = resp.read()
         if "utf-8" in resp.headers.get("Content-Type", ""):
@@ -85,6 +87,7 @@ class Register(MorphicLite):
 
     class MorphicRegisterUserExists(MorphicLite.MorphicLiteError):
         pass
+
     class MorphicRegisterEmailExists(MorphicLite.MorphicLiteError):
         pass
 
@@ -173,3 +176,15 @@ class Preferences(AuthedMorphicRequest):
         path = self.DefaultPreferencesUrl.format(userId=self.userId, preferencesId=self.pref_id)
         prefs = self.json_request('PUT', path, {"default": my_prefs})
         return prefs
+
+
+class Users(AuthedMorphicRequest):
+    DefaultUsersUrl = "/v1/users/{userId}"
+
+    def get(self):
+        path = self.DefaultUsersUrl.format(userId=self.userId)
+        user = self.json_request('GET', path)
+        if user['user_id'] != self.userId:
+            self.logger.error("returned userId {} doesn't match sent {}", user['user_id'], self.userId)
+
+        return user

@@ -42,7 +42,14 @@ namespace MorphicServer
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
-
+        [JsonIgnoreAttribute]
+        public DateTime LastAuth { get; set; }
+        
+        public void TouchLastAuth()
+        {
+            LastAuth = DateTime.UtcNow;
+        }
+        
         /// <summary>
         /// Default salt for user-email hashing. Why do we need default salt? We need to be able to search
         /// for the email. If we use random salt for every entry this becomes prohibitively expensive 

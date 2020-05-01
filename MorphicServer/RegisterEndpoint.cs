@@ -30,7 +30,6 @@ using System.Net;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -43,6 +42,7 @@ namespace MorphicServer
             var prefs = new Preferences();
             prefs.Id = Guid.NewGuid().ToString();
             user.PreferencesId = prefs.Id;
+            user.TouchLastAuth(); // technically, this is an auth, since we return a token!
             prefs.UserId = user.Id;
             credential.UserId = user.Id;
             var token = new AuthToken(user);
@@ -79,29 +79,25 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            using (LogContext.PushProperty("username", request.Username))
+            CheckPassword(request.Password);
+            await CheckEmail(request.Email);
+
+            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
+            if (existing != null)
             {
-                CheckPassword(request.Password);
-                await CheckEmail(request.Email);
-                
-                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
-                if (existing != null)
-                {
-                    Log.Logger.Information("USER_EXISTS({username})");
-                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
-                }
-                var cred = new UsernameCredential();
-                cred.Id = request.Username;
-                cred.SavePassword(request.Password);
-                
-                var user = new User();
-                user.Id = Guid.NewGuid().ToString();
-                user.SetEmail(request.Email);
-                user.FirstName = request.FirstName;
-                user.LastName = request.LastName;
-                await Register(cred, user);
-                Log.Logger.Information("NEW_USER({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
             }
+            
+            var cred = new UsernameCredential();
+            cred.Id = request.Username;
+            cred.SavePassword(request.Password);
+            
+            var user = new User();
+            user.Id = Guid.NewGuid().ToString();
+            user.SetEmail(request.Email);
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            await Register(cred, user);
         }
 
         private static bool IsValidEmail(string emailaddress)
@@ -249,25 +245,6 @@ namespace MorphicServer
             public BadRequestResponseKey(string error) : base(error)
             {
             }
-        }
-    }
-
-    public class BadRequestResponse
-    {
-        [JsonPropertyName("error")] 
-        public string Error { get; set; }
-
-        [JsonPropertyName("details")]
-        public Dictionary<string, object>? Details { get; set; }
-
-        public BadRequestResponse(string error)
-        {
-            Error = error;
-        }
-        public BadRequestResponse(string error, Dictionary<string, object> details)
-        {
-            Error = error;
-            Details = details;
         }
     }
 }
