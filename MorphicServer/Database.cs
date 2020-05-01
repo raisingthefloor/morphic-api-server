@@ -231,6 +231,11 @@ namespace MorphicServer
                     Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
 
                 Morphic.CreateCollection("UsernameCredential");
+                var usernameCredentials = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
+                usernameCredentials.Indexes.CreateOne(new CreateIndexModel<UsernameCredential>(
+                    Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));
+
+
                 Morphic.CreateCollection("KeyCredential");
 
                 Morphic.CreateCollection("AuthToken");

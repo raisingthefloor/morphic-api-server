@@ -188,3 +188,11 @@ class Users(AuthedMorphicRequest):
             self.logger.error("returned userId {} doesn't match sent {}", user['user_id'], self.userId)
 
         return user
+
+    def changePassword(self, old_password, new_password):
+        path = self.DefaultUsersUrl.format(userId=self.userId) + "/changePassword"
+        changeRequest = {
+            'existing_password': old_password,
+            'new_password': new_password
+        }
+        self.json_request('POST', path, data_obj=changeRequest)
