@@ -45,7 +45,7 @@ namespace MorphicServer
     {
         /// <summary>The database connection URL as a string</summary>
         public string ConnectionString { get; set; } = "";
-        
+
         /// <summary>The database name</summary>
         public string DatabaseName { get; set; } = "";
     }
@@ -53,7 +53,6 @@ namespace MorphicServer
     /// <summary>A connection to the Morphic database</summary>
     public class Database
     {
-
         /// <summary>Create a database using the given settings</summary>
         /// <remarks>
         /// Since the database is registered as a service, it is constructed by the service system.
@@ -63,7 +62,7 @@ namespace MorphicServer
         {
             Client = new MongoClient(settings.ConnectionString);
             Morphic = Client.GetDatabase(settings.DatabaseName);
-            
+
             using (LogContext.PushProperty("DBSettings", Client.Settings.ToString()))
             using (LogContext.PushProperty("DBName", settings.DatabaseName))
             {
@@ -72,10 +71,12 @@ namespace MorphicServer
 
             CollectionByType[typeof(Preferences)] = Morphic.GetCollection<Preferences>("Preferences");
             CollectionByType[typeof(User)] = Morphic.GetCollection<User>("User");
-            CollectionByType[typeof(UsernameCredential)] = Morphic.GetCollection<UsernameCredential>("UsernameCredential");
+            CollectionByType[typeof(UsernameCredential)] =
+                Morphic.GetCollection<UsernameCredential>("UsernameCredential");
             CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
             CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
-            CollectionByType[typeof(BadPasswordLockout)] = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+            CollectionByType[typeof(BadPasswordLockout)] =
+                Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
 
         /// <summary>The MongoDB client connection</summary>
@@ -84,17 +85,14 @@ namespace MorphicServer
         /// <summary>The Morphic Database</summary>
         private IMongoDatabase Morphic;
 
-    public void DeleteDatabase()
+        public void DeleteDatabase()
         {
             Client.DropDatabase(Morphic.DatabaseNamespace.DatabaseName);
         }
 
         public bool IsClusterConnected
         {
-            get
-            {
-                return Client.Cluster.Description.State == ClusterState.Connected;
-            }
+            get { return Client.Cluster.Description.State == ClusterState.Connected; }
         }
 
         /// <summary>The MongoDB collections within the database</summary>
@@ -104,7 +102,7 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<T?> Get<T>(string id, Session? session = null) where T: Record
+        public async Task<T?> Get<T>(string id, Session? session = null) where T : Record
         {
             return await Get<T>(record => record.Id == id, session);
         }
@@ -116,7 +114,7 @@ namespace MorphicServer
         /// <param name="session">The session</param>
         /// <typeparam name="T">The type of the record/collection</typeparam>
         /// <returns></returns>
-        public async Task<T?> Get<T>(Expression<Func<T, bool>> filter, Session? session = null) where T: Record
+        public async Task<T?> Get<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
@@ -124,16 +122,18 @@ namespace MorphicServer
                 {
                     return (await collection.FindAsync(session.Handle, filter)).FirstOrDefault();
                 }
+
                 return (await collection.FindAsync(filter)).FirstOrDefault();
             }
+
             return null;
         }
-        
+
         /// <summary>Create or update a record in the database</summary>
         /// <remarks>
         /// The destination collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Save<T>(T obj, Session? session = null) where T: Record
+        public async Task<bool> Save<T>(T obj, Session? session = null) where T : Record
         {
             if (obj.Created == default)
             {
@@ -152,10 +152,13 @@ namespace MorphicServer
                 options.IsUpsert = true;
                 if (session != null)
                 {
-                    return (await collection.ReplaceOneAsync(session.Handle, record => record.Id == obj.Id, obj, options)).IsAcknowledged;
+                    return (await collection.ReplaceOneAsync(session.Handle, record => record.Id == obj.Id, obj,
+                        options)).IsAcknowledged;
                 }
+
                 return (await collection.ReplaceOneAsync(record => record.Id == obj.Id, obj, options)).IsAcknowledged;
             }
+
             return false;
         }
 
@@ -163,16 +166,19 @@ namespace MorphicServer
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<bool> Delete<T>(T obj, Session? session = null) where T: Record
+        public async Task<bool> Delete<T>(T obj, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.DeleteOneAsync(session.Handle, record => record.Id == obj.Id)).IsAcknowledged;
+                    return (await collection.DeleteOneAsync(session.Handle, record => record.Id == obj.Id))
+                        .IsAcknowledged;
                 }
+
                 return (await collection.DeleteOneAsync(record => record.Id == obj.Id)).IsAcknowledged;
             }
+
             return false;
         }
 
@@ -181,7 +187,8 @@ namespace MorphicServer
         /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>
         /// attribute, which ensures that any operations, incluing <code>LoadResource</code> are run in the transaction.
         /// </remarks>
-        public async Task<bool> WithTransaction(Func<Session, Task> operations, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task<bool> WithTransaction(Func<Session, Task> operations,
+            CancellationToken cancellationToken = default(CancellationToken))
         {
             using (var session = await Client.StartSessionAsync(cancellationToken: cancellationToken))
             {
@@ -214,17 +221,18 @@ namespace MorphicServer
             // script that gets run prior to spinning up instances.
             var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
             var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
-            if (info == null){
+            if (info == null)
+            {
                 Morphic.CreateCollection("Preferences");
-                
+
                 Morphic.CreateCollection("User");
                 var users = Morphic.GetCollection<User>("User");
                 users.Indexes.CreateOne(new CreateIndexModel<User>(
                     Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
-                
+
                 Morphic.CreateCollection("UsernameCredential");
                 Morphic.CreateCollection("KeyCredential");
-                
+
                 Morphic.CreateCollection("AuthToken");
                 var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
                 var options = new CreateIndexOptions();
@@ -237,7 +245,9 @@ namespace MorphicServer
                 var badPasswordLockout = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
                 options = new CreateIndexOptions();
                 options.ExpireAfter = TimeSpan.Zero;
-                badPasswordLockout.Indexes.CreateOne(new CreateIndexModel<BadPasswordLockout>(Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+                badPasswordLockout.Indexes.CreateOne(
+                    new CreateIndexModel<BadPasswordLockout>(
+                        Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
 
                 info = new DatabaseInfo();
                 info.Version = 1;
@@ -251,8 +261,7 @@ namespace MorphicServer
         /// </remarks>
         class DatabaseInfo
         {
-            [BsonId]
-            public string Id { get; set; } = "0";
+            [BsonId] public string Id { get; set; } = "0";
             public int Version { get; set; } = 0;
         }
 
@@ -277,7 +286,6 @@ namespace MorphicServer
         /// </remarks>
         public class JsonSerializer<T> : SerializerBase<T>
         {
-
             public override T Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
             {
                 var json = context.Reader.ReadString();
@@ -289,9 +297,6 @@ namespace MorphicServer
                 string json = JsonSerializer.Serialize(value);
                 context.Writer.WriteString(json);
             }
-
         }
-
     }
-
 }
