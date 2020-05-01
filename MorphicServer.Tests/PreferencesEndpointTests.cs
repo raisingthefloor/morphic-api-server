@@ -22,7 +22,6 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
@@ -71,28 +70,24 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // GET, known, forbidden prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, forbidden user
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, forbidden user & prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo2.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
@@ -161,7 +156,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known prefs, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userid}/preferences/{userInfo1.PreferencesId}");
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
@@ -169,7 +163,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known user & prefs, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
@@ -177,7 +170,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known user, forbidden prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
@@ -185,7 +177,6 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // PUT, known prefs, forbidden user
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
@@ -350,5 +341,69 @@ namespace MorphicServer.Tests
             Assert.Equal(JsonValueKind.False, property.ValueKind);
         }
 
+        [Fact]
+        public async Task TestDelete()
+        {
+            var userInfo1 = await CreateTestUser();
+            var userInfo2 = await CreateTestUser();
+
+            // DELETE, unknown user, unauth
+            var userid = Guid.NewGuid().ToString();
+            var uuid = Guid.NewGuid().ToString();
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{uuid}");
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, unknown prefs, unauth
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, unknown user
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{uuid}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, unknown prefs
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, known user, unauth
+            uuid = Guid.NewGuid().ToString();
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{uuid}");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, known prefs, unauth
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userid}/preferences/{userInfo1.PreferencesId}");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, known user & prefs, unauth
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, known user, forbidden prefs
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, known prefs, forbidden user
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, success
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
     }
 }
