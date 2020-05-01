@@ -211,7 +211,6 @@ namespace MorphicServer
         public void InitializeDatabase()
         {
             var stopWatch = Stopwatch.StartNew();
-            //CreateCollectionIfNotExists<DatabaseInfo>();
             _morphic.DropCollection("DatabaseInfo"); // doesn't fail
             
             // TODO: Deal with multi-server database update/upgrade
@@ -285,17 +284,6 @@ namespace MorphicServer
                 _morphic.DatabaseNamespace,
                 collection.CollectionNamespace,
                 indexName);
-        }
-
-        /// <summary>A record of the database initialization</summary>
-        /// <remarks>
-        /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
-        /// </remarks>
-        class DatabaseInfo
-        {
-            [BsonId]
-            public string Id { get; set; } = "0";
-            public int Version { get; set; } = 0;
         }
 
         /// <summary>A database transaction session</summary>
