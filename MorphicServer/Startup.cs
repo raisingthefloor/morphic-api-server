@@ -49,6 +49,9 @@ namespace MorphicServer
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddRouting();
+
+            // load the keys. Fails if they aren't present.
+            KeyStorage.LoadKeysFromEnvIfNeeded();
         }
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)

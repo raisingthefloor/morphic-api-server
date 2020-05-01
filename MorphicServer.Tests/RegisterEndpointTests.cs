@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
@@ -44,13 +45,20 @@ namespace MorphicServer.Tests
 
             // POST, missing content type
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8);
+            var content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "testing123");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
             // POST, missing username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("password", "testing123");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             JsonElement property;
@@ -59,7 +67,19 @@ namespace MorphicServer.Tests
 
             // POST, missing password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+
+            // POST, missing email
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "testing123");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             Assert.True(error.TryGetProperty("details", out property));
@@ -67,7 +87,11 @@ namespace MorphicServer.Tests
 
             // POST, blank password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": """"}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             Assert.True(error.TryGetProperty("details", out property));
@@ -75,14 +99,22 @@ namespace MorphicServer.Tests
 
             // POST, whitespace password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""             ""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "              ");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             Assert.True(error.TryGetProperty("details", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
 
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""\t""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "\t");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             Assert.True(error.TryGetProperty("details", out property));
@@ -90,7 +122,11 @@ namespace MorphicServer.Tests
 
             // POST, short password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""short""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "short");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             JsonElement element;
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "short_password");
@@ -103,15 +139,33 @@ namespace MorphicServer.Tests
             
             // POST, known bad password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""password""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "password");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
             Assert.True(error.TryGetProperty("details", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
 
+            // POST, malformed email
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "testing123");
+            content.Add("email", "test1example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "malformed_email");
+
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing123""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "testing123");
+            content.Add("email", "test1@example.com");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -139,7 +193,13 @@ namespace MorphicServer.Tests
 
             // POST, success with first/last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing123"", ""first_name"": ""Test"", ""last_name"": ""User""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1fl");
+            content.Add("password", "testing123");
+            content.Add("email", "test1fl@example.com");
+            content.Add("first_name", "Test");
+            content.Add("last_name", "User");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -169,11 +229,29 @@ namespace MorphicServer.Tests
 
             // POST, duplicate username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test2"", ""password"": ""testing123"", ""firstName"": ""Test"", ""lastName"": ""User""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test1");
+            content.Add("password", "testing123");
+            content.Add("email", "test123@example.com");
+            content.Add("first_name", "Test");
+            content.Add("last_name", "User");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "existing_username");
             Assert.True(error.TryGetProperty("details", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
+
+            // POST, duplicate email
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            content = new Dictionary<string, object>();
+            content.Add("username", "test23");
+            content.Add("password", "testing123");
+            content.Add("email", "test1@example.com");
+            content.Add("first_name", "Test");
+            content.Add("last_name", "User");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "existing_email");
         }
 
         [Fact]
