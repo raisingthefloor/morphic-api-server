@@ -1,4 +1,5 @@
 import json
+import os
 import time
 import urllib.parse
 import urllib.request
@@ -7,20 +8,19 @@ from urllib.error import HTTPError
 
 
 class MorphicLite(object):
-    DefaultBaseUrl = "http://localhost:5002"
 
     class MorphicLiteError(Exception):
         pass
 
-    def __init__(self, url=None):
-        self.baseUrl = url or self.DefaultBaseUrl
+    def __init__(self, url, logger):
+        self.logger = logger
+        self.baseUrl = url.rstrip(os.sep)
 
     def build_request(self, method, path, data=None, headers=None):
         if headers is None:
             headers = {}
         url = self.baseUrl + urllib.request.pathname2url(path)
         req = urllib.request.Request(url, data=data, headers=headers, method=method)
-        print(method + " " + req.get_full_url())
         return req
 
     def build_json_request(self, method, path, data_obj=None, headers=None):
@@ -30,13 +30,14 @@ class MorphicLite(object):
         return req
 
     def json_request(self, method, path, data_obj=None, headers=None):
+        now = time.time()
         req = self.build_json_request(method, path, data_obj, headers)
+        response_code = None
         try:
-            now = time.time()
             resp = urllib.request.urlopen(req)
-            later = time.time()
-            print("Request took {timeDiff}sec".format(timeDiff=(later-now)))
+            response_code = resp.code
         except HTTPError as e:
+            response_code = e.code
             if 400 <= e.code < 500:
                 if "json" in e.headers.get("Content-Type", ""):
                     error = json.loads(e.read())
@@ -49,6 +50,13 @@ class MorphicLite(object):
             raise self.MorphicLiteError("remote server disconnected unexpectedly")
         except urllib.error.URLError:
             raise self.MorphicLiteError("Could not connect to Morphic")
+        finally:
+            later = time.time()
+            self.logger.info("{timeDiff}:{response_code}:{method}:{url}".format(
+                method=method,
+                url = req.get_full_url(),
+                response_code = response_code,
+                timeDiff=(later-now)))
 
         data = resp.read()
         if "utf-8" in resp.headers.get("Content-Type", ""):
@@ -61,8 +69,8 @@ class MorphicLite(object):
 
 
 class AuthedMorphicRequest(MorphicLite):
-    def __init__(self, userId, authToken):
-        super().__init__()
+    def __init__(self, userId, authToken, *args, **argv):
+        super().__init__(*args, **argv)
         self.userId = userId
         self.authToken = authToken
 
@@ -138,9 +146,9 @@ class Preferences(AuthedMorphicRequest):
         path = self.DefaultPreferencesUrl.format(userId=self.userId, preferencesId=self.pref_id)
         prefs = self.json_request('GET', path)
         if prefs['user_id'] != self.userId:
-            print("Warning: returned userId {} doesn't match sent {}", prefs['user_id'], self.userId)
+            self.logger.error("returned userId {} doesn't match sent {}", prefs['user_id'], self.userId)
         if prefs['id'] != self.pref_id:
-            print("Warning: returned preferencesId {} doesn't match sent {}", prefs['id'], self.pref_id)
+            self.logger.error("returned preferencesId {} doesn't match sent {}", prefs['id'], self.pref_id)
 
         return prefs
 

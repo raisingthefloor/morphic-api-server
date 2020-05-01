@@ -134,6 +134,17 @@ namespace MorphicServer
         /// </remarks>
         public async Task<bool> Save<T>(T obj, Session? session = null) where T: Record
         {
+            if (obj.Created == default)
+            {
+                var now = DateTime.UtcNow;
+                obj.Created = now;
+                obj.Updated = now;
+            }
+            else
+            {
+                obj.Updated = DateTime.UtcNow;
+            }
+
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 var options = new ReplaceOptions();
