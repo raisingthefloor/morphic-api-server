@@ -56,7 +56,7 @@ namespace MorphicServer
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
-            database.InitializeDatabaseIfNeeded();
+            database.InitializeDatabase();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
