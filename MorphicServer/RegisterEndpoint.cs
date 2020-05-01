@@ -27,6 +27,7 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Context;
@@ -37,17 +38,13 @@ namespace MorphicServer
     public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
     {
 
-        protected async Task Register(CredentialType credential, RegisterRequest request)
+        protected async Task Register(CredentialType credential, User user)
         {
             var prefs = new Preferences();
             prefs.Id = Guid.NewGuid().ToString();
-            var user = new User();
-            user.Id = Guid.NewGuid().ToString();
-            user.FirstName = request.firstName;
-            user.LastName = request.lastName;
             user.PreferencesId = prefs.Id;
-            credential.UserId = user.Id;
             prefs.UserId = user.Id;
+            credential.UserId = user.Id;
             var token = new AuthToken(user);
             await Save(prefs);
             await Save(user);
@@ -57,15 +54,14 @@ namespace MorphicServer
             response.token = token.Id;
             response.user = user;
             await Respond(response);
-
         }
 
-        protected class RegisterRequest
+        public class RegisterRequest
         {
             [JsonPropertyName("first_name")]
-            public string? firstName { get; set; }
+            public string? FirstName { get; set; }
             [JsonPropertyName("last_name")]
-            public string? lastName { get; set; }
+            public string? LastName { get; set; }
         }
     }
 
@@ -77,40 +73,68 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterUsernameRequest>();
-            if (String.IsNullOrWhiteSpace(request.username) || String.IsNullOrWhiteSpace(request.password)){
-                 
-                Log.Logger.Information("MISSING_USERNAME_PASSWORD");
+            if (String.IsNullOrWhiteSpace(request.Username))
+            {
+                Log.Logger.Information("MISSING_USERNAME");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            checkPassword(request.password);
-            
-            using (LogContext.PushProperty("username", request.username))
+            using (LogContext.PushProperty("username", request.Username))
             {
-                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.username, ActiveSession);
+                CheckPassword(request.Password);
+                await CheckEmail(request.Email);
+                
+                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
                 if (existing != null)
                 {
                     Log.Logger.Information("USER_EXISTS({username})");
                     throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
                 }
                 var cred = new UsernameCredential();
-                cred.Id = request.username;
-                cred.SavePassword(request.password);
-                await Register(cred, request);
+                cred.Id = request.Username;
+                cred.SavePassword(request.Password);
+                
+                var user = new User();
+                user.Id = Guid.NewGuid().ToString();
+                user.SetEmail(request.Email);
+                user.FirstName = request.FirstName;
+                user.LastName = request.LastName;
+                await Register(cred, user);
                 Log.Logger.Information("NEW_USER({username})");
             }
         }
 
-        static private readonly int MinPasswordLength = 6;
-        public static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
-            new string[] {
+        private static bool IsValidEmail(string emailaddress)
+        {
+            try
+            {
+                // ReSharper disable once ObjectCreationAsStatement
+                new MailAddress(emailaddress);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
+        private const int MinPasswordLength = 6;
+
+        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
+            new[] {
                 "password",
                 "testing"
             }
         );
 
-        private void checkPassword(String password)
+        private static void CheckPassword(String password)
         {
+            if (String.IsNullOrWhiteSpace(password))
+            {
+                Log.Logger.Information("MISSING_PASSWORD");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
+            }
+            
             if (password.Length < MinPasswordLength)
             {
                 Log.Logger.Information("SHORT_PASSWORD({username})");
@@ -123,17 +147,46 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
             }
         }
+
+        private async Task CheckEmail(String email)
+        {
+            if (String.IsNullOrWhiteSpace(email))
+            {
+                Log.Logger.Information("MISSING_EMAIL");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
+            }
+
+            if (!IsValidEmail(email))
+            {
+                Log.Logger.Information("MALFORMED_EMAIL");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
+            }
+
+            var hash = User.UserEmailHashCombined(email);
+            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hash, ActiveSession);
+            if (existingEmail != null)
+            {
+                Log.Logger.Information("EMAIL_EXISTS({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingEmail);
+            }
+        }
+
         class RegisterUsernameRequest : RegisterRequest
         {
             [JsonPropertyName("username")]
-            public string username { get; set; } = "";
+            public string Username { get; set; } = "";
             [JsonPropertyName("password")]
-            public string password { get; set; } = "";
+            public string Password { get; set; } = "";
+
+            [JsonPropertyName("email")] 
+            public string Email { get; set; } = "";
         }
 
         class BadRequestResponseUser : BadRequestResponse
         {
             public static readonly BadRequestResponse ExistingUsername = new BadRequestResponseUser("existing_username");
+            public static readonly BadRequestResponse ExistingEmail = new BadRequestResponseUser("existing_email");
+            public static readonly BadRequestResponse MalformedEmail = new BadRequestResponseUser("malformed_email");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
             public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
                 "short_password",
@@ -163,24 +216,29 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterKeyRequest>();
-            if (String.IsNullOrWhiteSpace(request.key))
+            if (String.IsNullOrWhiteSpace(request.Key))
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseKey.MissingRequired);
             }
-            var existing = await Context.GetDatabase().Get<KeyCredential>(request.key, ActiveSession);
+            var existing = await Context.GetDatabase().Get<KeyCredential>(request.Key, ActiveSession);
             if (existing != null)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseKey.ExistingKey);
             }
             var cred = new KeyCredential();
-            cred.Id = request.key;
-            await Register(cred, request);
+            cred.Id = request.Key;
+            var user = new User();
+            user.Id = Guid.NewGuid().ToString();
+            user.EmailVerified = false;
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            await Register(cred, user);
         }
 
         class RegisterKeyRequest : RegisterRequest
         {
             [JsonPropertyName("key")]
-            public string key { get; set; } = "";
+            public string Key { get; set; } = "";
         }
 
         class BadRequestResponseKey : BadRequestResponse
