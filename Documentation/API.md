@@ -98,6 +98,14 @@ Immediately log the user in and return an authentication token.
       <td colspan="2"><code>"existing_username"</code></td>
     </tr>
     <tr>
+      <td>Email already exists</td>
+      <td colspan="2"><code>"existing_email"</code></td>
+    </tr>
+    <tr>
+      <td>Email is Malformed</td>
+      <td colspan="2"><code>"malformed_email"</code></td>
+    </tr>
+    <tr>
       <td>Known bad password</td>
       <td colspan="2"><code>"bad_password"</code></td>
     </tr>
