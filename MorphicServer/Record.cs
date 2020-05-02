@@ -35,9 +35,9 @@ namespace MorphicServer
         [BsonId]
         [JsonPropertyName("id")]
         public string Id { get; set; } = "";
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public DateTime Created { get; set; }
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public DateTime Updated { get; set; }
     }
 }
