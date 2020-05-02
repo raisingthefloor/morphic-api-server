@@ -25,15 +25,15 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text.Json;
 using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization.Attributes;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Core.Clusters;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -53,6 +53,12 @@ namespace MorphicServer
     /// <summary>A connection to the Morphic database</summary>
     public class Database
     {
+        /// <summary>The MongoDB client connection</summary>
+        private readonly MongoClient client;
+
+        /// <summary>The Morphic Database</summary>
+        private readonly IMongoDatabase morphic;
+        
         /// <summary>Create a database using the given settings</summary>
         /// <remarks>
         /// Since the database is registered as a service, it is constructed by the service system.
@@ -60,40 +66,28 @@ namespace MorphicServer
         /// </remarks>
         public Database(DatabaseSettings settings)
         {
-            Client = new MongoClient(settings.ConnectionString);
-            Morphic = Client.GetDatabase(settings.DatabaseName);
+            client = new MongoClient(settings.ConnectionString);
+            morphic = client.GetDatabase(settings.DatabaseName);
 
-            using (LogContext.PushProperty("DBSettings", Client.Settings.ToString()))
-            using (LogContext.PushProperty("DBName", settings.DatabaseName))
-            {
-                Log.Logger.Information("Opened DB");
-            }
+            Log.Logger.Information("Opened DB {Database}: {ConnectionSettings}",
+                settings.DatabaseName, client.Settings.ToString());
 
-            CollectionByType[typeof(Preferences)] = Morphic.GetCollection<Preferences>("Preferences");
-            CollectionByType[typeof(User)] = Morphic.GetCollection<User>("User");
+            CollectionByType[typeof(Preferences)] = morphic.GetCollection<Preferences>("Preferences");
+            CollectionByType[typeof(User)] = morphic.GetCollection<User>("User");
             CollectionByType[typeof(UsernameCredential)] =
-                Morphic.GetCollection<UsernameCredential>("UsernameCredential");
-            CollectionByType[typeof(KeyCredential)] = Morphic.GetCollection<KeyCredential>("KeyCredential");
-            CollectionByType[typeof(AuthToken)] = Morphic.GetCollection<AuthToken>("AuthToken");
+                morphic.GetCollection<UsernameCredential>("UsernameCredential");
+            CollectionByType[typeof(KeyCredential)] = morphic.GetCollection<KeyCredential>("KeyCredential");
+            CollectionByType[typeof(AuthToken)] = morphic.GetCollection<AuthToken>("AuthToken");
             CollectionByType[typeof(BadPasswordLockout)] =
-                Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+                morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
-
-        /// <summary>The MongoDB client connection</summary>
-        private MongoClient Client;
-
-        /// <summary>The Morphic Database</summary>
-        private IMongoDatabase Morphic;
 
         public void DeleteDatabase()
         {
-            Client.DropDatabase(Morphic.DatabaseNamespace.DatabaseName);
+            client.DropDatabase(morphic.DatabaseNamespace.DatabaseName);
         }
 
-        public bool IsClusterConnected
-        {
-            get { return Client.Cluster.Description.State == ClusterState.Connected; }
-        }
+        public bool IsClusterConnected => client.Cluster.Description.State == ClusterState.Connected;
 
         /// <summary>The MongoDB collections within the database</summary>
         private Dictionary<Type, object> CollectionByType = new Dictionary<Type, object>();
@@ -182,15 +176,15 @@ namespace MorphicServer
             return false;
         }
 
-        /// <summary>Run async operations within a transaction, using a lamba to specify the operations</summary>
+        /// <summary>Run async operations within a transaction, using a lambda to specify the operations</summary>
         /// <remarks>
         /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>
-        /// attribute, which ensures that any operations, incluing <code>LoadResource</code> are run in the transaction.
+        /// attribute, which ensures that any operations, including <code>LoadResource</code> are run in the transaction.
         /// </remarks>
         public async Task<bool> WithTransaction(Func<Session, Task> operations,
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
-            using (var session = await Client.StartSessionAsync(cancellationToken: cancellationToken))
+            using (var session = await client.StartSessionAsync(cancellationToken: cancellationToken))
             {
                 var options = new TransactionOptions(
                     readPreference: ReadPreference.Primary,
@@ -212,57 +206,84 @@ namespace MorphicServer
 
         /// <summary>Do a one-time database setup or upgrade</summary>
         /// <remarks>
-        /// Creates collections and indexes, and keeps a record of initilization in the <code>DatabaseInfo</code> collection.
+        /// Creates collections and indexes.
         /// </remarks>
-        public void InitializeDatabaseIfNeeded()
+        public void InitializeDatabase()
         {
-            // FIXME: If multiple servers are spun up at the same time, we could have a situation where each tries to initialize or
-            // upgrade the database.  We need some kind of locking system, or this initialization/upgrade code should move to a
-            // script that gets run prior to spinning up instances.
-            var collection = Morphic.GetCollection<DatabaseInfo>("DatabaseInfo");
-            var info = collection.FindSync(info => info.Id == "0").FirstOrDefault();
-            if (info == null)
-            {
-                Morphic.CreateCollection("Preferences");
-
-                Morphic.CreateCollection("User");
-                var users = Morphic.GetCollection<User>("User");
-                users.Indexes.CreateOne(new CreateIndexModel<User>(
-                    Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
-
-                Morphic.CreateCollection("UsernameCredential");
-                Morphic.CreateCollection("KeyCredential");
-
-                Morphic.CreateCollection("AuthToken");
-                var authTokens = Morphic.GetCollection<AuthToken>("AuthToken");
-                var options = new CreateIndexOptions();
-                options.ExpireAfter = TimeSpan.Zero;
-
-                authTokens.Indexes.CreateOne(new CreateIndexModel<AuthToken>(
+            var stopWatch = Stopwatch.StartNew();
+            morphic.DropCollection("DatabaseInfo"); // doesn't fail
+            
+            // TODO: Deal with multi-server database update/upgrade
+            // If multiple servers are spun up at the same time, we could have a situation where each
+            // tries to initialize or upgrade the database.  We need some kind of locking system, or
+            // this initialization/upgrade code should move to a script that gets run prior to spinning
+            // up instances.
+            CreateCollectionIfNotExists<Preferences>();
+            var user = CreateCollectionIfNotExists<User>();
+            CreateOrUpdateIndexOrFail(user,
+                new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
+            CreateCollectionIfNotExists<UsernameCredential>();
+            CreateCollectionIfNotExists<KeyCredential>();
+            var authToken = CreateCollectionIfNotExists<AuthToken>();
+            var options = new CreateIndexOptions();
+            options.ExpireAfter = TimeSpan.Zero;
+            CreateOrUpdateIndexOrFail(authToken,
+                new CreateIndexModel<AuthToken>(
                     Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
-
-                Morphic.CreateCollection("BadPasswordLockout");
-                var badPasswordLockout = Morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
-                options = new CreateIndexOptions();
-                options.ExpireAfter = TimeSpan.Zero;
-                badPasswordLockout.Indexes.CreateOne(
-                    new CreateIndexModel<BadPasswordLockout>(
-                        Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
-
-                info = new DatabaseInfo();
-                info.Version = 1;
-                collection.InsertOne(info);
-            }
+            var badPasswordLockout = CreateCollectionIfNotExists<BadPasswordLockout>();
+            options = new CreateIndexOptions();
+            options.ExpireAfter = TimeSpan.Zero;
+            CreateOrUpdateIndexOrFail(badPasswordLockout,
+                new CreateIndexModel<BadPasswordLockout>(
+                    Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+            stopWatch.Stop();
+            Log.Logger.Information("Database create/update took {TotalElapsedSeconds}secs",
+                stopWatch.Elapsed.TotalSeconds);
         }
 
-        /// <summary>A record of the database initialization</summary>
-        /// <remarks>
-        /// The <code>Version</code> field can be used to perform upgrades to the database as needed.
-        /// </remarks>
-        class DatabaseInfo
+        private IMongoCollection<T> CreateCollectionIfNotExists<T>()
         {
-            [BsonId] public string Id { get; set; } = "0";
-            public int Version { get; set; } = 0;
+            var collName = typeof(T).Name;
+            try
+            {
+                morphic.CreateCollection(collName);
+                Log.Logger.Debug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collName);
+            }
+            catch (MongoCommandException e)
+            {
+                if (e.CodeName != "NamespaceExists")
+                    throw;
+                Log.Logger.Debug("Collection {Database}.{Collection} existed already (no error)", morphic.DatabaseNamespace,collName);
+            }
+
+            return morphic.GetCollection<T>(collName);
+        }
+
+        /// <summary>
+        /// Wrap MongoCollection.Indexes.CreateOne so that we get some logging and consistent behavior.
+        /// 
+        /// CreateOne() will do nothing if the index already exists with the same options. It will fail
+        /// if the index can not be updated (different options).
+        /// 
+        /// For our purposes, we will let it throw the exception with the understanding that developers
+        /// catch this error during development or test, and deal with it accordingly.
+        /// 
+        /// Cases we need to manually deal with (or find an automated migration solution):
+        /// 1. Need to drop a index that is no longer needed
+        /// 2. Need to 'change an index' which is really a 'drop and create' operation. Perhaps we need
+        ///    to add such a function later.
+        /// </summary>
+        /// <param name="collection">The collection</param>
+        /// <param name="index"></param>
+        /// <typeparam name="T">The Collection Type</typeparam>
+        private void CreateOrUpdateIndexOrFail<T>(IMongoCollection<T> collection, CreateIndexModel<T> index)
+        {
+            var indexName = collection.Indexes.CreateOne(index);
+            Log.Logger.Debug(
+                "Created/updated index {DBname}.{Collection}:{IndexName}",
+                morphic.DatabaseNamespace,
+                collection.CollectionNamespace,
+                indexName);
         }
 
         /// <summary>A database transaction session</summary>
