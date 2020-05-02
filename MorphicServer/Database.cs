@@ -54,10 +54,10 @@ namespace MorphicServer
     public class Database
     {
         /// <summary>The MongoDB client connection</summary>
-        private readonly MongoClient _client;
+        private readonly MongoClient client;
 
         /// <summary>The Morphic Database</summary>
-        private readonly IMongoDatabase _morphic;
+        private readonly IMongoDatabase morphic;
         
         /// <summary>Create a database using the given settings</summary>
         /// <remarks>
@@ -66,28 +66,28 @@ namespace MorphicServer
         /// </remarks>
         public Database(DatabaseSettings settings)
         {
-            _client = new MongoClient(settings.ConnectionString);
-            _morphic = _client.GetDatabase(settings.DatabaseName);
+            client = new MongoClient(settings.ConnectionString);
+            morphic = client.GetDatabase(settings.DatabaseName);
 
             Log.Logger.Information("Opened DB {Database}: {ConnectionSettings}",
-                settings.DatabaseName, _client.Settings.ToString());
+                settings.DatabaseName, client.Settings.ToString());
 
-            CollectionByType[typeof(Preferences)] = _morphic.GetCollection<Preferences>("Preferences");
-            CollectionByType[typeof(User)] = _morphic.GetCollection<User>("User");
+            CollectionByType[typeof(Preferences)] = morphic.GetCollection<Preferences>("Preferences");
+            CollectionByType[typeof(User)] = morphic.GetCollection<User>("User");
             CollectionByType[typeof(UsernameCredential)] =
-                _morphic.GetCollection<UsernameCredential>("UsernameCredential");
-            CollectionByType[typeof(KeyCredential)] = _morphic.GetCollection<KeyCredential>("KeyCredential");
-            CollectionByType[typeof(AuthToken)] = _morphic.GetCollection<AuthToken>("AuthToken");
+                morphic.GetCollection<UsernameCredential>("UsernameCredential");
+            CollectionByType[typeof(KeyCredential)] = morphic.GetCollection<KeyCredential>("KeyCredential");
+            CollectionByType[typeof(AuthToken)] = morphic.GetCollection<AuthToken>("AuthToken");
             CollectionByType[typeof(BadPasswordLockout)] =
-                _morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+                morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
         }
 
         public void DeleteDatabase()
         {
-            _client.DropDatabase(_morphic.DatabaseNamespace.DatabaseName);
+            client.DropDatabase(morphic.DatabaseNamespace.DatabaseName);
         }
 
-        public bool IsClusterConnected => _client.Cluster.Description.State == ClusterState.Connected;
+        public bool IsClusterConnected => client.Cluster.Description.State == ClusterState.Connected;
 
         /// <summary>The MongoDB collections within the database</summary>
         private Dictionary<Type, object> CollectionByType = new Dictionary<Type, object>();
@@ -184,7 +184,7 @@ namespace MorphicServer
         public async Task<bool> WithTransaction(Func<Session, Task> operations,
             CancellationToken cancellationToken = default)
         {
-            using (var session = await _client.StartSessionAsync(cancellationToken: cancellationToken))
+            using (var session = await client.StartSessionAsync(cancellationToken: cancellationToken))
             {
                 var options = new TransactionOptions(
                     readPreference: ReadPreference.Primary,
@@ -211,7 +211,7 @@ namespace MorphicServer
         public void InitializeDatabase()
         {
             var stopWatch = Stopwatch.StartNew();
-            _morphic.DropCollection("DatabaseInfo"); // doesn't fail
+            morphic.DropCollection("DatabaseInfo"); // doesn't fail
             
             // TODO: Deal with multi-server database update/upgrade
             // If multiple servers are spun up at the same time, we could have a situation where each
@@ -246,17 +246,17 @@ namespace MorphicServer
             var collName = typeof(T).Name;
             try
             {
-                _morphic.CreateCollection(collName);
-                Log.Logger.Debug("Created Collection {Database}.{Collection}", _morphic.DatabaseNamespace, collName);
+                morphic.CreateCollection(collName);
+                Log.Logger.Debug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collName);
             }
             catch (MongoCommandException e)
             {
                 if (e.CodeName != "NamespaceExists")
                     throw;
-                Log.Logger.Debug("Collection {Database}.{Collection} existed already (no error)", _morphic.DatabaseNamespace,collName);
+                Log.Logger.Debug("Collection {Database}.{Collection} existed already (no error)", morphic.DatabaseNamespace,collName);
             }
 
-            return _morphic.GetCollection<T>(collName);
+            return morphic.GetCollection<T>(collName);
         }
 
         /// <summary>
@@ -281,7 +281,7 @@ namespace MorphicServer
             var indexName = collection.Indexes.CreateOne(index);
             Log.Logger.Debug(
                 "Created/updated index {DBname}.{Collection}:{IndexName}",
-                _morphic.DatabaseNamespace,
+                morphic.DatabaseNamespace,
                 collection.CollectionNamespace,
                 indexName);
         }
