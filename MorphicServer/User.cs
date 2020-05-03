@@ -29,11 +29,11 @@ namespace MorphicServer
 {
     public class User: Record
     {
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public string? EmailHash { get; set; }
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public string? EmailEncrypted { get; set; }
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public bool EmailVerified { get; set; }
         
         [JsonPropertyName("first_name")]
@@ -42,7 +42,7 @@ namespace MorphicServer
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
-        [JsonIgnoreAttribute]
+        [JsonIgnore]
         public DateTime LastAuth { get; set; }
         
         public void TouchLastAuth()

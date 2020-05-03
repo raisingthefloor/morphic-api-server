@@ -125,6 +125,12 @@ Immediately log the user in and return an authentication token.
       <td><code>Number</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <th><code>.required</code></th>
+      <td><code>missing_required</code> list of missing field names</td>
+      <td><code>string[]</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -197,6 +203,18 @@ Immediately log the user in and return an authentication token.
     <tr>
       <td>Key already exists</td>
       <td colspan="2"><code>"existing_key"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.required</code></th>
+      <td><code>missing_required</code> list of missing field names</td>
+      <td><code>string[]</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>

@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
@@ -74,11 +75,23 @@ namespace MorphicServer
                 {
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new JsonElementInferredTypeConverter());
+                    options.Converters.Add(new NonNullableExceptionJsonConverter());
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {
                         return o;
                     }
+                }
+                catch (NonNullableExceptionJsonConverter.NullOrMissingProperties e)
+                {
+                    Log.Logger.Information("Could not deserialize payload, missing required field");
+                    var content = new Dictionary<string, object>(){
+                        { "error", "missing_required" },
+                        { "details", new Dictionary<string, object>() {
+                            {"required",  e.PropertyNames }
+                        }}
+                    };
+                    throw new HttpError(HttpStatusCode.BadRequest, content);
                 }
                 catch (JsonException e)
                 {
