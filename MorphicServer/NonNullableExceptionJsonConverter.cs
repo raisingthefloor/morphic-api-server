@@ -146,7 +146,7 @@ namespace MorphicServer
             public void CheckForNull(T instance)
             {
                 var required = new List<string>();
-                var type = instance!.GetType();
+                Type? type = instance!.GetType();
                 while (type != null)
                 {
                     foreach (var propertyInfo in type.GetProperties(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly))
