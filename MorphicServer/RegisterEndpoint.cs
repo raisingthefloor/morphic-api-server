@@ -73,7 +73,7 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterUsernameRequest>();
-            if (String.IsNullOrWhiteSpace(request.Username))
+            if (request.Username == "")
             {
                 Log.Logger.Information("MISSING_USERNAME");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
@@ -124,13 +124,7 @@ namespace MorphicServer
         );
 
         private static void CheckPassword(String password)
-        {
-            if (String.IsNullOrWhiteSpace(password))
-            {
-                Log.Logger.Information("MISSING_PASSWORD");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
-            }
-            
+        {   
             if (password.Length < MinPasswordLength)
             {
                 Log.Logger.Information("SHORT_PASSWORD({username})");
@@ -146,12 +140,6 @@ namespace MorphicServer
 
         private async Task CheckEmail(String email)
         {
-            if (String.IsNullOrWhiteSpace(email))
-            {
-                Log.Logger.Information("MISSING_EMAIL");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
-            }
-
             if (!IsValidEmail(email))
             {
                 Log.Logger.Information("MALFORMED_EMAIL");
@@ -170,12 +158,12 @@ namespace MorphicServer
         class RegisterUsernameRequest : RegisterRequest
         {
             [JsonPropertyName("username")]
-            public string Username { get; set; } = "";
+            public string Username { get; set; } = null!;
             [JsonPropertyName("password")]
-            public string Password { get; set; } = "";
+            public string Password { get; set; } = null!;
 
             [JsonPropertyName("email")] 
-            public string Email { get; set; } = "";
+            public string Email { get; set; } = null!;
         }
 
         class BadRequestResponseUser : BadRequestResponse
@@ -212,7 +200,7 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterKeyRequest>();
-            if (String.IsNullOrWhiteSpace(request.Key))
+            if (request.Key == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseKey.MissingRequired);
             }
@@ -234,7 +222,7 @@ namespace MorphicServer
         class RegisterKeyRequest : RegisterRequest
         {
             [JsonPropertyName("key")]
-            public string Key { get; set; } = "";
+            public string Key { get; set; } = null!;
         }
 
         class BadRequestResponseKey : BadRequestResponse

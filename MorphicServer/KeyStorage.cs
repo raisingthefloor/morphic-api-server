@@ -33,13 +33,13 @@ namespace MorphicServer
         private const string EncryptionKeyPrimary = "MORPHIC_ENC_KEY_PRIMARY";
         private const string EncryptionKeyRolloverPrefix = "MORPHIC_ENC_KEY_ROLLOVER_";
 
-        private static List<KeyInfo>? _keyArray;
+        private static List<KeyInfo>? keyArray;
         
         public static KeyInfo GetKey(string keyName)
         {
             LoadKeysFromEnvIfNeeded();
-            if (_keyArray == null) throw new KeysNotInitialized();
-            var key = _keyArray.FirstOrDefault(k => k.KeyName == keyName);
+            if (keyArray == null) throw new KeysNotInitialized();
+            var key = keyArray.FirstOrDefault(k => k.KeyName == keyName);
             if (key == null) throw new KeyNotFoundException(keyName);
             return key;
         }
@@ -47,8 +47,8 @@ namespace MorphicServer
         public static KeyInfo GetPrimary()
         {
             LoadKeysFromEnvIfNeeded();
-            if (_keyArray == null) throw new KeysNotInitialized();
-            var key = _keyArray.FirstOrDefault(k => k.IsPrimary);
+            if (keyArray == null) throw new KeysNotInitialized();
+            var key = keyArray.FirstOrDefault(k => k.IsPrimary);
             if (key == null) throw new KeyNotFoundException("PRIMARY");
             return key;
         }
@@ -58,12 +58,12 @@ namespace MorphicServer
         /// </summary>
         public static void ClearKeys()
         {
-            _keyArray = null; // Do I need to dispose this?
+            keyArray = null; // Do I need to dispose this?
         }
         
         public static void LoadKeysFromEnvIfNeeded()
         {
-            if (_keyArray == null)
+            if (keyArray == null)
             {
                 var myKeyArray = new List<KeyInfo>();
 
@@ -95,8 +95,8 @@ namespace MorphicServer
                     }
                     myKeyArray.Add(key);
                 }
-                _keyArray = myKeyArray;
-                Log.Logger.Debug($"Loaded {_keyArray.Count} keys");
+                keyArray = myKeyArray;
+                Log.Logger.Debug($"Loaded {keyArray.Count} keys");
             }
         }
 

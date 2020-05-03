@@ -56,14 +56,12 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // GET, known, forbidden
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo2.Id}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
@@ -116,7 +114,6 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // PUT, known, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}");
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
@@ -124,7 +121,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known, forbidden
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo2.Id}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Value""}", Encoding.UTF8, JsonMediaType);
@@ -167,7 +163,7 @@ namespace MorphicServer.Tests
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Value", property.GetString());
 
-            // PUT, ingored fields
+            // PUT, ignored fields
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""first_name"": ""Changed"", ""last_name"": ""Again"", ""id"": ""newid"", ""preferences_id"": ""newprefsid""}", Encoding.UTF8, JsonMediaType);
@@ -196,5 +192,40 @@ namespace MorphicServer.Tests
             Assert.Equal("Again", property.GetString());
         }
 
+        [Fact]
+        public async Task TestDelete()
+        {
+            var userInfo1 = await CreateTestUser();
+            var userInfo2 = await CreateTestUser();
+
+            // DELETE, unknown, unauth
+            var uuid = Guid.NewGuid().ToString();
+            var request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{uuid}");
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, unknown
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{uuid}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, known, unauth
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // DELETE, known, forbidden
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo2.Id}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+
+            // DELETE, success
+            request = new HttpRequestMessage(HttpMethod.Delete, $"/v1/users/{userInfo1.Id}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        }
     }
 }
