@@ -23,7 +23,6 @@
 
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
@@ -33,7 +32,7 @@ namespace MorphicServer
     public class Preferences : Record
     {
         [JsonPropertyName("user_id")]
-        public string? UserId { get; set; }
+        public string UserId { get; set; } = null!;
 
         /// <summary>The user's default preferences</summary>
         // Stored as a serialized JSON string in the mongo database because keys might contain dots,
@@ -41,7 +40,7 @@ namespace MorphicServer
         // within the solution preferences, we don't lose any functionality by storing serialized JSON.
         [BsonSerializer(typeof(Database.JsonSerializer<Dictionary<string, SolutionPreferences>>))]
         [JsonPropertyName("default")]
-        public Dictionary<string, SolutionPreferences>? Default { get; set; }
+        public Dictionary<string, SolutionPreferences> Default { get; set; } = null!;
     }
 
     /// <summary>Stores preferences for a specific solution</summary>

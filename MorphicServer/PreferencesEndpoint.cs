@@ -21,9 +21,12 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Context;
 
@@ -75,19 +78,8 @@ namespace MorphicServer
         [Method]
         public async Task Put()
         {
-            var updated = await Request.ReadJson<Preferences>();
-            using (LogContext.PushProperty("RequestedPreferencesUid", Id))
-            {
-                if (updated.Default == null)
-                {
-                    Log.Logger.Warning("Deleting Default preferences. updated.Default is null");
-                }
-                else
-                {
-                    Log.Logger.Information("Updating preferences 'Default'");
-                }
-            }
-            Preferences.Default = updated.Default;
+            var updated = await Request.ReadJson<PreferencesRequest>();
+            Preferences.Default = updated.Default ?? throw new HttpError(HttpStatusCode.BadRequest);
             await Save(Preferences);
         }
 
@@ -97,5 +89,14 @@ namespace MorphicServer
         {
             await Delete(Preferences);
         }
+        
+        public class PreferencesRequest : Record
+        {
+            /// <summary>The user's default preferences</summary>
+            [JsonPropertyName("default")]
+            public Dictionary<string, SolutionPreferences> Default { get; set; } = null!;
+        }
+
+
     }
 }
