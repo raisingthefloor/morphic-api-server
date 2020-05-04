@@ -44,30 +44,31 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
             
-            _usernameCredentials = await Load<UsernameCredential>(u => u.UserId == authenticatedUser.Id);
+            usernameCredentials = await Load<UsernameCredential>(u => u.UserId == authenticatedUser.Id);
             Log.Logger.Debug("Loaded user credential for {UserId}", authenticatedUser.Id);
         }
 
         /// <summary>The UsernameCredential data populated by <code>LoadResource()</code></summary>
-        private UsernameCredential _usernameCredentials = new UsernameCredential();
+        private UsernameCredential usernameCredentials = new UsernameCredential();
 
         [Method]
         public async Task Post()
         {
             var request = await Request.ReadJson<ChangePasswordRequest>();
             var db = Context.GetDatabase();
-            await db.UserForUsernameCredential(_usernameCredentials, request.ExistingPassword);
-            _usernameCredentials.SetPassword(request.NewPassword);
-            await Save(_usernameCredentials);
+            await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
+            usernameCredentials.SetPassword(request.NewPassword);
+            // TODO Should this invalidate any existing tokens? If yes, should we return a new token here?
+            await Save(usernameCredentials);
         }
 
         /// <summary>Model for change password requests</summary>
         public class ChangePasswordRequest
         {
             [JsonPropertyName("existing_password")]
-            public string ExistingPassword { get; set; } = "";
+            public string ExistingPassword { get; set; } = null!;
             [JsonPropertyName("new_password")]
-            public string NewPassword { get; set; } = "";
+            public string NewPassword { get; set; } = null!;
         }
     }
 }
