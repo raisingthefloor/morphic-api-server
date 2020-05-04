@@ -3,6 +3,11 @@ using System.Threading.Tasks;
 
 namespace MorphicServer
 {
+    /// <summary>
+    /// Class for Pending Emails.
+    ///
+    /// TODO Implement some background task to actually send these.
+    /// </summary>
     public class PendingEmail : Record
     {
         public string UserId { get; set; }
