@@ -45,6 +45,8 @@ namespace MorphicServer
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<MorphicSettings>(Configuration.GetSection("MorphicSettings"));
+            services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<Database>();
@@ -70,5 +72,11 @@ namespace MorphicServer
                 endpoints.MapMetrics();
             });
         }
+    }
+    
+    public class MorphicSettings
+    {
+        /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
+        public string ServerUrlPrefix { get; set; } = "";
     }
 }

@@ -106,7 +106,7 @@ namespace MorphicServer
         /// <returns></returns>
         public static EncryptedField FromPlainText(string plainText)
         {
-            var iv = RandomIv();
+            var iv = Random128BitsBase64();
             var key = KeyStorage.GetPrimary();
             using (EncryptionHistogram.Labels(Aes256CbcString).NewTimer())
             {
@@ -281,7 +281,7 @@ namespace MorphicServer
         /// Create a random IV of size 16 bytes (suitable for AES-256 encryption).
         /// </summary>
         /// <returns></returns>
-        private static string RandomIv()
+        public static string Random128BitsBase64()
         {
             var iv = new byte[16];
             var provider = RandomNumberGenerator.Create();

@@ -30,7 +30,6 @@ using System.Linq.Expressions;
 using System.Text.Json;
 using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Attributes;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Core.Clusters;
 using Serilog;
@@ -80,6 +79,8 @@ namespace MorphicServer
             CollectionByType[typeof(AuthToken)] = morphic.GetCollection<AuthToken>("AuthToken");
             CollectionByType[typeof(BadPasswordLockout)] =
                 morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+            CollectionByType[typeof(OneTimeToken)] = morphic.GetCollection<OneTimeToken>("OneTimeToken");
+            CollectionByType[typeof(PendingEmail)] = morphic.GetCollection<PendingEmail>("PendingEmail");
         }
 
         public void DeleteDatabase()
@@ -236,6 +237,17 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(badPasswordLockout,
                 new CreateIndexModel<BadPasswordLockout>(
                     Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+            
+            var oneTimeToken = CreateCollectionIfNotExists<OneTimeToken>();
+            options.ExpireAfter = TimeSpan.Zero;
+            CreateOrUpdateIndexOrFail(oneTimeToken,
+                new CreateIndexModel<OneTimeToken>(
+                    Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+            CreateOrUpdateIndexOrFail(oneTimeToken,
+                new CreateIndexModel<OneTimeToken>(Builders<OneTimeToken>.IndexKeys.Hashed(t => t.Token)));
+
+            CreateCollectionIfNotExists<PendingEmail>();
+
             stopWatch.Stop();
             Log.Logger.Information("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);

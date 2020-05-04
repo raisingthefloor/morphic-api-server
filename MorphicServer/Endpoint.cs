@@ -33,6 +33,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Prometheus;
@@ -101,6 +102,17 @@ namespace MorphicServer
         private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
             "HTTP Request Duration",
             labelNames);
+
+        public static string GetPathTemplate(Type T)
+        {
+            // Get instance of the attribute.
+            if (!(Attribute.GetCustomAttribute(T, typeof (Path)) is Path customAttribute))
+            {
+                throw new Exception("{T} has no Path attribute");
+            }
+
+            return customAttribute.Template;
+        }
         
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
@@ -272,6 +284,17 @@ namespace MorphicServer
             return record;
         }
 
+        public async Task<T?> Load<T>(Expression<Func<T, bool>> filter, Database.Session? session = null)
+            where T : Record
+        {
+            var db = Context.GetDatabase();
+            T? record = await db.Get<T>(filter, ActiveSession);
+            if (record == null){
+                throw new HttpError(HttpStatusCode.NotFound);
+            }
+            return record;
+        }
+
         public async Task Save<T>(T obj) where T: Record
         {
             var db = Context.GetDatabase();
@@ -354,6 +377,11 @@ namespace MorphicServer
         public static Database GetDatabase(this HttpContext context)
         {
             return context.RequestServices.GetRequiredService<Database>();
+        }
+
+        public static MorphicSettings GetMorphicSettings(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<MorphicSettings>();
         }
 
         public static async Task<User?> GetUser(this HttpContext context)
