@@ -30,6 +30,7 @@ namespace MorphicServer
             User.EmailVerified = true;
             await Save(User);
             await OneTimeToken.Invalidate(Context.GetDatabase());
+            // TODO Need to respond with a nicer webpage than ""
         }
     }
 }
