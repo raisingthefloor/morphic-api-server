@@ -28,6 +28,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Linq;
 using Xunit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
@@ -167,6 +168,28 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("details", out property));
             // don't check value here. Caller can check the details of details.
             return element;
+        }
+        
+        public void assertMissingRequired(JsonElement error, List<string> missing, bool strict=true)
+        {
+            JsonElement property;
+            Assert.True(error.TryGetProperty("details", out property));
+            Assert.Equal(JsonValueKind.Object, property.ValueKind);
+            Assert.True(property.TryGetProperty("required", out property));
+            Assert.Equal(JsonValueKind.Array, property.ValueKind);
+            List<string> propertyArray = new List<string>();
+            for (int i = 0; i < property.GetArrayLength(); i++)
+            {
+                propertyArray.Add(property[i].GetString());
+            }
+            if (strict)
+            {
+                Assert.True(Enumerable.SequenceEqual(propertyArray.OrderBy(t => t), missing.OrderBy(t => t)));
+            }
+            else
+            {
+                Assert.True(propertyArray.Intersect(missing).Equals(missing));
+            }
         }
     }
 }

@@ -48,12 +48,7 @@ namespace MorphicServer.Tests
             response = await Client.SendAsync(request);
             JsonElement property;
             var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            Assert.True(error.TryGetProperty("details", out property));
-            Assert.Equal(JsonValueKind.Object, property.ValueKind);
-            Assert.True(property.TryGetProperty("required", out property));
-            Assert.Equal(JsonValueKind.Array, property.ValueKind);
-            Assert.Equal(1, property.GetArrayLength());
-            Assert.Equal("existing_password", property[0].GetString());
+            assertMissingRequired(error, new List<string> {"existing_password"});
             
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
             content = new Dictionary<string, object>();
@@ -62,12 +57,7 @@ namespace MorphicServer.Tests
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            Assert.True(error.TryGetProperty("details", out property));
-            Assert.Equal(JsonValueKind.Object, property.ValueKind);
-            Assert.True(property.TryGetProperty("required", out property));
-            Assert.Equal(JsonValueKind.Array, property.ValueKind);
-            Assert.Equal(1, property.GetArrayLength());
-            Assert.Equal("new_password", property[0].GetString());
+            assertMissingRequired(error, new List<string> {"new_password"});
 
             // GET, Success
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
