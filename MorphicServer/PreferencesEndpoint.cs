@@ -90,12 +90,5 @@ namespace MorphicServer
             Preferences.Default = updated.Default;
             await Save(Preferences);
         }
-
-        /// <summary>Delete the user's preferences</summary>
-        [Method]
-        public async Task Delete()
-        {
-            await Delete(Preferences);
-        }
     }
 }

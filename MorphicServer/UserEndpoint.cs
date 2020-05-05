@@ -74,12 +74,5 @@ namespace MorphicServer
             User.LastName = updated.LastName;
             await Save(User);
         }
-
-        /// <summary>Update the user</summary>
-        [Method]
-        public async Task Delete()
-        {
-            await Delete(User);
-        }
     }
 }
