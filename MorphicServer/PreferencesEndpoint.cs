@@ -82,21 +82,12 @@ namespace MorphicServer
             Preferences.Default = updated.Default ?? throw new HttpError(HttpStatusCode.BadRequest);
             await Save(Preferences);
         }
-
-        /// <summary>Delete the user's preferences</summary>
-        [Method]
-        public async Task Delete()
-        {
-            await Delete(Preferences);
-        }
-        
+                
         public class PreferencesRequest : Record
         {
             /// <summary>The user's default preferences</summary>
             [JsonPropertyName("default")]
             public Dictionary<string, SolutionPreferences> Default { get; set; } = null!;
         }
-
-
     }
 }
