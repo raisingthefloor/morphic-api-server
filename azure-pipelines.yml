@@ -61,29 +61,6 @@ pool:
   vmImage: "ubuntu-18.04"
 
 stages:
-  - stage: Build
-    jobs:
-      - job: Build
-        services:
-          mongo: mongo
-        steps:
-          - task: DotNetCoreCLI@2
-            displayName: Restore
-            inputs:
-              command: 'restore'
-          - task: DotNetCoreCLI@2
-            displayName: Build
-            inputs:
-              command: 'build'
-          - task: DotNetCoreCLI@2
-            displayName: Test
-            inputs:
-              command: 'test'
-          - task: DotNetCoreCLI@2
-            displayName: Publish
-            inputs:
-              command: 'publish'
-              outputDir: MorphicServer
   - stage: docker
     jobs:
       - job: build_and_publish_image
@@ -95,7 +72,18 @@ stages:
               command: login
               containerRegistry: morphicworld dockerhub
           - task: Docker@2
-            displayName: build and push image
+            displayName: Build stage 1
+            inputs:
+              command: 'build'
+              Dockerfile: Dockerfile
+              buildContext: .
+              arguments: --target build-env --tag morphicliteserverbuildenv:$(Build.BuildNumber)
+          - script: docker run --entrypoint "/usr/bin/dotnet" morphicliteserverbuildenv:$(Build.BuildNumber) test
+            displayName: Integration Test
+            env:
+              APPSETTINGS_FILENAME: appsettings.Integration.json
+          - task: Docker@2
+            displayName: build Stage 2 and push image
             inputs:
               repository: morphicworld/morphiclite
               command: buildAndPush
