@@ -161,15 +161,20 @@ namespace MorphicServer
         /// </remarks>
         public async Task<bool> Delete<T>(T obj, Session? session = null) where T : Record
         {
+            return await Delete<T>(record => record.Id == obj.Id, session);
+        }
+
+        public async Task<bool> Delete<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.DeleteOneAsync(session.Handle, record => record.Id == obj.Id))
+                    return (await collection.DeleteOneAsync(session.Handle, filter))
                         .IsAcknowledged;
                 }
 
-                return (await collection.DeleteOneAsync(record => record.Id == obj.Id)).IsAcknowledged;
+                return (await collection.DeleteOneAsync(filter)).IsAcknowledged;
             }
 
             return false;

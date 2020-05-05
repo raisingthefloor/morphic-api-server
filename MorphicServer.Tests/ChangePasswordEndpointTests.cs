@@ -68,6 +68,28 @@ namespace MorphicServer.Tests
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            
+            // GET, Change again with delete-tokens
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password+"12345");
+            content.Add("new_password", userInfo1.Password);
+            content.Add("delete_existing_tokens", true);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // GET, token was deleted. Get 401
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password);
+            content.Add("new_password", userInfo1.Password+"12345");
+            content.Add("delete_existing_tokens", true);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
     }
 }

@@ -296,6 +296,15 @@ namespace MorphicServer
             }
         }
 
+        public async Task Delete<T>(Expression<Func<T, bool>> filter) where T : Record
+        {
+            var db = Context.GetDatabase();
+            var success = await db.Delete<T>(filter, ActiveSession);
+            if (!success){
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+        }
+
         /// <summary>Convenience method for serializing an object to JSON as a response</summary>
         public async Task Respond<T>(T obj)
         {

@@ -56,9 +56,12 @@ namespace MorphicServer
         {
             var request = await Request.ReadJson<ChangePasswordRequest>();
             var db = Context.GetDatabase();
-            await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
+            var user = await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
             usernameCredentials.SetPassword(request.NewPassword);
-            // TODO Should this invalidate any existing tokens? If yes, should we return a new token here?
+            if (request.DeleteExistingTokens == true)
+            {
+                await Delete<AuthToken>(token => token.UserId == user.Id);
+            }
             await Save(usernameCredentials);
         }
 
@@ -69,6 +72,9 @@ namespace MorphicServer
             public string ExistingPassword { get; set; } = null!;
             [JsonPropertyName("new_password")]
             public string NewPassword { get; set; } = null!;
+            // TODO For some reason I don't understand this isn't flagged as missing if not present.
+            [JsonPropertyName("delete_existing_tokens")]
+            public bool DeleteExistingTokens { get; set; } = false;
         }
     }
 }
