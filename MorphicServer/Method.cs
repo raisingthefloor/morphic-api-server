@@ -36,7 +36,7 @@ namespace MorphicServer.Attributes
     {
         readonly string? name;
         
-        /// <summary>Resgisters a handler for the HTTP method of the given name</summary>
+        /// <summary>Registers a handler for the HTTP method of the given name</summary>
         /// <param name="name">The name of the HTTP request method</param>
         public Method(string name)
         {

@@ -22,22 +22,32 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Text.Json.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.IdGenerators;
+using System.Threading.Tasks;
+using System.Net;
+using System.Net.Http;
+using System.Linq;
+using Xunit;
+using System.Text.Json;
+using System.Text;
 
-namespace MorphicServer
+namespace MorphicServer.Tests
 {
-    public class Record
+    public class AliveEndpointTests : EndpointTests
     {
+        private readonly String alivePath = "/ready";
 
-        [BsonId]
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = "";
-        [JsonIgnore]
-        public DateTime Created { get; set; }
-        [JsonIgnore]
-        public DateTime Updated { get; set; }
+        [Fact]
+        public async Task TestAlive()
+        {
+            // success
+            var request = new HttpRequestMessage(HttpMethod.Get, alivePath);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // method not allowed
+            request = new HttpRequestMessage(HttpMethod.Post, alivePath);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        }
     }
 }

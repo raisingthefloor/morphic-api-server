@@ -24,11 +24,13 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
     /// <summary>And endpoint representing user preferences</summary>
-    [Path("/users/{id}")]
+    [Path("/v1/users/{id}")]
     public class UserEndpoint: Endpoint
     {
 
@@ -40,7 +42,14 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var authenticatedUser = await RequireUser();
-            if (authenticatedUser.Id != Id){
+            if (authenticatedUser.Id != Id)
+            {
+                using (LogContext.PushProperty("AuthenticatedUserUid", authenticatedUser.Id))
+                using (LogContext.PushProperty("UserUid", Id))
+                {
+                    Log.Logger.Information("{AuthenticatedUserUid} may not request user {UserUid}");
+                }
+
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
             User = await Load<User>(Id);

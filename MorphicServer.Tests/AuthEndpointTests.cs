@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
@@ -37,50 +38,63 @@ namespace MorphicServer.Tests
         [Fact]
         public async Task TestUsername()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/username");
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
-            var response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
+            var userInfo1 = await CreateTestUser();
+            
             // GET, not supported
-            var path = "/auth/username";
-            request = new HttpRequestMessage(HttpMethod.Get, path);
-            response = await Client.SendAsync(request);
+            var path = "/v1/auth/username";
+            var request = new HttpRequestMessage(HttpMethod.Get, path);
+            var response = await Client.SendAsync(request); Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
 
             // POST, missing content type
+            var content = new Dictionary<string, object>();
+            content.Add("username", $"{userInfo1.Username}");
+            content.Add("password", $"{userInfo1.Password}");
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test1"", ""password"": ""testing""}", Encoding.UTF8);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
 
             // POST, missing username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("password", $"{userInfo1.Password}");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, missing password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", $"{userInfo1.Username}");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, unknown username
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""testunknown"", ""password"": ""testwrong""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", "testunknown");
+            content.Add("password", "testwrong");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, wrong password
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testwrong""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", $"{userInfo1.Username}");
+            content.Add("password", "testwrong");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Content = new StringContent(@"{""username"": ""test"", ""password"": ""testing""}", Encoding.UTF8, JsonMediaType);
+            content = new Dictionary<string, object>();
+            content.Add("username", $"{userInfo1.Username}");
+            content.Add("password", $"{userInfo1.Password}");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
@@ -96,28 +110,38 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.Equal(userInfo1.Id, property.GetString());
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
-            Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
-            Assert.Equal(JsonValueKind.Null, property.ValueKind);
+            Assert.Equal(userInfo1.PreferencesId, property.GetString());
+            Assert.True(user.TryGetProperty("first_name", out property));
+            Assert.Equal(userInfo1.FirstName, property.GetString());
+            Assert.True(user.TryGetProperty("last_name", out property));
+            Assert.Equal(userInfo1.LastName, property.GetString());
         }
 
         [Fact]
+        public async Task TestKeyDisabled()
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
+            request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        }
+
+        // Disabled until we re-enabled the endpoint
+        // [Fact]
         public async Task TestKey()
         {
-            var request = new HttpRequestMessage(HttpMethod.Post, "/register/key");
+            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
             request.Content = new StringContent(@"{""key"": ""testkey""}", Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not supported
-            var path = "/auth/key";
+            var path = "/v1/auth/key";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
@@ -158,15 +182,15 @@ namespace MorphicServer.Tests
             Assert.True(element.TryGetProperty("user", out property));
             Assert.Equal(JsonValueKind.Object, property.ValueKind);
             var user = property;
-            Assert.True(user.TryGetProperty("Id", out property));
+            Assert.True(user.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("PreferencesId", out property));
+            Assert.True(user.TryGetProperty("preferences_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.NotEqual("", property.GetString());
-            Assert.True(user.TryGetProperty("FirstName", out property));
+            Assert.True(user.TryGetProperty("first_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-            Assert.True(user.TryGetProperty("LastName", out property));
+            Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
         }
 

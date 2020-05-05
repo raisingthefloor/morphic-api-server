@@ -21,9 +21,9 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Net;
 using System.Threading.Tasks;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+using Serilog;
 
 namespace MorphicServer
 {
@@ -33,13 +33,34 @@ namespace MorphicServer
 
     public static class KeyCredentialDatabase
     {
-        public static async Task<User?> UserForKey(this Database db, string key)
+        public static async Task<User> UserForKey(this Database db, string key)
         {
             var credential = await db.Get<KeyCredential>(key);
             if (credential == null || credential.UserId == null){
-                return null;
+                throw new HttpError(HttpStatusCode.BadRequest, BadKeyAuthResponse.InvalidCredentials);
             }
-            return await db.Get<User>(credential.UserId);
+            var user = await db.Get<User>(credential.UserId);
+            if (user == null)
+            {
+                // Not sure how this could happen: It means we have a credential for the user, but no user!
+                // How did the credential get there if there's no user?
+                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+
+            return user;
         }
+        
+        class BadKeyAuthResponse : BadRequestResponse
+        {
+            public static readonly BadRequestResponse InvalidCredentials = new BadKeyAuthResponse("invalid_credentials");
+            // Future use: public static readonly BadRequestResponse RateLimited = new BadKeyAuthResponse("rate_limited");
+
+            public BadKeyAuthResponse(string error) : base(error)
+            {
+            }
+        }
+
+
     }
 }

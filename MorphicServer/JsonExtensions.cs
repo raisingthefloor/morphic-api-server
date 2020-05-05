@@ -48,14 +48,14 @@ namespace MorphicServer
 
         public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
-            throw new InvalidOperationException("For JSON deserilization only");
+            throw new InvalidOperationException("For JSON deserialization only");
         }
     }
 
     public static class JsonElementExtensions
     {
 
-        /// <summary>Return an appropriate primitive type for a Jsonelement</summary>
+        /// <summary>Return an appropriate primitive type for a JsonElement</summary>
         public static object GetObject(this JsonElement element)
         {
             switch (element.ValueKind)

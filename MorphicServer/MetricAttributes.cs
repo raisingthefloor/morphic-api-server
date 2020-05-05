@@ -22,22 +22,12 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Text.Json.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.IdGenerators;
 
-namespace MorphicServer
+namespace MorphicServer.Attributes
 {
-    public class Record
+    /// <summary>Omit Metrics for endpoints marked with this attribute</summary>
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    sealed class OmitMetrics : Attribute
     {
-
-        [BsonId]
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = "";
-        [JsonIgnore]
-        public DateTime Created { get; set; }
-        [JsonIgnore]
-        public DateTime Updated { get; set; }
     }
 }

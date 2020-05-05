@@ -5,7 +5,44 @@
 
 ---
 trigger:
-  - master
+  branches:
+    include:
+      - master
+      - develop
+      - "release/*"
+      - "hotfix/*"
+  tags:
+   include: 
+     - "v*"
+
+
+variables:
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  imageName: 'morphiclite'
+  ${{ if eq(variables['Build.SourceBranchName'], 'master') }}:
+    newDeployTag: stable-$(Build.BuildNumber)
+    deployRepoRef: master
+    imageTags: |
+      stable
+      stable-$(Build.BuildNumber)
+  ${{ if eq(variables['Build.SourceBranchName'], 'develop') }}:
+    newDeployTag: develop-$(Build.BuildNumber)
+    deployRepoRef: develop
+    imageTags: |
+      latest
+      develop-$(Build.BuildNumber)
+  ${{ if startsWith(variables['Build.SourceBranch'], 'refs/tags') }}:
+    imageTags: |
+      $(Build.SourceBranchName)
+
+  # pipelines require that all repositories are accessible before you ever use them.
+  # Since we want to push tag changes from master to master (and develop to develop)
+  # but do NOT want to push tag changes on PR branches, we simply set the deploy repo
+  # branch to master. We won't use it anyway.
+  ${{ if eq(variables['deployRepoRef'], '') }}:
+    deployRepoRef: master
 
 resources:
   containers:
@@ -13,34 +50,88 @@ resources:
       image: mongo
       ports:
         - 27017:27017
+  repositories:
+    - repository: deploy-morphiclite
+      type: github
+      endpoint: oregondesignservices
+      name: oregondesignservices/deploy-morphiclite
+      ref: $(deployRepoRef)
 
 pool:
   vmImage: "ubuntu-18.04"
 
 stages:
-  - stage: BuildEnv
+  - stage: Build
     jobs:
-      - job: BuildEnv
+      - job: Build
         services:
           mongo: mongo
         steps:
-          - task: Docker@2
-            displayName: Build stage 1
+          - task: DotNetCoreCLI@2
+            displayName: Restore
+            inputs:
+              command: 'restore'
+          - task: DotNetCoreCLI@2
+            displayName: Build
             inputs:
               command: 'build'
-              Dockerfile: Dockerfile
-              buildContext: .
-              arguments: --target build-env --tag morphicliteserverbuildenv:$(Build.BuildNumber)
-          - script: docker run --entrypoint "/usr/bin/dotnet" morphicliteserverbuildenv:$(Build.BuildNumber) test 
-            displayName: Integration Test
-            env:
-              APPSETTINGS_FILENAME: appsettings.Integration.json
-          - task: Docker@2
-            displayName: Build stage 2
+          - task: DotNetCoreCLI@2
+            displayName: Test
             inputs:
-              command: 'buildAndPush'
+              command: 'test'
+          - task: DotNetCoreCLI@2
+            displayName: Publish
+            inputs:
+              command: 'publish'
+              outputDir: MorphicServer
+  - stage: docker
+    jobs:
+      - job: build_and_publish_image
+        condition: or(eq(variables['Build.SourceBranch'], 'refs/heads/master'), eq(variables['Build.SourceBranch'], 'refs/heads/develop'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+        steps: 
+          - task: Docker@2
+            displayName: Login to docker hub
+            inputs:
+              command: login
+              containerRegistry: morphicworld dockerhub
+          - task: Docker@2
+            displayName: build and push image
+            inputs:
+              repository: morphicworld/morphiclite
+              command: buildAndPush
               Dockerfile: Dockerfile
-              buildContext: .
-              repository: oregondesignservices/MorphicLiteServerBuildEnv
-              tags: |
-                $(Build.BuildNumber)
+              tags: $(imageTags)
+  - stage: update_deploy_tag
+    jobs:
+      - job: update_deploy_tag
+        condition: ne(variables['newDeployTag'], '')
+        steps:
+          - checkout: deploy-morphiclite
+            persistCredentials: true
+            path: deploy-morphiclite
+          - task: Bash@3
+            env:
+              NEWTAG: $(newDeployTag)
+              BRANCH: $(deployRepoRef)
+            inputs:
+              targetType: 'inline'
+              workingDirectory: base/
+              script: |
+                set -e
+                set -x
+                echo "installing kustomize"
+                wget "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" -O install_kustomize.sh
+                bash install_kustomize.sh
+
+                git checkout ${BRANCH}
+
+                ls -al
+                echo "setting new image tag"
+                ./kustomize edit set image morphicworld/morphiclite=morphicworld/morphiclite:${NEWTAG}
+
+                cat kustomization.yaml
+
+                git config --global user.email "buildmaster@raisingthefloor.org"
+                git config --global user.name "buildmaster"
+                git commit kustomization.yaml -m "buildmaster: updating tag to ${NEWTAG}"
+                git push

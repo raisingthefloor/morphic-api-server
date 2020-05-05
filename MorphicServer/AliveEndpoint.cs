@@ -21,23 +21,23 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Text.Json.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.IdGenerators;
+using System.Threading.Tasks;
+using MorphicServer.Attributes;
+using Serilog;
 
 namespace MorphicServer
 {
-    public class Record
+    /// <summary>And endpoint indicating aliveness</summary>
+    [Path("/alive")]
+    [OmitMetrics]
+    public class AliveEndpoint: Endpoint
     {
-
-        [BsonId]
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = "";
-        [JsonIgnore]
-        public DateTime Created { get; set; }
-        [JsonIgnore]
-        public DateTime Updated { get; set; }
+        /// <summary>Do nothing. Don't even check dependencies (see ReadyEndpoint). Return 200.</summary>
+        [Method]
+        public async Task Get()
+        {
+            Log.Logger.Debug("Alive");
+            await Response.CompleteAsync();
+        }
     }
 }

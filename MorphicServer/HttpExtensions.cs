@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
@@ -28,6 +29,8 @@ using System.Text.Json;
 using System;
 using System.Net;
 using System.Text.Encodings.Web;
+using Serilog;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -72,15 +75,34 @@ namespace MorphicServer
                 {
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new JsonElementInferredTypeConverter());
+                    options.Converters.Add(new NonNullableExceptionJsonConverter());
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {
                         return o;
                     }
                 }
+                catch (NonNullableExceptionJsonConverter.NullOrMissingProperties e)
+                {
+                    Log.Logger.Information("Could not deserialize payload, missing required field");
+                    var content = new Dictionary<string, object>(){
+                        { "error", "missing_required" },
+                        { "details", new Dictionary<string, object>() {
+                            {"required",  e.PropertyNames }
+                        }}
+                    };
+                    throw new HttpError(HttpStatusCode.BadRequest, content);
+                }
+                catch (JsonException e)
+                {
+                    Log.Logger.Information("Could not deserialize payload: {JsonError}", e.Message);
+                }
                 catch (Exception e)
                 {
-                    var x = e;
+                    using (LogContext.PushProperty("exception", e))
+                    {
+                        Log.Logger.Information("Unknown error during deserialize payload");
+                    }
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }

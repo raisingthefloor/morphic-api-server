@@ -21,23 +21,43 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Text.Json.Serialization;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
-using MongoDB.Bson.Serialization.IdGenerators;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using MorphicServer.Attributes;
+using System.Net;
+using Serilog;
 
 namespace MorphicServer
 {
-    public class Record
+    /// <summary>And endpoint to check server readiness</summary>
+    [Path("/ready")]
+    [OmitMetrics]
+    public class ReadyEndpoint : Endpoint
     {
+        [Method]
+        public async Task Get()
+        {
+            bool everythingOk = true;
+            var ready = new Dictionary<string, string>();
+            ready.Add("webserver", "OK"); // we're here, aren't we? We must be ok.
 
-        [BsonId]
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = "";
-        [JsonIgnore]
-        public DateTime Created { get; set; }
-        [JsonIgnore]
-        public DateTime Updated { get; set; }
+            if (!Context.GetDatabase().IsClusterConnected)
+            {
+                Log.Logger.Error("MongoDB Not connected");
+                ready["mongodb"] = "FAIL";
+                everythingOk = false;
+            }
+            else
+            {
+                ready.Add("mongodb", "OK");
+            }
+
+            if (!everythingOk)
+            {
+                throw new HttpError(HttpStatusCode.InternalServerError, ready);
+            }
+
+            await Respond(ready);
+        }
     }
 }
