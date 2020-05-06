@@ -23,7 +23,6 @@
 
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
-using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
@@ -32,6 +31,9 @@ namespace MorphicServer
     /// <summary>Dummy data model for preferences</summary>
     public class Preferences : Record
     {
+        // It seems like we might end up storing preferences for non-user entities like groups or orgs
+        // down the road and want multiple nullable fields for back links, which are mainly there for
+        // convenience.
         [JsonPropertyName("user_id")]
         public string? UserId { get; set; }
 
