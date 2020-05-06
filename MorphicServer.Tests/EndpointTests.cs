@@ -157,7 +157,12 @@ namespace MorphicServer.Tests
             JsonElement property;
 
             Assert.Equal(code, response.StatusCode);
+            Assert.NotNull(response.Content);
+            Assert.NotNull(response.Content.Headers);
+            Assert.NotNull(response.Content.Headers.ContentType);
+            Assert.NotNull(response.Content.Headers.ContentType.MediaType);
             Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
+            Assert.NotNull(response.Content.Headers.ContentType.CharSet);
             Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
             var json = await response.Content.ReadAsStringAsync();
             var document = JsonDocument.Parse(json);
@@ -169,7 +174,7 @@ namespace MorphicServer.Tests
             // don't check value here. Caller can check the details of details.
             return element;
         }
-        
+
         public void assertMissingRequired(JsonElement error, List<string> missing, bool strict=true)
         {
             JsonElement property;
