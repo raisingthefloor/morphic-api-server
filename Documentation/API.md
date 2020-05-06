@@ -669,6 +669,12 @@ for additional security.
       <td>Required</td>
     </tr>
     <tr>
+      <th><code>delete_existing_tokens</code></th>
+      <td>Delete any existing Auth Tokens</td>
+      <td><code>Boolean</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
       <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
