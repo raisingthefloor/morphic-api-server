@@ -221,14 +221,14 @@ namespace MorphicServer
                     {
                         if (type.GetCustomAttribute(typeof(Path)) is Path attr)
                         {
-                            using (LogContext.PushProperty("MorphicEndpoint", type.ToString()))
-                            using (LogContext.PushProperty("MorphicEndpointPath", attr.Template))
-                            {
-                                Log.Logger.Debug("Mapping MorphicEndpoint");
-                                var generic = run.MakeGenericMethod(new Type[] {type});
-                                endpoints.Map(attr.Template,
-                                    generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
-                            }
+                            Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
+                                type.ToString(),
+                                attr.Template
+                            );
+                            var generic = run.MakeGenericMethod(new Type[] {type});
+                            endpoints.Map(attr.Template,
+                                generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+
                         }
                     }
                 }
