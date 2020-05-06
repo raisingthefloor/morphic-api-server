@@ -91,5 +91,49 @@ namespace MorphicServer.Tests
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
+
+        [Fact]
+        public async Task TestLockout()
+        {
+            var userInfo1 = await CreateTestUser();
+
+            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            
+            var lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            Assert.False(lockedOut);
+            
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            Assert.False(lockedOut);
+            
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            Assert.False(lockedOut);
+            
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            Assert.False(lockedOut);
+            
+            // GET, Success; not locked out
+            var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            var content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password);
+            content.Add("new_password", userInfo1.Password+"12345");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            Assert.True(lockedOut);
+            
+            // GET, Success; not locked out
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password+"12345");
+            content.Add("new_password", userInfo1.Password);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "locked");
+        }
     }
 }
