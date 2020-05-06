@@ -31,8 +31,11 @@ namespace MorphicServer
     /// <summary>Dummy data model for preferences</summary>
     public class Preferences : Record
     {
+        // It seems like we might end up storing preferences for non-user entities like groups or orgs
+        // down the road and want multiple nullable fields for back links, which are mainly there for
+        // convenience.
         [JsonPropertyName("user_id")]
-        public string UserId { get; set; } = null!;
+        public string? UserId { get; set; }
 
         /// <summary>The user's default preferences</summary>
         // Stored as a serialized JSON string in the mongo database because keys might contain dots,
@@ -40,7 +43,7 @@ namespace MorphicServer
         // within the solution preferences, we don't lose any functionality by storing serialized JSON.
         [BsonSerializer(typeof(Database.JsonSerializer<Dictionary<string, SolutionPreferences>>))]
         [JsonPropertyName("default")]
-        public Dictionary<string, SolutionPreferences> Default { get; set; } = null!;
+        public Dictionary<string, SolutionPreferences>? Default { get; set; }
     }
 
     /// <summary>Stores preferences for a specific solution</summary>

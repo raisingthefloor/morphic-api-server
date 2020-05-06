@@ -79,7 +79,7 @@ namespace MorphicServer
         public async Task Put()
         {
             var updated = await Request.ReadJson<PreferencesRequest>();
-            Preferences.Default = updated.Default ?? throw new HttpError(HttpStatusCode.BadRequest);
+            Preferences.Default = updated.Default;
             await Save(Preferences);
         }
                 
