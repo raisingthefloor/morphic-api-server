@@ -284,7 +284,7 @@ namespace MorphicServer
             return record;
         }
 
-        public async Task<T?> Load<T>(Expression<Func<T, bool>> filter, Database.Session? session = null)
+        public async Task<T> Load<T>(Expression<Func<T, bool>> filter, Database.Session? session = null)
             where T : Record
         {
             var db = Context.GetDatabase();
