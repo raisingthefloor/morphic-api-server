@@ -221,17 +221,23 @@ namespace MorphicServer
             // up instances.
             CreateCollectionIfNotExists<Preferences>();
             var user = CreateCollectionIfNotExists<User>();
+            // IndexExplanation: When registering a new user, we need to make sure no other user has signed
+            // up with that email. So we need an index to find it. See RegisterEndpoint.
             CreateOrUpdateIndexOrFail(user,
                 new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
             CreateCollectionIfNotExists<UsernameCredential>();
             CreateCollectionIfNotExists<KeyCredential>();
             var authToken = CreateCollectionIfNotExists<AuthToken>();
+            // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
+            // the ExpiresAt index is needed to allow Mongo to expire the documents.
             var options = new CreateIndexOptions();
             options.ExpireAfter = TimeSpan.Zero;
             CreateOrUpdateIndexOrFail(authToken,
                 new CreateIndexModel<AuthToken>(
                     Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
             var badPasswordLockout = CreateCollectionIfNotExists<BadPasswordLockout>();
+            // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
+            // the ExpiresAt index is needed to allow Mongo to expire the documents.
             options = new CreateIndexOptions();
             options.ExpireAfter = TimeSpan.Zero;
             CreateOrUpdateIndexOrFail(badPasswordLockout,
