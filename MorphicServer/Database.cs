@@ -229,8 +229,12 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(user,
                 new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
             var usernameCredentials = CreateCollectionIfNotExists<UsernameCredential>();
-            usernameCredentials.Indexes.CreateOne(new CreateIndexModel<UsernameCredential>(
-                Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));
+            // IndexExplanation: When changing a user's password, which lives in the UsernameCredentials collection,
+            // we need to look up the UsernameCredentials by that user's ID, so we can change the password.
+            // See ChangePasswordEndpoint
+            CreateOrUpdateIndexOrFail(usernameCredentials,
+                new CreateIndexModel<UsernameCredential>(
+                    Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));
 
             CreateCollectionIfNotExists<KeyCredential>();
             var authToken = CreateCollectionIfNotExists<AuthToken>();
