@@ -52,7 +52,7 @@ namespace MorphicServer
                 {
                     var field = EncryptedField.FromCombinedString(EmailEncrypted);
                     var email = field.Decrypt(out var isPrimary);
-                    if (isPrimary){
+                    if (!isPrimary){
                         // The encryption key used is not the primary key. It's an older one.
                         // This means we need to re-encrypt the data and save it back to the DB
                         // TODO implement key-rollover background task
