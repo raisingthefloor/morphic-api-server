@@ -88,6 +88,7 @@ namespace MorphicServer
         // MongoDB says: "The background task that removes expired documents runs every 60 seconds.
         //    As a result, documents may remain in a collection during the period between the expiration
         //    of the document and the running of the background task."
+        // https://docs.mongodb.com/manual/core/index-ttl/
         // The question is: Do we care about those 60 seconds?
         public bool IsValid()
         {
