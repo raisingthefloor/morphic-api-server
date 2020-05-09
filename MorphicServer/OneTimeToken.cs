@@ -49,7 +49,9 @@ namespace MorphicServer
         }
         public static string NewToken()
         {
-            return EncryptedField.Random128BitsBase64();
+            // We don't use base64 here, since we will use the token in a URL and base64 includes the '/' character
+            var data = EncryptedField.RandomBytes(32);
+            return BitConverter.ToString(data).Replace("-", string.Empty);
         }
         
         public async Task Invalidate(Database db)
