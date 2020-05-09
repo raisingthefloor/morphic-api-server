@@ -26,26 +26,54 @@ using System.Threading.Tasks;
 
 namespace MorphicServer
 {
+    /// <summary>
+    /// A One time Token class (and mongo collection).
+    ///
+    /// The Id is the hashed value of the token. We can't very well store the
+    /// token unhashed (someone could find it in the DB and use it directly), so
+    /// we hash it before storing. When we need to validate it, we again hash the
+    /// received token, and look for it in the DB.
+    /// </summary>
     public class OneTimeToken : Record
     {
         public string UserId { get; set; }
         public DateTime ExpiresAt { get; set; }
 
+        private readonly string token;
+        
         private const int DefaultExpiresSeconds = 30 * 24 * 60 * 60; // 2592000 seconds in 30 days
         private const string DefaultTokenHash = "VpMZSDRh2nUiI/y2uARYbw==";
         
-        public OneTimeToken(string userId, string token, int expiresInSeconds = DefaultExpiresSeconds)
+        public OneTimeToken(string userId, int expiresInSeconds = DefaultExpiresSeconds)
         {
+            token = NewToken();
             Id = TokenHashedWithDefault(token);
             UserId = userId;
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, expiresInSeconds);
         }
 
+        // This method is necessary so that the email-sending functionality can get the original
+        // unhashed token and put it in the email. This will only work when the OneTimeToke is first
+        // initialized and still has the original value.
+        public string GetUnhashedToken()
+        {
+            if (token == "")
+            {
+                // For the case that someone thinks they can load the data from the DB and
+                // get the original un-hashed value. That won't work.
+                throw new OneTimeTokenException("uninitialized unhashed token");
+            }
+            return token;
+        }
+        
+        // This method is used by the Validation endpoint to create the token-hash, which is 
+        // used as the Token ID for the Load<>() call.
         public static string TokenHashedWithDefault(string token)
         {
             return HashedData.FromString(token, DefaultTokenHash).ToCombinedString();
         }
-        public static string NewToken()
+        
+        private static string NewToken()
         {
             // We don't use base64 here, since we will use the token in a URL and base64 includes the '/' character
             var data = EncryptedField.RandomBytes(32);
@@ -55,6 +83,22 @@ namespace MorphicServer
         public async Task Invalidate(Database db)
         {
             await db.Delete(this);
+        }
+        
+        // MongoDB says: "The background task that removes expired documents runs every 60 seconds.
+        //    As a result, documents may remain in a collection during the period between the expiration
+        //    of the document and the running of the background task."
+        // The question is: Do we care about those 60 seconds?
+        public bool IsValid()
+        {
+            return ExpiresAt > DateTime.UtcNow;
+        }
+
+        public class OneTimeTokenException : MorphicServerException
+        {
+            public OneTimeTokenException(string error) : base(error)
+            {
+            }
         }
     }
 }

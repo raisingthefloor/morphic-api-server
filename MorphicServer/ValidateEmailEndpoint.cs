@@ -44,7 +44,11 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var hashedToken = OneTimeToken.TokenHashedWithDefault(oneTimeToken);
-            OneTimeToken = await Load<OneTimeToken>(hashedToken) ?? throw new HttpError(HttpStatusCode.NotFound);
+            OneTimeToken = await Load<OneTimeToken>(hashedToken);
+            if (OneTimeToken == null || !OneTimeToken.IsValid())
+            {
+                throw new HttpError(HttpStatusCode.NotFound);
+            }
             User = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
         }
         

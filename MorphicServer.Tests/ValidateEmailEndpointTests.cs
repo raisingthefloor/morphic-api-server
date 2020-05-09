@@ -145,12 +145,14 @@ namespace MorphicServer.Tests
             Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
 
             // create OTP
-            var token = OneTimeToken.NewToken();
+            var oneTimeToken = new OneTimeToken(user.Id);
+            await Database.Save(oneTimeToken);
+
+            // check the various fields and hashes
+            var token = oneTimeToken.GetUnhashedToken();
             var hashedToken = OneTimeToken.TokenHashedWithDefault(token);
             Assert.NotEqual(token, hashedToken);
-            var oneTimeToken = new OneTimeToken(user.Id, token);
             Assert.Equal(hashedToken, oneTimeToken.Id);
-            await Database.Save(oneTimeToken);
             
             // GET, bad token (we're sending the token hash (the ID))
             var path = $"/v1/verifyEmail/{oneTimeToken.Id}";

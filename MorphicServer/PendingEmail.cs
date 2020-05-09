@@ -93,9 +93,8 @@ Regards,
             var encrEmail = EncryptedField.FromCombinedString(user.EmailEncrypted!);
 
             var email = encrEmail.Decrypt(out _);
-            var token = OneTimeToken.NewToken();
-            var oneTimeToken = new OneTimeToken(user.Id, token);
-            var link = urlTemplate.Replace("{oneTimeToken}", token);
+            var oneTimeToken = new OneTimeToken(user.Id);
+            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
             var from = "support@morphic.world";
             var msg = string.Format(EmailVerificationMsgTemplate,
                 GreetingName(user.FirstName, user.LastName, email),
