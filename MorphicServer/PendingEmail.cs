@@ -92,11 +92,10 @@ Regards,
         {
             var encrEmail = EncryptedField.FromCombinedString(user.EmailEncrypted!);
 
-            bool isPrimary;
-            var email = encrEmail.Decrypt(out isPrimary);
-            
-            var oneTimeToken = new OneTimeToken(user.Id);
-            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.Token);
+            var email = encrEmail.Decrypt(out _);
+            var token = OneTimeToken.NewToken();
+            var oneTimeToken = new OneTimeToken(user.Id, token);
+            var link = urlTemplate.Replace("{oneTimeToken}", token);
             var from = "support@morphic.world";
             var msg = string.Format(EmailVerificationMsgTemplate,
                 GreetingName(user.FirstName, user.LastName, email),

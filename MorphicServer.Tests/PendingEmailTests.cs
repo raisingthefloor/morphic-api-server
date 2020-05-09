@@ -1,13 +1,12 @@
 #nullable enable
-using System.Threading.Tasks;
 using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class EmailTemplateTests
+    public class PendingEmailTests
     {
         [Fact]
-        public async Task TestGreeting()
+        public void TestGreeting()
         {
             string email = "foo@example.com";
             string? firstName = null;

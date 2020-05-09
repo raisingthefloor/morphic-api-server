@@ -29,21 +29,25 @@ namespace MorphicServer
     public class OneTimeToken : Record
     {
         public string UserId { get; set; }
-        // TODO Should we encrypt or hash this? If we do, we can't retrieve it easily when we get it back.
-        public string Token { get; set; }
+        public string HashedToken { get; set; }
         public DateTime ExpiresAt { get; set; }
 
         private const int DefaultExpiresSeconds = 30 * 24 * 60 * 60; // 2592000 seconds in 30 days
+        private const string DefaultTokenHash = "VpMZSDRh2nUiI/y2uARYbw==";
         
-        public OneTimeToken(string userId, int expiresInSeconds = DefaultExpiresSeconds)
+        public OneTimeToken(string userId, string token, int expiresInSeconds = DefaultExpiresSeconds)
         {
             Id = Guid.NewGuid().ToString();
             UserId = userId;
-            Token = newToken();
+            HashedToken = TokenHashedWithDefault(token);
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, expiresInSeconds);
         }
 
-        private string newToken()
+        public static string TokenHashedWithDefault(string token)
+        {
+            return HashedData.FromString(token, DefaultTokenHash).ToCombinedString();
+        }
+        public static string NewToken()
         {
             return EncryptedField.Random128BitsBase64();
         }

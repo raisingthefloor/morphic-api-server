@@ -21,8 +21,10 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 
 namespace MorphicServer
@@ -41,7 +43,8 @@ namespace MorphicServer
 
         public override async Task LoadResource()
         {
-            OneTimeToken = await Load<OneTimeToken>(t => t.Token == oneTimeToken) ?? throw new HttpError(HttpStatusCode.NotFound);
+            var hashedToken = OneTimeToken.TokenHashedWithDefault(oneTimeToken);
+            OneTimeToken = await Load<OneTimeToken>(t => t.HashedToken == hashedToken) ?? throw new HttpError(HttpStatusCode.NotFound);
             User = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
         }
         
@@ -53,6 +56,82 @@ namespace MorphicServer
             await Save(User);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             // TODO Need to respond with a nicer webpage than ""
+        }
+
+        public class ValidateEmailEndpointException : MorphicServerException
+        {
+            protected ValidateEmailEndpointException(string error) : base(error)
+            {
+            }
+
+            protected ValidateEmailEndpointException()
+            {
+            }
+        }
+        
+        public class NoServerUrlFoundException : ValidateEmailEndpointException
+        {
+            public NoServerUrlFoundException(string error) : base(error)
+            {
+            }
+
+            public NoServerUrlFoundException()
+            {
+            }
+        }
+        
+        public class NotValidPathException : ValidateEmailEndpointException
+        {
+            public NotValidPathException(string error) : base(error)
+            {
+            }
+        }
+        
+        public static string GetEmailVerificationLinkTemplate(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        {
+            var pathTemplate = GetPathTemplate(typeof(ValidateEmailEndpoint));
+            if (!pathTemplate.StartsWith("/"))
+            {
+                throw new NotValidPathException(pathTemplate);
+            }
+            string serverUrl = morphicSettings.ServerUrlPrefix ?? "";
+            if (serverUrl != "")
+            {
+                // validate it really is a URL
+                try
+                {
+                    var url = new Uri(serverUrl);
+                    if (url.Host == "" || url.Scheme == "")
+                    {
+                        throw new NoServerUrlFoundException(serverUrl);
+                    }
+                }
+                catch (UriFormatException e)
+                {
+                    throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
+                }
+                char[] charsToTrim = {'/'}; // in case a human added the trailing slash in the settings.
+                serverUrl = serverUrl.TrimEnd(charsToTrim);
+            }
+            else
+            {
+                // try to assemble it from X-Forwarded-For- headers.
+                var host = requestHeaders["x-forwarded-host"].ToString();
+                var scheme = requestHeaders["x-forwarded-proto"].ToString();
+                if (host == "" || scheme == "")
+                {
+                    throw new NoServerUrlFoundException();
+                }
+
+                serverUrl = $"{scheme}://{host}";
+                var port = requestHeaders["x-forwarded-port"].ToString();
+                if (port != "" && ((scheme == "http" && port != "80") || (scheme == "https" && port != "443")))
+                {
+                    serverUrl += $":{port}";
+                }
+            }
+
+            return $"{serverUrl}{pathTemplate}";
         }
     }
 }

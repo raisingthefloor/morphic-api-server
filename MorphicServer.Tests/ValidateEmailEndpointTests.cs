@@ -21,9 +21,11 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace MorphicServer.Tests
@@ -31,39 +33,158 @@ namespace MorphicServer.Tests
     public class ValidateEmailEndpointTests : EndpointTests
     {
         [Fact]
-        public async Task TestEmailValidation()
+        public void TestGetEmailVerificationLinkTemplate()
         {
-            var userInfo1 = await CreateTestUser(null, null);
+            // Bad: No headers and nothing in settings
+            var settings = new MorphicSettings()
+            {
+                ServerUrlPrefix = ""
+            };
+            var requestHeaders = new HeaderDictionary();
+            Assert.Throws<ValidateEmailEndpoint.NoServerUrlFoundException>(() => 
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings));
 
-            var user = await Database.Get<User>(userInfo1.Id);
-            Assert.NotNull(user);
+            // bad: settings with bad URL's
+            settings.ServerUrlPrefix = "http:///";
+            Assert.Throws<ValidateEmailEndpoint.NoServerUrlFoundException>(() => 
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings));
+
+            settings.ServerUrlPrefix = "somehost.com";
+            Assert.Throws<ValidateEmailEndpoint.NoServerUrlFoundException>(() => 
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings));
+
+            // GOOD: headers, but no setting: server URL comes from headers
+            requestHeaders = new HeaderDictionary
+            {
+                {"x-forwarded-host", "myhost.example.com"},
+                {"x-forwarded-proto", "https"},
+                {"x-forwarded-port", "12345"}
+            };
+            settings.ServerUrlPrefix = "";
+            var urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("https://myhost.example.com:12345/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+
+            // Good No headers, but settings has value
+            requestHeaders = new HeaderDictionary();
+            settings.ServerUrlPrefix = "http://someurl.org:5555";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            
+            // Good: settings take precedence over headers
+            requestHeaders = new HeaderDictionary
+            {
+                {"x-forwarded-host", "myhost.example.com"},
+                {"x-forwarded-proto", "https"},
+                {"x-forwarded-port", "12345"}
+            };
+            settings.ServerUrlPrefix = "http://someurl.org:5555";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+
+            // Good: make sure we trim the trailing /
+            requestHeaders = new HeaderDictionary();
+            settings.ServerUrlPrefix = "http://someurl.org:5555/";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            
+            // Good. A longer path. Unusual, but let's support it.
+            requestHeaders = new HeaderDictionary();
+            settings.ServerUrlPrefix = "http://someurl.org:5555/whatever/path/";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("http://someurl.org:5555/whatever/path/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+
+            // No port from headers
+            requestHeaders = new HeaderDictionary
+            {
+                {"x-forwarded-host", "myhost.example.com"},
+                {"x-forwarded-proto", "https"},
+            };
+            settings.ServerUrlPrefix = "";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("https://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+
+            // Standard ports from headers
+            requestHeaders = new HeaderDictionary
+            {
+                {"x-forwarded-host", "myhost.example.com"},
+                {"x-forwarded-proto", "https"},
+                {"x-forwarded-port", "443"}
+            };
+            settings.ServerUrlPrefix = "";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("https://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+
+            requestHeaders = new HeaderDictionary
+            {
+                {"x-forwarded-host", "myhost.example.com"},
+                {"x-forwarded-proto", "http"},
+                {"x-forwarded-port", "80"}
+            };
+            settings.ServerUrlPrefix = "";
+            urlTemplate =
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(requestHeaders, settings);
+            Assert.Equal("http://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+        }
+
+        [Fact]
+        public async Task TestEmailValidationApi()
+        {
+            // create user
+            var user = new User();
+            user.Id = Guid.NewGuid().ToString();
+            user.SetEmail("pendingemailuser1@example.com");
+            await Database.Save(user);
             Assert.False(user.EmailVerified);
-            var pendingEmail = await Database.Get<PendingEmail>(p => p.UserId == userInfo1.Id);
-            Assert.NotNull(pendingEmail);
-            var oneTimeToken = await Database.Get<OneTimeToken>(t => t.UserId == userInfo1.Id);
-            Assert.NotNull(oneTimeToken);
+            Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
 
+            // create OTP
+            var token = OneTimeToken.NewToken();
+            var hashedToken = OneTimeToken.TokenHashedWithDefault(token);
+            Assert.NotEqual(token, hashedToken);
+            var oneTimeToken = new OneTimeToken(user.Id, token);
+            Assert.Equal(hashedToken, oneTimeToken.HashedToken);
+            await Database.Save(oneTimeToken);
+            
             // GET, bad token (we're sending the ID of the token not the token just for fun)
             var path = $"/v1/verifyEmail/{oneTimeToken.Id}";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.NotNull(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
+            var sameUser = await Database.Get<User>(user.Id);
+            Assert.NotNull(sameUser);
+            Assert.False(sameUser.EmailVerified);
 
-            bool isPrimary;
-            var emailText = EncryptedField.FromCombinedString(pendingEmail.EmailText).Decrypt(out isPrimary);
-            Assert.NotNull(emailText);
-            Assert.Contains(oneTimeToken.Token, emailText);
+            // GET, bad token (we're sending the token hash)
+            path = $"/v1/verifyEmail/{oneTimeToken.HashedToken}";
+            request = new HttpRequestMessage(HttpMethod.Get, path);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+            Assert.NotNull(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
+            sameUser = await Database.Get<User>(user.Id);
+            Assert.NotNull(sameUser);
+            Assert.False(sameUser.EmailVerified);
 
-            // GET, bad token (we're sending the encrypted blob)
-            path = $"/v1/verifyEmail/{oneTimeToken.Token}";
+            // GET, Good token
+            sameUser = await Database.Get<User>(user.Id);
+            Assert.NotNull(sameUser);
+            Assert.False(sameUser.EmailVerified);
+            path = $"/v1/verifyEmail/{token}";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            
-            user = await Database.Get<User>(userInfo1.Id);
-            Assert.NotNull(user);
-            Assert.True(user.EmailVerified);
-            Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == userInfo1.Id));
+            Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
+
+            sameUser = await Database.Get<User>(user.Id);
+            Assert.NotNull(sameUser);
+            Assert.True(sameUser.EmailVerified);
         }
     }
 }

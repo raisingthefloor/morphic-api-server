@@ -101,36 +101,12 @@ namespace MorphicServer
 
             await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
                 user,
-                GetEmailVerificationLinkTemplate(Request));
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
+                ));
 
             await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
 
-        private string GetEmailVerificationLinkTemplate(HttpRequest request)
-        {
-            var pathTemplate = GetPathTemplate(typeof(ValidateEmailEndpoint));
-            var morphicSettings = Context.GetMorphicSettings();
-            string serverUrl;
-            if (morphicSettings != null && morphicSettings.ServerUrlPrefix != "")
-            {
-                serverUrl = morphicSettings.ServerUrlPrefix;
-            }
-            else
-            {
-                // try to assemble it from X-Forwarded-For- headers.
-                var host = Request.Headers["x-forwarded-host"];
-                var scheme = Request.Headers["x-forwarded-proto"];
-                var port = Request.Headers["x-forwarded-port"];
-                serverUrl = $"{scheme}://{host}";
-                if ((scheme == "http" && port != "80") || (scheme == "https" && port != "443"))
-                {
-                    serverUrl += $":{port}";
-                }
-            }
-
-            return $"{serverUrl}{pathTemplate}";
-        }
-        
         private static bool IsValidEmail(string emailaddress)
         {
             try
