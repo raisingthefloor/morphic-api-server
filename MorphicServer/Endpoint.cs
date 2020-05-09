@@ -33,7 +33,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Prometheus;
@@ -278,17 +277,6 @@ namespace MorphicServer
         {
             var db = Context.GetDatabase();
             T? record = await db.Get<T>(id, ActiveSession);
-            if (record == null){
-                throw new HttpError(HttpStatusCode.NotFound);
-            }
-            return record;
-        }
-
-        public async Task<T> Load<T>(Expression<Func<T, bool>> filter, Database.Session? session = null)
-            where T : Record
-        {
-            var db = Context.GetDatabase();
-            T? record = await db.Get<T>(filter, ActiveSession);
             if (record == null){
                 throw new HttpError(HttpStatusCode.NotFound);
             }

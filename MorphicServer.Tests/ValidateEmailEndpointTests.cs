@@ -149,26 +149,16 @@ namespace MorphicServer.Tests
             var hashedToken = OneTimeToken.TokenHashedWithDefault(token);
             Assert.NotEqual(token, hashedToken);
             var oneTimeToken = new OneTimeToken(user.Id, token);
-            Assert.Equal(hashedToken, oneTimeToken.HashedToken);
+            Assert.Equal(hashedToken, oneTimeToken.Id);
             await Database.Save(oneTimeToken);
             
-            // GET, bad token (we're sending the ID of the token not the token just for fun)
+            // GET, bad token (we're sending the token hash (the ID))
             var path = $"/v1/verifyEmail/{oneTimeToken.Id}";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             Assert.NotNull(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
             var sameUser = await Database.Get<User>(user.Id);
-            Assert.NotNull(sameUser);
-            Assert.False(sameUser.EmailVerified);
-
-            // GET, bad token (we're sending the token hash)
-            path = $"/v1/verifyEmail/{oneTimeToken.HashedToken}";
-            request = new HttpRequestMessage(HttpMethod.Get, path);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-            Assert.NotNull(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
-            sameUser = await Database.Get<User>(user.Id);
             Assert.NotNull(sameUser);
             Assert.False(sameUser.EmailVerified);
 

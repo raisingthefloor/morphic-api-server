@@ -251,10 +251,6 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(oneTimeToken,
                 new CreateIndexModel<OneTimeToken>(
                     Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
-            // IndexExplanation: When processing a link with a one-time-token in it, we need to look up that token
-            // to check that it exists and then to delete it.
-            CreateOrUpdateIndexOrFail(oneTimeToken,
-                new CreateIndexModel<OneTimeToken>(Builders<OneTimeToken>.IndexKeys.Hashed(t => t.HashedToken)));
 
             CreateCollectionIfNotExists<PendingEmail>();
 

@@ -29,7 +29,6 @@ namespace MorphicServer
     public class OneTimeToken : Record
     {
         public string UserId { get; set; }
-        public string HashedToken { get; set; }
         public DateTime ExpiresAt { get; set; }
 
         private const int DefaultExpiresSeconds = 30 * 24 * 60 * 60; // 2592000 seconds in 30 days
@@ -37,9 +36,8 @@ namespace MorphicServer
         
         public OneTimeToken(string userId, string token, int expiresInSeconds = DefaultExpiresSeconds)
         {
-            Id = Guid.NewGuid().ToString();
+            Id = TokenHashedWithDefault(token);
             UserId = userId;
-            HashedToken = TokenHashedWithDefault(token);
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, expiresInSeconds);
         }
 
