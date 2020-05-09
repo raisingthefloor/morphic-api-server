@@ -283,12 +283,18 @@ namespace MorphicServer
         /// <returns></returns>
         public static string Random128BitsBase64()
         {
-            var iv = new byte[16];
-            var provider = RandomNumberGenerator.Create();
-            provider.GetBytes(iv);
+            var iv = RandomBytes(16);
             return Convert.ToBase64String(iv);
         }
 
+        public static byte[] RandomBytes(int n)
+        {
+            var bytes = new byte[n];
+            var provider = RandomNumberGenerator.Create();
+            provider.GetBytes(bytes);
+            return bytes;
+        }
+        
         // custom exceptions for this class.
 
         public class EncryptedFieldException : Exception
