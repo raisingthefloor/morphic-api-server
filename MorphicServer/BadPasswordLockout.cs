@@ -35,8 +35,6 @@ namespace MorphicServer
     /// Any login attempts, good or bad, will simply be ignored. Specifically bad-password logins will
     /// not extend the counter. So no matter what happens, after LockOutForTimeSeconds, the record is
     /// deleted and new logins are allowed (the counter reset, so to speak).
-    ///
-    /// TODO Should a successful login attempt reset (delete) this DB entry?
     /// </summary>
     public class BadPasswordLockout : Record
     {
