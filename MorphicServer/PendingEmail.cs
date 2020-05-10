@@ -182,7 +182,7 @@ Regards,
 --
 {3}";
         
-        public static async Task NewVerificationEmail(Database db, MorphicSettings settings, User user, string urlTemplate)
+        public static async Task NewVerificationEmail(Database db, EmailSettings settings, User user, string urlTemplate)
         {
             var oneTimeToken = new OneTimeToken(user.Id);
             
@@ -192,7 +192,7 @@ Regards,
                 user.FullName,
                 user.GetEmail(),
                 link,
-                settings.EmailSettings.EmailFromFullname);
+                settings.EmailFromFullname);
             var pending = new PendingEmail(user, "Email Verification", msg);
             await db.Save(oneTimeToken);
             await db.Save(pending);

@@ -372,6 +372,11 @@ namespace MorphicServer
             return context.RequestServices.GetRequiredService<MorphicSettings>();
         }
 
+        public static EmailSettings GetEmailSettings(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<EmailSettings>();
+        }
+
         public static async Task<User?> GetUser(this HttpContext context)
         {
             var db = context.GetDatabase();

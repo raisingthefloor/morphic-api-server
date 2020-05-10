@@ -49,6 +49,8 @@ namespace MorphicServer
             services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
+            services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
+            services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddRouting();
             
@@ -78,15 +80,7 @@ namespace MorphicServer
     
     public class MorphicSettings
     {
-        public MorphicSettings()
-        {
-            EmailSettings = new EmailSettings();
-            ServerUrlPrefix = "";
-        }
-
         /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
-        public string ServerUrlPrefix { get; set; }
-
-        public EmailSettings EmailSettings { get; set; }
+        public string ServerUrlPrefix { get; set; } = "";
     }
 }
