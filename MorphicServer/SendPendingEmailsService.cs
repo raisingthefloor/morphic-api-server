@@ -251,9 +251,9 @@ namespace MorphicServer
             try
             {
                 var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
-                var to = new EmailAddress(emailSettings.EmailFromAddress, emailSettings.EmailFromFullname);
+                var from = new EmailAddress(emailSettings.EmailFromAddress, emailSettings.EmailFromFullname);
 
-                var from = new EmailAddress(pending.ToEmail, pending.ToFullName);
+                var to = new EmailAddress(pending.ToEmail, pending.ToFullName);
                 var msg = MailHelper.CreateSingleEmail(from, to, pending.Subject, pending.EmailText, null);
                 var response = await client.SendEmailAsync(msg);
                 code = response.StatusCode.ToString();
