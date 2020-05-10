@@ -191,5 +191,26 @@ namespace MorphicServer.Tests
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Again", property.GetString());
         }
+        
+        [Fact]
+        public void TestFullname()
+        {
+            var user = new User();
+            user.FirstName = null;
+            user.LastName = null;
+            Assert.Equal("", user.FullName);
+
+            user.FirstName = "foo";
+            Assert.Equal("foo", user.FullName);
+
+            user.FirstName = null;
+            user.LastName = "bar";
+            Assert.Equal("bar", user.FullName);
+
+            user.FirstName = "foo";
+            user.LastName = "bar";
+            Assert.Equal("foo bar", user.FullName);
+        }
+
     }
 }

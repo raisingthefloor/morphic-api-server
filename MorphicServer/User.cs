@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using Serilog;
 
 namespace MorphicServer
@@ -91,6 +92,34 @@ namespace MorphicServer
             }
 
             return plainText;
+        }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public string FullName
+        {
+            get
+            {
+                string fullName = "";
+
+                if (!string.IsNullOrEmpty(FirstName) || !string.IsNullOrEmpty(LastName))
+                {
+                    if (!string.IsNullOrEmpty(FirstName)) fullName = FirstName!;
+                    if (!string.IsNullOrEmpty(LastName))
+                    {
+                        if (fullName == "")
+                        {
+                            fullName = LastName;
+                        }
+                        else
+                        {
+                            fullName += " " + LastName;
+                        }
+                    }
+                }
+
+                return fullName;
+            }
         }
     }
 }

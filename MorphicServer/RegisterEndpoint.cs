@@ -99,7 +99,7 @@ namespace MorphicServer
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
 
-            await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
+            await EmailTemplates.NewVerificationEmail(Context.GetDatabase(), Context.GetMorphicSettings(),
                 user,
                 ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
                 ));

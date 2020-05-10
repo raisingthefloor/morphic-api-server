@@ -174,6 +174,18 @@ namespace MorphicServer
             throw new UnknownCipherModeException(Cipher);
         }
 
+        public string Decrypt()
+        {
+            bool isPrimary;
+            var result = Decrypt(out isPrimary);
+            if (!isPrimary)
+            {
+                // TODO need to re-encrypt here
+            }
+
+            return result;
+        }
+
         // Helper functions
 
         /// <summary>

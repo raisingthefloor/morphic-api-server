@@ -22,31 +22,150 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
     /// <summary>
     /// Class for Pending Emails.
     ///
-    /// TODO Implement some background task to actually send these.
+    /// TODO Need some retry-counter and/or retry timer so we don't retry X times directly in a row.
     /// </summary>
     public class PendingEmail : Record
     {
+        // DB Fields
         public string UserId { get; set; }
-        public string ToEmail { get; set; }
-        public string FromEmail { get; set; }
-        public string EmailText { get; set; }
+        public string ToEmailEncr { get; set; } = null!;
+        public string ToFullNameEncr { get; set; } = null!;
+        public string SubjectEncr { get; set; } = null!;
+        public string EmailTextEncr { get; set; } = null!;
         public string ProcessorId { get; set; }
 
-        public PendingEmail(string userId, string to, string from, string text)
+        public PendingEmail(User user, string subject, string msg)
         {
             Id = Guid.NewGuid().ToString();
-            UserId = userId;
-            ToEmail = EncryptedField.FromPlainText(to).ToCombinedString();
-            FromEmail = from; // it's us. No need to encrypt it.
-            EmailText = EncryptedField.FromPlainText(text).ToCombinedString();
+            UserId = user.Id;
+
+            ToFullName = user.FullName;
+            ToEmail = user.GetEmail();
+            EmailText = msg;
+            Subject = subject;
             ProcessorId = "";
+        }
+
+
+        // Helpers
+        
+        private string? toEmail;
+        [BsonIgnore]
+        [JsonIgnore]
+        public string ToEmail
+        {
+            get
+            {
+                if (toEmail == null)
+                {
+                    toEmail = EncryptedField.FromCombinedString(ToEmailEncr).Decrypt();
+                }
+                return toEmail;
+            }
+            
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    throw new PendingEmailException("Empty or null ToEmail");
+                }
+                ToEmailEncr = EncryptedField.FromPlainText(value).ToCombinedString();
+                toEmail = value;
+            }
+        }
+
+        private string? toFullName;
+        [BsonIgnore]
+        [JsonIgnore]
+        public string ToFullName
+        {
+            get
+            {
+                if (toFullName == null)
+                {
+                    toFullName = ToFullNameEncr != "" ? EncryptedField.FromCombinedString(ToFullNameEncr).Decrypt() : "";
+                }
+                return toFullName;
+            }
+            
+            set
+            {
+                ToFullNameEncr = value != "" ? EncryptedField.FromPlainText(value).ToCombinedString() : "";
+                toFullName = value;
+            }
+        }
+
+        private string? subject;
+        [BsonIgnore]
+        [JsonIgnore]
+        public string Subject
+        {
+            get
+            {
+                if (subject == null)
+                {
+                    subject = EncryptedField.FromCombinedString(SubjectEncr).Decrypt();
+                }
+                return subject;
+            }
+            
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    throw new PendingEmailException("Empty or null Subject");
+                }
+
+                SubjectEncr = EncryptedField.FromPlainText(value).ToCombinedString();
+                subject = value;
+            }
+        }
+
+        private string? emailText;
+        [BsonIgnore]
+        [JsonIgnore]
+        public string EmailText
+        {
+            get
+            {
+                if (emailText == null)
+                {
+                    emailText = EncryptedField.FromCombinedString(EmailTextEncr).Decrypt();
+                }
+                return emailText;
+            }
+            
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    throw new PendingEmailException("Empty or null EmailText");
+                }
+
+                EmailTextEncr = EncryptedField.FromPlainText(value).ToCombinedString();
+                emailText = value;
+            }
+        }
+        
+        public class PendingEmailException : MorphicServerException
+        {
+            public PendingEmailException(string error) : base(error)
+            {
+            }
+
+            public PendingEmailException() : base()
+            {
+            }
+
         }
     }
 
@@ -62,48 +181,19 @@ Regards,
 
 --
 {3}";
-
-        public static string GreetingName(string? firstName, string? lastName, string email)
-        {
-            string dearUser = "";
-
-            if (!string.IsNullOrEmpty(firstName) || !string.IsNullOrEmpty(lastName))
-            {
-                if (!string.IsNullOrEmpty(firstName)) dearUser = firstName!;
-                if (!string.IsNullOrEmpty(lastName))
-                {
-                    if (dearUser == "")
-                    {
-                        dearUser = lastName;
-                    }
-                    else
-                    {
-                        dearUser += " " + lastName;
-                    }
-                }
-            }
-            else
-            {
-                dearUser = email;
-            }
-
-            return dearUser;
-        }
         
-        public static async Task NewVerificationEmail(Database db, User user, string urlTemplate)
+        public static async Task NewVerificationEmail(Database db, MorphicSettings settings, User user, string urlTemplate)
         {
-            var encrEmail = EncryptedField.FromCombinedString(user.EmailEncrypted!);
-
-            var email = encrEmail.Decrypt(out _);
             var oneTimeToken = new OneTimeToken(user.Id);
+            
+            // Create the email message
             var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
-            var from = "support@morphic.world";
             var msg = string.Format(EmailVerificationMsgTemplate,
-                GreetingName(user.FirstName, user.LastName, email),
-                email,
+                user.FullName,
+                user.GetEmail(),
                 link,
-                from);
-            var pending = new PendingEmail(user.Id, email, from, msg);
+                settings.EmailSettings.EmailFromFullname);
+            var pending = new PendingEmail(user, "Email Verification", msg);
             await db.Save(oneTimeToken);
             await db.Save(pending);
         }
