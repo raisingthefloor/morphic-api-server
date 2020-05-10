@@ -37,6 +37,7 @@ namespace MorphicServer
         public string ToEmail { get; set; }
         public string FromEmail { get; set; }
         public string EmailText { get; set; }
+        public string ProcessorId { get; set; }
 
         public PendingEmail(string userId, string to, string from, string text)
         {
@@ -45,6 +46,7 @@ namespace MorphicServer
             ToEmail = EncryptedField.FromPlainText(to).ToCombinedString();
             FromEmail = from; // it's us. No need to encrypt it.
             EmailText = EncryptedField.FromPlainText(text).ToCombinedString();
+            ProcessorId = "";
         }
     }
 

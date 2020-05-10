@@ -1,0 +1,123 @@
+using System;
+using System.Diagnostics;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using MongoDB.Driver;
+using Serilog.Context;
+
+namespace MorphicServer
+{
+    public class EmailSettings
+    {
+        public int SleepTimeSeconds = 5;
+        public int EmailsPerLoop = 3;
+        public int MaxSecondsInLoop = 10;
+        public int OrphanedPendingMinutes = 30;
+    }
+
+    public class SendPendingEmailsService : BackgroundService
+    {
+        private readonly ILogger logger;
+        private readonly EmailSettings settings;
+        private readonly Database morphicDb;
+
+        public SendPendingEmailsService(EmailSettings settings,
+            ILogger<SendPendingEmailsService> logger, Database morphicDb)
+        {
+            this.logger = logger;
+            this.morphicDb = morphicDb;
+            this.settings = settings;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            // wait 30 seconds for things to settle down.
+            await Task.Delay(30 * 1000, stoppingToken);
+
+            var processorId = $"{Process.GetCurrentProcess().Id}";
+            using (LogContext.PushProperty("ProcessId", processorId))
+            {
+                logger.LogInformation("starting.");
+
+                stoppingToken.Register(() =>
+                    logger.LogInformation("stopping."));
+
+                var maxLoopTimeSpan = new TimeSpan(0, 0, 0, settings.MaxSecondsInLoop);
+
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    var topOfLoopTime = DateTime.UtcNow;
+                    var maxLoops = settings.EmailsPerLoop;
+                    int emailCount = 0;
+                    while (maxLoops > 0)
+                    {
+                        if (await FindAndProcessOnePendingEmail(processorId))
+                        {
+                            emailCount++;
+                        }
+
+                        var timeInLoop = DateTime.UtcNow - topOfLoopTime;
+                        if (timeInLoop >= maxLoopTimeSpan)
+                        {
+                            logger.LogInformation(
+                                $"Max time in loop of {settings.MaxSecondsInLoop}s exceeded. Processed {emailCount} emails");
+                            break;
+                        }
+
+                        maxLoops--;
+                    }
+                    if (emailCount > 0) logger.LogDebug($"Processed email: {emailCount}");
+
+                    await FindAndResetOrphanedPendingEmails();
+
+                    // TODO Should link the stoppingToken to a token of our own, so we can programmatically kill the wait.
+                    // This would allow us to set the timeout to much higher values (1 hour?) and wake up when there's
+                    // emails to be sent from any of the endpoints.
+                    await Task.Delay(settings.SleepTimeSeconds * 1000, stoppingToken);
+                }
+
+                logger.LogInformation("exiting.");
+            }
+        }
+
+        private async Task<bool> FindAndProcessOnePendingEmail(string processorId)
+        {
+            var pending = await morphicDb.FindOneAndUpdate(
+                p => p.ProcessorId == "",
+                Builders<PendingEmail>.Update
+                    .Set("ProcessorId", processorId)
+                    .Set("Updated", DateTime.UtcNow)
+            );
+            if (pending != null)
+            {
+                using (LogContext.PushProperty("PendingEmail", pending.Id))
+                {
+                    logger.LogDebug($"SendPendingEmailsService processing PendingEmail");
+                    logger.LogInformation($"SendPendingEmailsService deleting PendingEmail");
+                    await morphicDb.Delete(pending);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private async Task FindAndResetOrphanedPendingEmails()
+        {
+            var orphanedTime = DateTime.UtcNow - TimeSpan.FromMinutes(settings.OrphanedPendingMinutes);
+            var updated = await morphicDb.UpdateMany(
+                p => p.ProcessorId != "" && p.Updated < orphanedTime,
+                Builders<PendingEmail>.Update
+                    .Set("ProcessorId", "")
+            );
+            if (updated > 0)
+            {
+                // this can happen if we crash during processing of some emails. Or perhap there's something
+                // else wrong. In any case this should never happen, so log it as an error.
+                logger.LogError($"FindAndResetOrphanedPendingEmails reset {updated} PendingEmails");
+            }
+        }
+    }
+}

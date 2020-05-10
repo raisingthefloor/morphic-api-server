@@ -93,7 +93,7 @@ namespace MorphicServer
         /// <summary>The MongoDB collections within the database</summary>
         private Dictionary<Type, object> CollectionByType = new Dictionary<Type, object>();
 
-        /// <summary>Fetch a record from the database using a string identfier</summary>
+        /// <summary>Fetch a record from the database using a string identifier</summary>
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
@@ -122,6 +122,61 @@ namespace MorphicServer
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Find one document matching the filter, after it has been updated with the update
+        /// </summary>
+        /// <param name="filter">Linq expression</param>
+        /// <param name="update">Builder expression for updating the document</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T">The type of the record/collection</typeparam>
+        /// <returns></returns>
+        public async Task<T?> FindOneAndUpdate<T>(Expression<Func<T, bool>> filter, UpdateDefinition<T> update, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                var options = new FindOneAndUpdateOptions<T, T>
+                {
+                    ReturnDocument = ReturnDocument.After,
+                    IsUpsert = false
+                };
+                if (session != null)
+                {
+                    return await collection.FindOneAndUpdateAsync(session.Handle, filter, update, options);
+                }
+
+                return await collection.FindOneAndUpdateAsync(filter, update, options);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Update Many documents matching the filter and update them with the update
+        /// </summary>
+        /// <param name="filter">Linq expression</param>
+        /// <param name="update">Builder expression for updating the document</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T">The type of the record/collection</typeparam>
+        /// <returns></returns>
+        public async Task<long> UpdateMany<T>(Expression<Func<T, bool>> filter, UpdateDefinition<T> update, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                var options = new UpdateOptions
+                {
+                    IsUpsert = false
+                };
+                if (session != null)
+                {
+                    return (await collection.UpdateManyAsync(session.Handle, filter, update, options)).ModifiedCount;
+                }
+
+                return (await collection.UpdateManyAsync(filter, update, options)).ModifiedCount;
+            }
+
+            return -1;
         }
 
         /// <summary>Create or update a record in the database</summary>
