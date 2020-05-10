@@ -182,7 +182,7 @@ namespace MorphicServer
         private const string EmailVerificationMsgTemplate = 
             @"Dear {0},
 
-To verify your email Address {1} please click the following link: {2}.
+To verify your email Address {1} please click the following link: {2}
 
 Regards,
 
