@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 using Serilog;
 
 namespace MorphicServer
@@ -46,6 +47,7 @@ namespace MorphicServer
         public DateTime LastAuth { get; set; }
 
         [JsonPropertyName("email")]
+        [BsonIgnore]
         public string? Email {
             get{
                 if (EmailEncrypted is string encrypted)
