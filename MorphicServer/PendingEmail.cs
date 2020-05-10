@@ -42,8 +42,14 @@ namespace MorphicServer
         public string SubjectEncr { get; set; } = null!;
         public string EmailTextEncr { get; set; } = null!;
         public string ProcessorId { get; set; }
+        public EmailTypeEnum EmailType { get; set; }
+        
+        public enum EmailTypeEnum
+        {
+            EmailValidation = 0
+        }
 
-        public PendingEmail(User user, string subject, string msg)
+        public PendingEmail(User user, string subject, string msg, EmailTypeEnum type)
         {
             Id = Guid.NewGuid().ToString();
             UserId = user.Id;
@@ -53,6 +59,7 @@ namespace MorphicServer
             EmailText = msg;
             Subject = subject;
             ProcessorId = "";
+            EmailType = type;
         }
 
 
@@ -193,7 +200,8 @@ Regards,
                 user.GetEmail(),
                 link,
                 settings.EmailFromFullname);
-            var pending = new PendingEmail(user, "Email Verification", msg);
+            var pending = new PendingEmail(user, "Email Verification", msg, 
+                PendingEmail.EmailTypeEnum.EmailValidation);
             await db.Save(oneTimeToken);
             await db.Save(pending);
         }

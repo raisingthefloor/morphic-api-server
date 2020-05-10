@@ -34,7 +34,7 @@ namespace MorphicServer.Tests
             Assert.NotNull(user);
             var subject = $"Subject{userInfo1.Id}";
             var message = "The quick brown fox jumped over the lazy dog";
-            var pending = new PendingEmail(user!, subject, message);
+            var pending = new PendingEmail(user!, subject, message, PendingEmail.EmailTypeEnum.EmailValidation);
             AssertPendingValid(user!, pending, subject, message);
             
             var userInfo2 = await CreateTestUser("", "");
@@ -42,7 +42,7 @@ namespace MorphicServer.Tests
             Assert.NotNull(user);
             subject = $"Subject{userInfo2.Id}";
             message = "The quick brown fox jumped over the lazy dog too!";
-            pending = new PendingEmail(user!, subject, message);
+            pending = new PendingEmail(user!, subject, message, PendingEmail.EmailTypeEnum.EmailValidation);
             AssertPendingValid(user!, pending, subject, message);
         }
     }

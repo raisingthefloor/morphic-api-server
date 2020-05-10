@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using Prometheus;
 using SendGrid;
 using SendGrid.Helpers.Mail;
 using Serilog;
@@ -194,6 +195,12 @@ namespace MorphicServer
             }
         }
 
+        private const string EmailSendingMetricHistogramName = "email_send_duration";
+        private static readonly Histogram EmailSendingHistogram = Metrics.CreateHistogram(
+            EmailSendingMetricHistogramName,
+            "Time it takes to send an email",
+            new[] {"type", "destination", "code"});
+
         private async Task<bool> FindAndProcessOnePendingEmail(string processorId)
         {
             var pending = await morphicDb.FindOneAndUpdate(
@@ -239,21 +246,33 @@ namespace MorphicServer
 
         private async Task<bool> SendViaSendGrid(PendingEmail pending)
         {
-            var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
-            var to = new EmailAddress(emailSettings.EmailFromAddress, emailSettings.EmailFromFullname);
+            var stopWatch = Stopwatch.StartNew();
+            string code = "-500"; // a kind of combination of 500 error and unset (it's negative)
+            try
+            {
+                var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
+                var to = new EmailAddress(emailSettings.EmailFromAddress, emailSettings.EmailFromFullname);
 
-            var from = new EmailAddress(pending.ToEmail, pending.ToFullName);
-            var msg = MailHelper.CreateSingleEmail(from, to, pending.Subject, pending.EmailText, null);
-            var response = await client.SendEmailAsync(msg);
-            if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
-            {
-                logger.LogError($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
-                return false;
+                var from = new EmailAddress(pending.ToEmail, pending.ToFullName);
+                var msg = MailHelper.CreateSingleEmail(from, to, pending.Subject, pending.EmailText, null);
+                var response = await client.SendEmailAsync(msg);
+                code = response.StatusCode.ToString();
+                if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
+                {
+                    logger.LogError($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
+                    return false;
+                }
+                else
+                {
+                    logger.LogDebug($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
+                    return true;
+                }
             }
-            else
+            finally
             {
-                logger.LogDebug($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
-                return true;
+                stopWatch.Stop();
+                EmailSendingHistogram.Labels(pending.EmailType.ToString(), "sendgrid", code)
+                    .Observe(stopWatch.Elapsed.TotalSeconds);
             }
         }
 
