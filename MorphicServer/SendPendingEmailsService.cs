@@ -1,20 +1,31 @@
 using System;
 using System.Diagnostics;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
+using SendGrid;
+using SendGrid.Helpers.Mail;
 using Serilog.Context;
 
 namespace MorphicServer
 {
+    public class SendGridSettings
+    {
+        public string ApiKey = "";
+    }
+    
     public class EmailSettings
     {
         public int SleepTimeSeconds = 5;
         public int EmailsPerLoop = 3;
         public int MaxSecondsInLoop = 10;
         public int OrphanedPendingMinutes = 30;
+        public SendGridSettings? SendGridSettings;
+        public string EmailFromAddress = "support@morphic.world";
+        public string EmailFromFullname = "Morphic World Support";
     }
 
     public class SendPendingEmailsService : BackgroundService
@@ -23,12 +34,12 @@ namespace MorphicServer
         private readonly EmailSettings settings;
         private readonly Database morphicDb;
 
-        public SendPendingEmailsService(EmailSettings settings,
+        public SendPendingEmailsService(MorphicSettings settings,
             ILogger<SendPendingEmailsService> logger, Database morphicDb)
         {
             this.logger = logger;
             this.morphicDb = morphicDb;
-            this.settings = settings;
+            this.settings = settings.EmailSettings;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -94,14 +105,42 @@ namespace MorphicServer
             {
                 using (LogContext.PushProperty("PendingEmail", pending.Id))
                 {
-                    logger.LogDebug($"SendPendingEmailsService processing PendingEmail");
-                    logger.LogInformation($"SendPendingEmailsService deleting PendingEmail");
-                    await morphicDb.Delete(pending);
+                    logger.LogDebug("SendPendingEmailsService processing PendingEmail");
+                    var sent = await SendViaSendGrid(pending);
+                    if (!sent)
+                    {
+                        logger.LogError("Could not send email");
+                        // throw it back.
+                        pending.ProcessorId = "";
+                        await morphicDb.Save(pending);
+                    }
+                    else
+                    {
+                        logger.LogInformation("SendPendingEmailsService deleting PendingEmail");
+                        await morphicDb.Delete(pending);
+                    }
+
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private async Task<bool> SendViaSendGrid(PendingEmail pending)
+        {
+            var client = new SendGridClient(settings.SendGridSettings!.ApiKey);
+            var to = new EmailAddress(settings.EmailFromAddress, settings.EmailFromFullname);
+
+            var from = new EmailAddress(pending.ToEmail, pending.ToFullName);
+            var msg = MailHelper.CreateSingleEmail(from, to, pending.Subject, pending.EmailText, null);
+            var response = await client.SendEmailAsync(msg);
+            logger.LogDebug($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers.ToString()}");
+            if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
+            {
+                return false;
+            }
+            return true;
         }
 
         private async Task FindAndResetOrphanedPendingEmails()
