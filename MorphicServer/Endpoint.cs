@@ -80,14 +80,19 @@ namespace MorphicServer
     public abstract class Endpoint
     {
 
-        #pragma warning disable CS8618
+        public Endpoint(IHttpContextAccessor contextAccessor)
+        {
+            Context = contextAccessor.HttpContext;
+            Request = Context.Request;
+            Response = Context.Response;
+        }
+
         /// <summary>The http context for the current request</summary>
         public HttpContext Context { get; private set; }
         /// <summary>The current HTTP request</summary>
         public HttpRequest Request { get; private set; }
         /// <summary>The current HTTP Response</summary>
         public HttpResponse Response { get; private set; }
-        #pragma warning restore CS8618
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
@@ -106,15 +111,9 @@ namespace MorphicServer
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
-        public static async Task Run<T>(HttpContext context) where T: Endpoint, new()
+        public static async Task Run<T>(HttpContext context) where T: Endpoint
         {
-            // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
-            // us to construct with a generic.  However, it means we need to populate some fields here instead
-            // of in a constructor.
-            var endpoint = new T();
-            endpoint.Context = context;
-            endpoint.Request = context.Request;
-            endpoint.Response = context.Response;
+            var endpoint = context.RequestServices.GetRequiredService<T>();
             var method = context.Request.Method;
             var statusCode = 500;
             var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
@@ -203,24 +202,36 @@ namespace MorphicServer
             var endpointType = typeof(Endpoint);
             if (endpointType.GetMethod("Run") is MethodInfo run)
             {
-                foreach (var type in endpointType.Assembly.GetTypes())
+                foreach (var (type, attr) in SubclassesWithPaths)
                 {
-                    if (type.IsSubclassOf(endpointType))
-                    {
-                        if (type.GetCustomAttribute(typeof(Path)) is Path attr)
-                        {
-                            Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
-                                type.ToString(),
-                                attr.Template
-                            );
-                            var generic = run.MakeGenericMethod(new Type[] {type});
-                            endpoints.Map(attr.Template,
-                                generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                    Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
+                        type.ToString(),
+                        attr.Template
+                    );
+                    var generic = run.MakeGenericMethod(new Type[] {type});
+                    endpoints.Map(attr.Template,
+                        generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                }
+            }
+        }
 
-                        }
+        internal static IEnumerable<(Type, Path)> SubclassesWithPaths = FindSubclassesWithPaths();
+
+        private static IEnumerable<(Type, Path)> FindSubclassesWithPaths()
+        {
+            var subclasses = new List<(Type, Path)>();
+            var endpointType = typeof(Endpoint);
+            foreach (var type in endpointType.Assembly.GetTypes())
+            {
+                if (type.IsSubclassOf(endpointType))
+                {
+                    if (type.GetCustomAttribute(typeof(Path)) is Path attr)
+                    {
+                        subclasses.Add((type, attr));
                     }
                 }
             }
+            return subclasses;
         }
 
         /// <summary>Get the method reflection info that matches the given request method name</summary>
@@ -372,6 +383,17 @@ namespace MorphicServer
                 }
             }
             return null;
+        }
+    }
+
+    public static class IServiceCollectionExtensions
+    {
+        public static void AddEndpoints(this IServiceCollection services)
+        {
+            foreach (var (type, attr) in Endpoint.SubclassesWithPaths)
+            {
+                services.AddTransient(type);
+            }
         }
     }
 }

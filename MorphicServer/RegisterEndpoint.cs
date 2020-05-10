@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using System.Net;
 using System.Net.Mail;
@@ -36,6 +37,10 @@ namespace MorphicServer
 
     public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
     {
+
+        public RegisterEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
 
         protected async Task Register(CredentialType credential, User user)
         {
@@ -69,6 +74,11 @@ namespace MorphicServer
     [Path("/v1/register/username")]
     public class RegisterUsernameEndpoint: RegisterEndpoint<UsernameCredential>
     {
+
+        public RegisterUsernameEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
+
         [Method]
         public async Task Post()
         {
@@ -196,6 +206,11 @@ namespace MorphicServer
     // [Path("/v1/register/key")]
     public class RegisterKeyEndpoint: RegisterEndpoint<KeyCredential>
     {
+
+        public RegisterKeyEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
+
         [Method]
         public async Task Post()
         {

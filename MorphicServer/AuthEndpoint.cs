@@ -25,6 +25,7 @@ using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using Serilog;
 using Serilog.Context;
 
@@ -37,6 +38,10 @@ namespace MorphicServer
     /// </remarks>
     public abstract class AuthEndpoint<T>: Endpoint where T: class
     {
+
+        public AuthEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
 
         /// <summary>Parse the request JSON, call AuthenticatedUser, and respond with a token or error</summary>
         public async Task Authenticate()
@@ -90,6 +95,10 @@ namespace MorphicServer
     public class AuthUsernameEndpoint: AuthEndpoint<AuthUsernameRequest>
     {
 
+        public AuthUsernameEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
+
         public override async Task<User> AuthenticatedUser(AuthUsernameRequest request)
         {
             var db = Context.GetDatabase();
@@ -109,6 +118,11 @@ namespace MorphicServer
     // [Path("/v1/auth/key")]
     public class AuthKeyEndpoint: AuthEndpoint<AuthKeyRequest>
     {
+
+        public AuthKeyEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
+
         public override async Task<User> AuthenticatedUser(AuthKeyRequest request)
         {
             var db = Context.GetDatabase();

@@ -24,6 +24,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
+using Microsoft.AspNetCore.Http;
 using System.Net;
 using Serilog;
 
@@ -34,6 +35,11 @@ namespace MorphicServer
     [OmitMetrics]
     public class ReadyEndpoint : Endpoint
     {
+
+        public ReadyEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
+
         [Method]
         public async Task Get()
         {

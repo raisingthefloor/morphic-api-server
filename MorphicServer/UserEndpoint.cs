@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using System.Net;
 using Serilog;
@@ -33,6 +34,10 @@ namespace MorphicServer
     [Path("/v1/users/{id}")]
     public class UserEndpoint: Endpoint
     {
+
+        public UserEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
         [Parameter]

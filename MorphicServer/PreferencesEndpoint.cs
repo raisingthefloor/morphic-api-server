@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
+using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Text.Json.Serialization;
 using Serilog;
@@ -37,6 +38,10 @@ namespace MorphicServer
     [Path("/v1/users/{userid}/preferences/{id}")]
     public class PreferencesEndpoint: Endpoint
     {
+
+        public PreferencesEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        {
+        }
 
         /// <summary>The user id to use, populated from the request URL</summary>
         [Parameter]

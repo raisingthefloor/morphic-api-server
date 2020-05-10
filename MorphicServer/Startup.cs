@@ -23,6 +23,7 @@
 
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -48,7 +49,9 @@ namespace MorphicServer
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<Database>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddRouting();
+            services.AddEndpoints();
 
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
