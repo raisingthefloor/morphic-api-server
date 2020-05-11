@@ -172,7 +172,16 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
+            oneTimeToken = await Database.Get<OneTimeToken>(t => t.UserId == user.Id);
+            Assert.NotNull(oneTimeToken);
+            Assert.NotNull(oneTimeToken.UsedAt);
+            // try the same request again. Will fail
+            request = new HttpRequestMessage(HttpMethod.Get, path);
+            response = await Client.SendAsync(request);
+            var error = await assertJsonError(response, HttpStatusCode.NotFound, "invalid_token");
+
+            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+
 
             sameUser = await Database.Get<User>(user.Id);
             Assert.NotNull(sameUser);
