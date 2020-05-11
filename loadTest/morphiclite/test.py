@@ -89,6 +89,7 @@ def testrunner(args):
                 username = "myusername" + str(i)
                 password = "mypassword" + str(i)
                 email = username + "@example.com"
+                #email = "jan+morphictest{number}@vilhuber.com".format(number=i)
                 try:
                     auth = Register(base_url, logger=logger).registerUser(username, password, email)
                 except (Register.MorphicRegisterUserExists, Register.MorphicRegisterEmailExists):
