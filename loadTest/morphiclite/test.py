@@ -121,6 +121,13 @@ def testrunner(args):
 
                 except MorphicLite.MorphicLiteError as e:
                     logger.error(e)
+
+                if args.unregister:
+                    try:
+                        unregister = Unregister(base_url, logger=logger).unregisterUser(username, password)
+                    except Unregister.MorphicUnregisterUserDoesNotExist as e:
+                        logger.error(e)
+
             except MorphicLite.MorphicLiteError as e:
                 logger.error(e)
             except Exception as e:
@@ -133,6 +140,7 @@ parser.add_argument('--url', help='base url', default="http://localhost:5002")
 parser.add_argument('--extra-tests', help='some extra negative tests', action='store_true')
 parser.add_argument('-n', '--nusers', help='number of users', default=1000, type=int)
 parser.add_argument('-l', '--loops', help='number of loops', default=10, type=int)
+parser.add_argument('--unregister', help='unregister users, too', action="store_true", default=False)
 
 args = parser.parse_args()
 try:
