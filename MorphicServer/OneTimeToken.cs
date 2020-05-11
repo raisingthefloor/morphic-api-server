@@ -38,6 +38,7 @@ namespace MorphicServer
     {
         public string UserId { get; set; }
         public DateTime ExpiresAt { get; set; }
+        public DateTime? UsedAt { get; set; } = null;
 
         private readonly string token;
         
@@ -82,7 +83,9 @@ namespace MorphicServer
         
         public async Task Invalidate(Database db)
         {
-            await db.Delete(this);
+            UsedAt = DateTime.UtcNow;
+            ExpiresAt = DateTime.UtcNow + TimeSpan.FromDays(5); // keep the token for 5 days for debugging, perhaps.
+            await db.Save(this);
         }
         
         // MongoDB says: "The background task that removes expired documents runs every 60 seconds.
@@ -92,7 +95,7 @@ namespace MorphicServer
         // The question is: Do we care about those 60 seconds?
         public bool IsValid()
         {
-            return ExpiresAt > DateTime.UtcNow;
+            return UsedAt == null && ExpiresAt > DateTime.UtcNow;
         }
 
         public class OneTimeTokenException : MorphicServerException
