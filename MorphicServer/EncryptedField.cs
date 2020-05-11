@@ -24,6 +24,8 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
 using Prometheus;
 
 namespace MorphicServer
@@ -330,6 +332,22 @@ namespace MorphicServer
         {
             public UnknownCipherModeException(string error) : base(error)
             {
+            }
+        }
+
+        /// <summary>
+        /// Custom Bson Serializer that converts an EncryptedField to and from its combined string representation
+        /// </summary>
+        public class BsonSerializer: SerializerBase<EncryptedField>
+        {
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, EncryptedField value)
+            {
+                context.Writer.WriteString(value.ToCombinedString());
+            }
+
+            public override EncryptedField Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                return EncryptedField.FromCombinedString(context.Reader.ReadString());
             }
         }
     }

@@ -65,6 +65,9 @@ namespace MorphicServer
         /// </remarks>
         public Database(DatabaseSettings settings)
         {
+
+            BsonSerializer.RegisterSerializationProvider(new BsonSerializerProvider());
+
             client = new MongoClient(settings.ConnectionString);
             morphic = client.GetDatabase(settings.DatabaseName);
 
@@ -222,7 +225,7 @@ namespace MorphicServer
             // IndexExplanation: When registering a new user, we need to make sure no other user has signed
             // up with that email. So we need an index to find it. See RegisterEndpoint.
             CreateOrUpdateIndexOrFail(user,
-                new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
+                new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.Email.Hash)));
             CreateCollectionIfNotExists<UsernameCredential>();
             CreateCollectionIfNotExists<KeyCredential>();
             var authToken = CreateCollectionIfNotExists<AuthToken>();
@@ -322,6 +325,22 @@ namespace MorphicServer
             {
                 string json = JsonSerializer.Serialize(value);
                 context.Writer.WriteString(json);
+            }
+        }
+
+        public class BsonSerializerProvider: IBsonSerializationProvider
+        {
+            public IBsonSerializer? GetSerializer(Type type)
+            {
+                if (type == typeof(EncryptedField))
+                {
+                    return new EncryptedField.BsonSerializer();
+                }
+                if (type == typeof(HashedData))
+                {
+                    return new HashedData.BsonSerializer();
+                }
+                return null;
             }
         }
     }

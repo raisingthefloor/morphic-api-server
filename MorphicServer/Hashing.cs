@@ -23,6 +23,8 @@
 
 using System;
 using System.Security.Cryptography;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace MorphicServer
@@ -129,6 +131,49 @@ namespace MorphicServer
             var provider = RandomNumberGenerator.Create();
             provider.GetBytes(salt);
             return Convert.ToBase64String(salt);
+        }
+
+        /// <summary>
+        /// Custom Bson Serializer that converts a HashedData to and from its combined string representation
+        /// </summary>
+        public class BsonSerializer: SerializerBase<HashedData>
+        {
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, HashedData value)
+            {
+                context.Writer.WriteString(value.ToCombinedString());
+            }
+
+            public override HashedData Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                return HashedData.FromCombinedString(context.Reader.ReadString());
+            }
+        }
+
+        public static bool operator==(HashedData a, string b)
+        {
+            return a.ToCombinedString() == b;
+        }
+
+        public static bool operator!=(HashedData a, string b)
+        {
+            return a.ToCombinedString() != b;
+        }
+
+        public override bool Equals(object? other)
+        {
+            if (other is HashedData hash)
+            {
+                return this.ToCombinedString() == hash.ToCombinedString();
+            }
+            if (other is string hashString){
+                return this == hashString;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return ToCombinedString().GetHashCode();
         }
     }
 }

@@ -1,0 +1,139 @@
+using System;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
+
+namespace MorphicServer
+{
+    
+    /// <summary>
+    /// Represents a string that is stored encrypted in the database and only decrypted when needed
+    /// </summary>
+    public class EncryptedString
+    {
+
+        public EncryptedField? Encrypted { get; set; }
+
+        [BsonIgnore]
+        public virtual string? PlainText
+        {
+            get{
+                if (Encrypted is EncryptedField encrypted)
+                {
+                    var plainText = encrypted.Decrypt(out var isPrimary);
+                    if (!isPrimary)
+                    {
+                        // TODO: queue re-encryption, but how do we know what record we're in??
+                    }
+                    return plainText;
+                }
+                return null;
+            }
+
+            set{
+                if (value is string plainText)
+                {
+                    Encrypted = EncryptedField.FromPlainText(plainText);
+                }
+                else
+                {
+                    Encrypted = null;
+                }
+            }
+        }
+
+        public class JsonConverter: System.Text.Json.Serialization.JsonConverter<EncryptedString>
+        {
+            public override EncryptedString Read (ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                var plainText = reader.GetString();
+                var encrypted = new EncryptedString();
+                encrypted.PlainText = plainText;
+                return encrypted;
+            }
+
+            public override void Write (Utf8JsonWriter writer, EncryptedString value, JsonSerializerOptions options)
+            {
+                if (value.PlainText is string plainText)
+                {
+                    writer.WriteStringValue(plainText);
+                }
+                else
+                {
+                    writer.WriteNullValue();
+                }
+            }
+        }
+
+    }
+
+    /// <summary>
+    /// Represents a string that is stored encrypted in the database and only decrypted when needed,
+    /// yet is searchable via a hash representation
+    /// </summary>
+    public class SearchableEncryptedString: EncryptedString
+    {
+
+        public SearchableEncryptedString(string sharedSalt)
+        {
+            SharedSalt = sharedSalt;
+        }
+
+        public HashedData? Hash { get; set; }
+
+        /// <summary>
+        /// Why do we need a shared salt? We need to be able to search
+        /// for the value. If we use random salt for every entry this becomes prohibitively expensive 
+        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
+        /// PII and searchability: It's not perfect, but it's sufficient. 
+        /// </summary>
+        [BsonIgnore]
+        public string SharedSalt { get; set; }
+
+        [BsonIgnore]
+        public override string? PlainText{
+            get{
+                return base.PlainText;
+            }
+
+            set{
+                base.PlainText = value;
+                if (value is string plainText)
+                {
+                    Hash = HashedData.FromString(plainText, SharedSalt);
+                }
+                else
+                {
+                    Hash = null;
+                }
+            }
+        }
+
+        public new class JsonConverter: System.Text.Json.Serialization.JsonConverter<SearchableEncryptedString>
+        {
+            public override SearchableEncryptedString Read (ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+            {
+                var plainText = reader.GetString();
+                // FIXME: where does the shared salt come from?
+                // Since we're not using a random salt, would simply
+                // using the plainText as the salt achieve the same level of security?
+                var encrypted = new SearchableEncryptedString("WRONG");
+                encrypted.PlainText = plainText;
+                return encrypted;
+            }
+
+            public override void Write (Utf8JsonWriter writer, SearchableEncryptedString value, JsonSerializerOptions options)
+            {
+                if (value.PlainText is string plainText)
+                {
+                    writer.WriteStringValue(plainText);
+                }
+                else
+                {
+                    writer.WriteNullValue();
+                }
+            }
+        }
+
+    }
+}

@@ -29,12 +29,6 @@ namespace MorphicServer
 {
     public class User: Record
     {
-        [JsonIgnore]
-        public string? EmailHash { get; set; }
-        [JsonIgnore]
-        public string? EmailEncrypted { get; set; }
-        [JsonIgnore]
-        public bool EmailVerified { get; set; }
         
         [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
@@ -42,6 +36,10 @@ namespace MorphicServer
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
+        [JsonPropertyName("email")]
+        public SearchableEncryptedString Email { get; set; } = new SearchableEncryptedString("N9DtOumwMC7A9KJLB3oCbA==");
+        [JsonIgnore]
+        public bool EmailVerified { get; set; }
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
         
@@ -50,47 +48,5 @@ namespace MorphicServer
             LastAuth = DateTime.UtcNow;
         }
         
-        /// <summary>
-        /// Default salt for user-email hashing. Why do we need default salt? We need to be able to search
-        /// for the email. If we use random salt for every entry this becomes prohibitively expensive 
-        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
-        /// PII and searchability: It's not perfect, but it's sufficient. 
-        /// </summary>
-        const string DefaultUserEmailSalt = "N9DtOumwMC7A9KJLB3oCbA==";
-        
-        public void SetEmail(string email)
-        {
-            if (!String.IsNullOrWhiteSpace(EmailHash) && HashedData.FromCombinedString(EmailHash).Equals(email))
-            {
-                return;
-            }
-            EmailHash = HashedData.FromString(email, DefaultUserEmailSalt).ToCombinedString();
-            EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
-            EmailVerified = false;
-        }
-
-        public static string UserEmailHashCombined(string email)
-        {
-            return HashedData.FromString(email, User.DefaultUserEmailSalt).ToCombinedString();
-        }
-        
-        public string GetEmail()
-        {
-            if (String.IsNullOrWhiteSpace(EmailEncrypted))
-            {
-                return "";
-            }
-
-            var plainText = EncryptedField.FromCombinedString(EmailEncrypted).Decrypt(out var isPrimary);
-            if (!isPrimary)
-            {
-                // The encryption key used is not the primary key. It's an older one.
-                // This means we need to re-encrypt the data and save it back to the DB
-                // TODO implement key-rollover background task
-                Log.Logger.Error("TODO Need to re-encrypt with primary in background");
-            }
-
-            return plainText;
-        }
     }
 }

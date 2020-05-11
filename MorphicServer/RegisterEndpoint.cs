@@ -94,7 +94,7 @@ namespace MorphicServer
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
-            user.SetEmail(request.Email);
+            user.Email.PlainText = request.Email;
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
             await Register(cred, user);
@@ -146,8 +146,13 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
-            var hash = User.UserEmailHashCombined(email);
-            var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hash, ActiveSession);
+            // FIXME: Doubt this search works.
+            // The == operator works in C#, but that's not actually being called, right?
+            // Really we want to check against User.Email.Hash in mongo
+            var user = new User();
+            user.Email.PlainText = email;
+            var hash = user.Email.Hash!.ToCombinedString();
+            var existingEmail = await Context.GetDatabase().Get<User>(a => a.Email.Hash == hash, ActiveSession);
             if (existingEmail != null)
             {
                 Log.Logger.Information("EMAIL_EXISTS({username})");
