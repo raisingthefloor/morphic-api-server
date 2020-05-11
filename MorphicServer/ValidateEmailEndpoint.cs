@@ -45,12 +45,28 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var hashedToken = OneTimeToken.TokenHashedWithDefault(oneTimeToken);
-            OneTimeToken = await Load<OneTimeToken>(hashedToken);
-            if (OneTimeToken == null || !OneTimeToken.IsValid())
+            try
             {
-                throw new HttpError(HttpStatusCode.NotFound);
+                OneTimeToken = await Load<OneTimeToken>(hashedToken);
+                if (OneTimeToken == null || !OneTimeToken.IsValid())
+                {
+                    throw new HttpError(HttpStatusCode.NotFound, BadVerificationResponse.InvalidToken);
+                }
             }
-            User = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
+            catch (HttpError httpError)
+            {
+                throw new HttpError(httpError.Status, BadVerificationResponse.InvalidToken);
+            }
+            
+            try
+            {
+                User = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest,
+                           BadVerificationResponse.UserNotFound);
+            }
+            catch (HttpError httpError)
+            {
+                throw new HttpError(httpError.Status, BadVerificationResponse.UserNotFound);
+            }
         }
         
         /// <summary>Fetch the user</summary>
@@ -74,7 +90,18 @@ namespace MorphicServer
                 Status = message;
             }
         }
-        
+
+        public class BadVerificationResponse : BadRequestResponse
+        {
+            public static readonly BadVerificationResponse InvalidToken = new BadVerificationResponse("invalid_token");
+            public static readonly BadVerificationResponse UserNotFound = new BadVerificationResponse("invalid_user");
+
+            public BadVerificationResponse(string error) : base(error)
+            {
+            }
+
+        }
+
         public class ValidateEmailEndpointException : MorphicServerException
         {
             protected ValidateEmailEndpointException(string error) : base(error)
