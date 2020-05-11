@@ -192,8 +192,6 @@ namespace MorphicServer
 To verify your email Address {1} please click the following link: {2}
 
 Regards,
-
---
 {3} ({4})";
         
         public static async Task NewVerificationEmail(Database db, EmailSettings settings, User user, string urlTemplate)
