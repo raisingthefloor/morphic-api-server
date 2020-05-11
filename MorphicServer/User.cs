@@ -94,6 +94,18 @@ namespace MorphicServer
             return plainText;
         }
 
+        public string FullnameOrEmail()
+        {
+            if (FullName == "")
+            {
+                return GetEmail();
+            }
+            else
+            {
+                return FullName;
+            }
+        }
+        
         [BsonIgnore]
         [JsonIgnore]
         public string FullName

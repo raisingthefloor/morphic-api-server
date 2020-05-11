@@ -25,6 +25,7 @@ using System;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
+using Serilog;
 
 namespace MorphicServer
 {
@@ -37,6 +38,8 @@ namespace MorphicServer
     {
         // DB Fields
         public string UserId { get; set; }
+        public string FromEmail { get; set; } = null!;
+        public string FromFullName { get; set; } = null!;
         public string ToEmailEncr { get; set; } = null!;
         public string ToFullNameEncr { get; set; } = null!;
         public string SubjectEncr { get; set; } = null!;
@@ -49,17 +52,20 @@ namespace MorphicServer
             EmailValidation = 0
         }
 
-        public PendingEmail(User user, string subject, string msg, EmailTypeEnum type)
+        public PendingEmail(User user, string fromEmail, string fromFullName,
+            string subject, string msg, EmailTypeEnum type)
         {
             Id = Guid.NewGuid().ToString();
             UserId = user.Id;
 
-            ToFullName = user.FullName;
+            ToFullName = user.FullnameOrEmail();
             ToEmail = user.GetEmail();
             EmailText = msg;
             Subject = subject;
             ProcessorId = "";
             EmailType = type;
+            FromEmail = fromEmail;
+            FromFullName = fromFullName;
         }
 
 
@@ -178,6 +184,7 @@ namespace MorphicServer
 
     public class EmailTemplates
     {
+        // https://github.com/sendgrid/sendgrid-csharp/blob/master/USE_CASES.md#transactional-templates
         // TODO i18n? localization?
         private const string EmailVerificationMsgTemplate = 
             @"Dear {0},
@@ -187,20 +194,27 @@ To verify your email Address {1} please click the following link: {2}
 Regards,
 
 --
-{3}";
+{3} ({4})";
         
         public static async Task NewVerificationEmail(Database db, EmailSettings settings, User user, string urlTemplate)
         {
+            if (settings.Type == EmailSettings.EmailTypeDisabled)
+            {
+                Log.Logger.Warning("EmailSettings.Disable is set");
+                return;
+            }
+
             var oneTimeToken = new OneTimeToken(user.Id);
             
             // Create the email message
             var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
             var msg = string.Format(EmailVerificationMsgTemplate,
-                user.FullName,
+                user.FullnameOrEmail(),
                 user.GetEmail(),
                 link,
-                settings.EmailFromFullname);
-            var pending = new PendingEmail(user, "Email Verification", msg, 
+                settings.EmailFromFullname, settings.EmailFromAddress);
+            var pending = new PendingEmail(user, settings.EmailFromAddress, settings.EmailFromFullname, 
+                "Email Verification", msg, 
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await db.Save(oneTimeToken);
             await db.Save(pending);

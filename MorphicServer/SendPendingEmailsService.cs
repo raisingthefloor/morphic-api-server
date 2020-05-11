@@ -9,7 +9,6 @@ using MongoDB.Driver;
 using Prometheus;
 using SendGrid;
 using SendGrid.Helpers.Mail;
-using Serilog;
 using Serilog.Context;
 using ILogger = Microsoft.Extensions.Logging.ILogger;
 
@@ -33,44 +32,15 @@ namespace MorphicServer
     
     public class EmailSettings
     {
+        public static readonly string EmailTypeDisabled = "disabled";
+        public static readonly string EmailTypeSendgrid = "sendgrid";
+        public static readonly string EmailTypeLog = "log";
+        
         /// <summary>
-        /// Whether to send emails at all. For dev and test, perhaps not.
-        /// Set to anything that Convert.ToBoolean() will interpret as boolean
-        ///
-        /// Why a string? I want to be able to disable this on the fly via environment, and environment
-        /// variables don't really have a type boolean. It's for emergencies or development, so this
-        /// shouldn't present a real problem.
+        /// The type of email sending we want. Supported: "sendgrid", "log", "disabled"
         /// </summary>
-        public string Disable { get; set; } = "";
-
-        public bool IsDisabled()
-        {
-            try
-            {
-                return Convert.ToBoolean(Disable);
-            }
-            catch (FormatException)
-            {
-                switch (Disable.ToLower())
-                {
-                    case "t":
-                        return true;
-                    case "1":
-                        return true;
-                    case "0":
-                        return false;
-                    case "f":
-                        return false;
-                    case "":
-                        return false;
-                    default:
-                        Log.Logger.Error(
-                            $"Could not convert EmailSettings.Disable='{Disable}' to boolean. Assuming false. Please fix.");
-                        return false;
-                }
-            }
-        }
-
+        public string Type { get; set; } = EmailTypeDisabled;
+        
         /// <summary>
         /// Number of seconds to sleep when first starting up.
         /// </summary>
@@ -88,7 +58,7 @@ namespace MorphicServer
         /// This is to guard against running each thread too long. We don't want to run too hard too often.
         /// (But does it matter?)
         /// </summary>
-        public int MaxSecondsInLoop { get; set; } = 10;
+        public int MaxSecondsInLoop { get; set; } = 20;
         /// <summary>
         /// Number of minutes before we assume the process that grabbed this crashed and we reset it to run again.
         /// </summary>
@@ -108,7 +78,7 @@ namespace MorphicServer
     }
 
     public class SendPendingEmailsService : BackgroundService
-    {
+    { 
         private readonly ILogger logger;
         private EmailSettings emailSettings;
         private Database morphicDb;
@@ -125,14 +95,16 @@ namespace MorphicServer
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            if (emailSettings.IsDisabled())
+            if (emailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
-                logger.LogWarning("EmailSettings.Disable is set.");
+                logger.LogWarning($"EmailSettings.Type is set to {EmailSettings.EmailTypeDisabled}.");
                 return;
             }
-            if (emailSettings.SendGridSettings.ApiKey == "")
+
+            if (emailSettings.Type == EmailSettings.EmailTypeSendgrid &&
+                (emailSettings.SendGridSettings == null || emailSettings.SendGridSettings.ApiKey == ""))
             {
-                logger.LogError("Sendgrid API key is not defined.");
+                logger.LogError($"EmailSettings.Type is set to {EmailSettings.EmailTypeDisabled} but SendGridSettings.ApiKey is empty");
                 return;
             }
 
@@ -215,13 +187,19 @@ namespace MorphicServer
                 {
                     logger.LogDebug("SendPendingEmailsService processing PendingEmail");
                     bool sent = false;
-                    try
+                    if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
                     {
-                        sent = await SendViaSendGrid(pending);
-                    }
-                    catch (Exception e)
+                        try
+                        {
+                            sent = await SendViaSendGrid(pending);
+                        }
+                        catch (Exception e)
+                        {
+                            logger.LogError($"SendViaSendGrid failed: {e}");
+                        }
+                    } else if (emailSettings.Type == EmailSettings.EmailTypeLog)
                     {
-                        logger.LogError($"SendViaSendGrid failed: {e}");
+                        LogEmail(pending);
                     }
 
                     if (!sent)
@@ -251,21 +229,26 @@ namespace MorphicServer
             try
             {
                 var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
-                var from = new EmailAddress(emailSettings.EmailFromAddress, emailSettings.EmailFromFullname);
-
+                var from = new EmailAddress(pending.FromEmail, pending.FromFullName);
                 var to = new EmailAddress(pending.ToEmail, pending.ToFullName);
-                var msg = MailHelper.CreateSingleEmail(from, to, pending.Subject, pending.EmailText, null);
+                var msg = MailHelper.CreateSingleEmail(from, to,
+                    pending.Subject, pending.EmailText, null);
                 var response = await client.SendEmailAsync(msg);
                 code = response.StatusCode.ToString();
-                if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
+                using (LogContext.PushProperty("StatusCode", response.StatusCode))
+                using (LogContext.PushProperty("Headers", response.Headers))
+                using (LogContext.PushProperty("Body", response.Body.ReadAsStringAsync().Result))
                 {
-                    logger.LogError($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
-                    return false;
-                }
-                else
-                {
-                    logger.LogDebug($"Email result: {response.StatusCode} {response.Body.ReadAsStringAsync().Result} {response.Headers}");
-                    return true;
+                    if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
+                    {
+                        logger.LogError("Email send failed");
+                        return false;
+                    }
+                    else
+                    {
+                        logger.LogError("Email send succeeded");
+                        return true;
+                    }
                 }
             }
             finally
@@ -276,6 +259,14 @@ namespace MorphicServer
             }
         }
 
+        private void LogEmail(PendingEmail pending)
+        {
+            using (LogContext.PushProperty("FromEmail", $"{pending.FromEmail} <{pending.FromFullName}>"))
+            using (LogContext.PushProperty("ToEmail", $"{pending.ToEmail} <{pending.ToFullName}>"))
+            using (LogContext.PushProperty("Subject", $"{pending.Subject}"))
+                logger.LogWarning(pending.EmailText);
+        }
+        
         private async Task FindAndResetOrphanedPendingEmails()
         {
             var orphanedTime = DateTime.UtcNow - TimeSpan.FromMinutes(emailSettings.OrphanedPendingMinutes);

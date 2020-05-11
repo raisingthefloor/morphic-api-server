@@ -99,20 +99,13 @@ namespace MorphicServer
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
 
-            if (!Context.GetEmailSettings().IsDisabled())
-            {
-                await EmailTemplates.NewVerificationEmail(
-                    Context.GetDatabase(),
-                    Context.GetEmailSettings(),
-                    user,
-                    ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(
-                        Request.Headers,
-                        Context.GetMorphicSettings()));
-            }
-            else
-            {
-                Log.Logger.Warning("EmailSettings.Disable is set");
-            }
+            await EmailTemplates.NewVerificationEmail(
+                Context.GetDatabase(),
+                Context.GetEmailSettings(),
+                user,
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(
+                    Request.Headers,
+                    Context.GetMorphicSettings()));
 
             await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
