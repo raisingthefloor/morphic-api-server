@@ -175,6 +175,26 @@ namespace MorphicServer
             return false;
         }
 
+        /// <summary>Delete one or more records from the database based on an expression</summary>
+        /// <remarks>
+        /// The source collection is chosen based on the record's type
+        /// </remarks>
+        public async Task<long> DeleteMany<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                if (session != null)
+                {
+                    return (await collection.DeleteManyAsync(session.Handle, filter)).DeletedCount;
+                }
+
+                return (await collection.DeleteManyAsync(filter)).DeletedCount;
+            }
+
+            return -1;
+        }
+
+
         /// <summary>Run async operations within a transaction, using a lambda to specify the operations</summary>
         /// <remarks>
         /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>
