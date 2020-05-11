@@ -146,9 +146,6 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
-            // FIXME: Doubt this search works.
-            // The == operator works in C#, but that's not actually being called, right?
-            // Really we want to check against User.Email.Hash in mongo
             var user = new User();
             user.Email.PlainText = email;
             var hash = user.Email.Hash!.ToCombinedString();
