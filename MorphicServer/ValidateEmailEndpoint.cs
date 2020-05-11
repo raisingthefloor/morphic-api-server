@@ -23,6 +23,7 @@
 
 using System;
 using System.Net;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
@@ -60,8 +61,20 @@ namespace MorphicServer
             await Save(User);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             // TODO Need to respond with a nicer webpage than ""
+            await Respond(new SuccessResponse("email_verified"));
         }
 
+        public class SuccessResponse
+        {
+            [JsonPropertyName("message")]
+            public string Status { get; }
+
+            public SuccessResponse(string message)
+            {
+                Status = message;
+            }
+        }
+        
         public class ValidateEmailEndpointException : MorphicServerException
         {
             protected ValidateEmailEndpointException(string error) : base(error)
