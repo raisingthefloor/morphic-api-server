@@ -139,7 +139,7 @@ namespace MorphicServer.Tests
             // create user
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
-            user.SetEmail("pendingemailuser1@example.com");
+            user.Email = "pendingemailuser1@example.com";
             await Database.Save(user);
             Assert.False(user.EmailVerified);
             Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
