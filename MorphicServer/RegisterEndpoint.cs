@@ -90,7 +90,7 @@ namespace MorphicServer
             
             var cred = new UsernameCredential();
             cred.Id = request.Username;
-            cred.SavePassword(request.Password);
+            cred.SetPassword(request.Password);
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
