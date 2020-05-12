@@ -94,7 +94,7 @@ namespace MorphicServer
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
-            user.Email = request.Email;
+            user.SetEmail(request.Email);
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
             await Register(cred, user);
