@@ -38,7 +38,7 @@ namespace MorphicServer
         public string PasswordSalt = null!;
         public string PasswordHash = null!;
 
-        public void SavePassword(string password)
+        public void SetPassword(string password)
         {
             var hashedData = HashedData.FromString(password);
             PasswordFunction = hashedData.HashFunction;
@@ -64,14 +64,6 @@ namespace MorphicServer
             {
                 LabelNames = new[] {"type"}
             });
-        private static async Task SaveOrLog(Database db, User user)
-        {
-            var saved = await db.Save(user);
-            if (!saved)
-            {
-                Log.Logger.Error("could not save {UserId}", user.Id);
-            }
-        }
 
         public static async Task<User> UserForUsername(this Database db, string username, string password)
         {
@@ -83,13 +75,14 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
 
-            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
+            return await db.UserForUsernameCredential(credential, password);
+        }
+        
+        public static async Task<User> UserForUsernameCredential(this Database db, UsernameCredential credential, string password)
+        {
+            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId!);
             if (until != null)
             {
-                Log.Logger.Information("{UserId} UserLockedOut due to BadPasswordLockout until {LockedOutUntil}",
-                    credential.UserId,
-                    until?.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                BadAuthCounter.Labels("UserLockedOut").Inc();
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));
             }
 
@@ -120,10 +113,6 @@ namespace MorphicServer
                 BadAuthCounter.Labels("UserNotFound").Inc();
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
-
-            user.TouchLastAuth();
-            // save it, but don't wait for it.
-            await Task.Run(() => SaveOrLog(db, user));
             return user;
         }
         

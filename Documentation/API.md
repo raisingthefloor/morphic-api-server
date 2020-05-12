@@ -12,6 +12,7 @@ Endpoints
 * [User Data](#section-user-data)
   * [`/v1/users/{id}`](#endpoint-user)
   * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
+  * [`/v1/users/{id}/changePassword`](#endpoint-changepassword)
 
 
 <a name="section-user-registration"></a>User Registration
@@ -496,7 +497,7 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-user"></a>/v1/users/{uid}/preferences/{id}
+<a name="endpoint-preferences"></a>/v1/users/{uid}/preferences/{id}
 ------------------
 
 A preference id can be found in the `preferences_id` property of a user object.
@@ -625,6 +626,76 @@ Save the user object for the given `id`
     </tr>
     <tr>
       <td colspan="4">Empty indicates invalid preferences id</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="endpoint-changepassword"></a>/v1/user/{id}/changePassword
+------------------
+
+### POST
+
+Change the password of an authenticated user. Providing the old password is required
+for additional security.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <th><code>existing_password</code></th>
+      <td>The existing password</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>new_password</code></th>
+      <td>The new password to set</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>delete_existing_tokens</code></th>
+      <td>Delete any existing Auth Tokens</td>
+      <td><code>Boolean</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="4"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Username already exists</td>
+      <td colspan="2"><code>"existing_username"</code></td>
+    </tr>
+    <tr>
+      <td>Invalid credentials</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
     </tr>
   </tbody>
 </table>

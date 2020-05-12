@@ -23,7 +23,6 @@
 
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using System.Net;
 using System.Text.Json.Serialization;
 using Serilog;
 using Serilog.Context;
@@ -89,11 +88,22 @@ namespace MorphicServer
     [Path("/v1/auth/username")]
     public class AuthUsernameEndpoint: AuthEndpoint<AuthUsernameRequest>
     {
-
+        private static async Task SaveOrLog(Database db, User user)
+        {
+            var saved = await db.Save(user);
+            if (!saved)
+            {
+                Log.Logger.Error("could not save {UserId}", user.Id);
+            }
+        }
+        
         public override async Task<User> AuthenticatedUser(AuthUsernameRequest request)
         {
             var db = Context.GetDatabase();
-            return await db.UserForUsername(request.username, request.password);
+            var user = await db.UserForUsername(request.username, request.password);
+            user.TouchLastAuth();
+            await SaveOrLog(db, user);
+            return user;
         }
 
         [Method]
