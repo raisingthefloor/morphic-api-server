@@ -58,7 +58,7 @@ namespace MorphicServer
             var db = Context.GetDatabase();
             var user = await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
             usernameCredentials.SetPassword(request.NewPassword);
-            if (request.DeleteExistingTokens == true)
+            if (request.DeleteExistingTokens)
             {
                 await Delete<AuthToken>(token => token.UserId == user.Id);
             }
