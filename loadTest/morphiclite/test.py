@@ -95,15 +95,15 @@ def testrunner(args):
                     auth = UserAuth(base_url, logger=logger).doAuth(username, password)
                 logger.debug(json.dumps(auth, indent=4))
 
-                try:
-                    kwargs = {
-                        'url': base_url,
-                        'userId': auth['user']['id'],
-                        'authToken': auth['token'],
-                        'logger': logger
-                    }
+                users_kwargs = {
+                    'url': base_url,
+                    'userId': auth['user']['id'],
+                    'authToken': auth['token'],
+                    'logger': logger
+                }
 
-                    user = Users(**kwargs).get()
+                try:
+                    user = Users(**users_kwargs).get()
                     print(user)
                 except Exception as e:
                     print(e)
@@ -116,6 +116,13 @@ def testrunner(args):
                         pass
 
                     try:
+                        Users(**users_kwargs).changePassword(password, password+"123")
+                        auth = UserAuth(base_url, logger=logger).doAuth(username, password+"123")
+                        Users(**users_kwargs).changePassword(password+"123", password)
+                    except Exception as e:
+                        logger.error("Could not change password", e)
+
+                    try:
                         Register(base_url, logger=logger).get()
                     except MorphicLite.MorphicLiteError as e:
                         # this is expected!
@@ -124,14 +131,14 @@ def testrunner(args):
                     else:
                         logger.error("GET Register worked but shouldn't have")
 
-                kwargs = {
+                users_kwargs = {
                     'url': base_url,
                     'userId': auth['user']['id'],
                     'authToken': auth['token'],
                     'pref_id': auth['user']['preferences_id'],
                     'logger': logger
                 }
-                pref_kls = Preferences(**kwargs)
+                pref_kls = Preferences(**users_kwargs)
                 if args.extra_tests:
                     try:
                         pref_kls.post()

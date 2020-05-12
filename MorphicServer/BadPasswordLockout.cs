@@ -72,9 +72,20 @@ namespace MorphicServer
         public static async Task<DateTime?> UserLockedOut(Database db, string userId)
         {
             var badPasswordLockout = await db.Get<BadPasswordLockout>(userId);
-            if (badPasswordLockout != null && badPasswordLockout.ShouldBlockLogin())
+            if (badPasswordLockout != null)
             {
-                return badPasswordLockout.ExpiresAt;
+                return badPasswordLockout.UserLockedOut();
+            }
+
+            // user is not locked out
+            return null;
+        }
+
+        public DateTime? UserLockedOut()
+        {
+            if (ShouldBlockLogin())
+            {
+                return ExpiresAt;
             }
 
             // user is not locked out
