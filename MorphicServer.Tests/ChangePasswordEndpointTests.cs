@@ -20,7 +20,7 @@ namespace MorphicServer.Tests
             var userInfo2 = await CreateTestUser();
             
             // GET, Unknown user
-            var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}12334/changePassword");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}12334/password");
             var content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
             content.Add("new_password", userInfo1.Password+"12345");
@@ -30,7 +30,7 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, Wrong user
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo2.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo2.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
             content.Add("new_password", userInfo1.Password+"12345");
@@ -40,7 +40,7 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, right user user, missing fields
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("new_password", userInfo1.Password+"12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
@@ -50,7 +50,7 @@ namespace MorphicServer.Tests
             var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"existing_password"});
             
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password+"12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
@@ -60,7 +60,7 @@ namespace MorphicServer.Tests
             assertMissingRequired(error, new List<string> {"new_password"});
 
             // GET, Success
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
             content.Add("new_password", userInfo1.Password+"12345");
@@ -70,7 +70,7 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             
             // GET, Change again with delete-tokens
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password+"12345");
             content.Add("new_password", userInfo1.Password);
@@ -81,7 +81,7 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, token was deleted. Get 401
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
             content.Add("new_password", userInfo1.Password+"12345");
@@ -112,7 +112,7 @@ namespace MorphicServer.Tests
             Assert.False(lockedOut);
             
             // GET, Success; not locked out
-            var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             var content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
             content.Add("new_password", userInfo1.Password+"12345");
@@ -125,7 +125,7 @@ namespace MorphicServer.Tests
             Assert.True(lockedOut);
             
             // GET, Success; not locked out
-            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/changePassword");
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password+"12345");
             content.Add("new_password", userInfo1.Password);

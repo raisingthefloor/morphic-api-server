@@ -29,7 +29,7 @@ using Serilog;
 
 namespace MorphicServer
 {
-    [Path("/v1/users/{userid}/changePassword")]
+    [Path("/v1/users/{userid}/password")]
     public class ChangePasswordEndpoint : Endpoint
     {
         /// <summary>The user id to use, populated from the request URL</summary>
@@ -49,7 +49,7 @@ namespace MorphicServer
         }
 
         /// <summary>The UsernameCredential data populated by <code>LoadResource()</code></summary>
-        private UsernameCredential usernameCredentials = new UsernameCredential();
+        private UsernameCredential usernameCredentials = null!;
 
         [Method]
         public async Task Post()
@@ -72,7 +72,6 @@ namespace MorphicServer
             public string ExistingPassword { get; set; } = null!;
             [JsonPropertyName("new_password")]
             public string NewPassword { get; set; } = null!;
-            // TODO For some reason I don't understand this isn't flagged as missing if not present.
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
         }
