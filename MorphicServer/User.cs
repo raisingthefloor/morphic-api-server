@@ -45,45 +45,7 @@ namespace MorphicServer
         public string? PreferencesId { get; set; }
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
-
-        [JsonPropertyName("email")]
-        [BsonIgnore]
-        public string? Email {
-            get{
-                if (EmailEncrypted is string encrypted)
-                {
-                    var field = EncryptedField.FromCombinedString(EmailEncrypted);
-                    var email = field.Decrypt(out var isPrimary);
-                    if (!isPrimary){
-                        // The encryption key used is not the primary key. It's an older one.
-                        // This means we need to re-encrypt the data and save it back to the DB
-                        // TODO implement key-rollover background task
-                        Log.Logger.Error("TODO Need to re-encrypt with primary in background");
-                    }
-                    return email;
-                }
-                return null;
-            }
-            set
-            {
-                if (value is string email)
-                {
-                    if ((EmailHash is string existingHash) && HashedData.FromCombinedString(existingHash).Equals(email))
-                    {
-                        return;
-                    }
-                    EmailHash = HashedData.FromString(email, DefaultUserEmailSalt).ToCombinedString();
-                    EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
-                    EmailVerified = false;
-                }
-                else
-                {
-                    EmailHash = null;
-                    EmailEncrypted = null;
-                }
-            }
-        }
-
+        
         public void TouchLastAuth()
         {
             LastAuth = DateTime.UtcNow;
@@ -96,6 +58,17 @@ namespace MorphicServer
         /// PII and searchability: It's not perfect, but it's sufficient. 
         /// </summary>
         const string DefaultUserEmailSalt = "N9DtOumwMC7A9KJLB3oCbA==";
+        
+        public void SetEmail(string email)
+        {
+            if (!String.IsNullOrWhiteSpace(EmailHash) && HashedData.FromCombinedString(EmailHash).Equals(email))
+            {
+                return;
+            }
+            EmailHash = HashedData.FromString(email, DefaultUserEmailSalt).ToCombinedString();
+            EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
+            EmailVerified = false;
+        }
 
         public static string UserEmailHashCombined(string email)
         {
@@ -106,14 +79,14 @@ namespace MorphicServer
         {
             if (FullName == "")
             {
-                return Email ?? "";
+                return GetEmail() ?? "";
             }
             else
             {
                 return FullName;
             }
         }
-        
+
         [BsonIgnore]
         [JsonIgnore]
         public string FullName
@@ -140,6 +113,25 @@ namespace MorphicServer
 
                 return fullName;
             }
+        }
+
+        public string GetEmail()
+        {
+            if (String.IsNullOrWhiteSpace(EmailEncrypted))
+            {
+                return "";
+            }
+
+            var plainText = EncryptedField.FromCombinedString(EmailEncrypted).Decrypt(out var isPrimary);
+            if (!isPrimary)
+            {
+                // The encryption key used is not the primary key. It's an older one.
+                // This means we need to re-encrypt the data and save it back to the DB
+                // TODO implement key-rollover background task
+                Log.Logger.Error("TODO Need to re-encrypt with primary in background");
+            }
+
+            return plainText;
         }
     }
 }

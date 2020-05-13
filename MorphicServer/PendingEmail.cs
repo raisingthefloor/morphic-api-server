@@ -59,7 +59,7 @@ namespace MorphicServer
             UserId = user.Id;
 
             ToFullName = user.FullnameOrEmail();
-            ToEmail = user.Email ?? throw new PendingEmailException("Email can not be null");
+            ToEmail = user.GetEmail() ?? throw new PendingEmailException("Email can not be null");
             EmailText = msg;
             Subject = subject;
             ProcessorId = "";
@@ -202,7 +202,7 @@ Regards,
                 return;
             }
 
-            if (user.Email == null)
+            if (user.GetEmail() == null)
             {
                 Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
@@ -214,7 +214,7 @@ Regards,
             var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
             var msg = string.Format(EmailVerificationMsgTemplate,
                 user.FullnameOrEmail(),
-                user.Email,
+                user.GetEmail(),
                 link,
                 settings.EmailFromFullname, settings.EmailFromAddress);
             var pending = new PendingEmail(user, settings.EmailFromAddress, settings.EmailFromFullname, 

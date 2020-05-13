@@ -9,8 +9,8 @@ namespace MorphicServer.Tests
         private void AssertPendingValid(User user, string fromEmail, string fromFullname, PendingEmail pending, string subject, string message)
         {
             Assert.NotNull(pending.ToEmailEncr);
-            Assert.NotEqual(user.Email, pending.ToEmailEncr);
-            Assert.Equal(user.Email, pending.ToEmail);
+            Assert.NotEqual(user.GetEmail(), pending.ToEmailEncr);
+            Assert.Equal(user.GetEmail(), pending.ToEmail);
             Assert.StartsWith("AES-256-CBC", pending.ToEmailEncr);
             
             Assert.NotNull(pending.ToFullNameEncr);
