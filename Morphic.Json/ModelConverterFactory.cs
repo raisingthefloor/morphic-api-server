@@ -28,33 +28,40 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace MorphicServer
+namespace Morphic.Json
 {
 
     /// <summary>Converter factory for all <code>MorphicServer</code> types.  Created converters throw exceptions for <code>null</code> values in non-nullable fields</summary>
     /// <remarks>
     /// Essentially, a non-nullable field is considered to be a required field for MorphicServer data types
     /// </remarks>
-    public class NonNullableExceptionJsonConverter: JsonConverterFactory
+    public class ModelConverterFactory: JsonConverterFactory
     {
+
+        public ModelConverterFactory(string namespaceName)
+        {
+            NamespaceName = namespaceName;
+        }
+
+        public string NamespaceName { get; private set; }
 
         /// <summary>Returns <code>true</code> for anything in the <code>MorphicServer</code> namespace
         public override bool CanConvert (Type typeToConvert)
         {
-            return typeToConvert.Namespace == "MorphicServer";
+            return typeToConvert.Namespace == NamespaceName;
         }
 
-        public override System.Text.Json.Serialization.JsonConverter CreateConverter (Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        public override JsonConverter CreateConverter (Type typeToConvert, JsonSerializerOptions options)
         {
-            var converterGenericType = typeof(NonNullableExceptionConverter<>).MakeGenericType(new Type[] { typeToConvert });
+            var converterGenericType = typeof(ModelConverter<>).MakeGenericType(new Type[] { typeToConvert });
             return (JsonConverter)Activator.CreateInstance(converterGenericType)!;
         }
 
         /// <summary>
-        public class NonNullableExceptionConverter<T>: JsonConverter<T>
+        public class ModelConverter<T>: JsonConverter<T>
         {
             
-            public override T Read (ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+            public override T Read (ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
                 {
@@ -99,12 +106,14 @@ namespace MorphicServer
                     }
                 }
 
+                var seenPropertyNames = new HashSet<string>();
+
                 // Read keys and values until the end of the object
                 while (reader.Read())
                 {
                     if (reader.TokenType == JsonTokenType.EndObject)
                     {
-                        CheckForNull(instance);
+                        CheckForMissing(instance, seenPropertyNames);
                         return instance;
                     }
                     if (reader.TokenType != JsonTokenType.PropertyName)
@@ -118,6 +127,7 @@ namespace MorphicServer
                         {
                             var value = JsonSerializer.Deserialize(ref reader, propertyInfo.PropertyType, options);
                             propertyInfo.SetValue(instance, value);
+                            seenPropertyNames.Add(propertyInfo.Name);
                         }
                         else
                         {
@@ -143,7 +153,10 @@ namespace MorphicServer
                 throw new JsonException();
             }
 
-            public void CheckForNull(T instance)
+            /// <summary>
+            /// Check the instance for any non-nullable propeties that are still null, or any [JsonRequired] properties that were not seen in the json
+            /// </summary>
+            public void CheckForMissing(T instance, HashSet<string> seenPropertyNames)
             {
                 var required = new List<string>();
                 Type? type = instance!.GetType();
@@ -155,7 +168,7 @@ namespace MorphicServer
                         {
                             if (!propertyInfo.IsNullable())
                             {
-                                if (propertyInfo.GetValue(instance) == null)
+                                if (propertyInfo.GetValue(instance) == null || (propertyInfo.GetCustomAttribute<JsonRequiredAttribute>() != null && !seenPropertyNames.Contains(propertyInfo.Name)))
                                 {
                                     var propertyName = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? propertyInfo.Name;
                                     required.Add(propertyName);
@@ -170,24 +183,24 @@ namespace MorphicServer
                 }
             }
 
-            public override void Write (System.Text.Json.Utf8JsonWriter writer, T value, System.Text.Json.JsonSerializerOptions options)
+            public override void Write (Utf8JsonWriter writer, T value, JsonSerializerOptions options)
             {
                 throw new NotImplementedException();
             }
 
         }
+    }
 
-        public class NullOrMissingProperties: Exception
+    public class NullOrMissingProperties: Exception
+    {
+
+        public string[] PropertyNames;
+
+        public NullOrMissingProperties(string[] propertyNames): base()
         {
-
-            public string[] PropertyNames;
-
-            public NullOrMissingProperties(string[] propertyNames): base()
-            {
-                PropertyNames = propertyNames;
-            }
-
+            PropertyNames = propertyNames;
         }
+
     }
 
     public static class PropertyInfoExtensions
