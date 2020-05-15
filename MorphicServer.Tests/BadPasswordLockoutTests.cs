@@ -51,7 +51,7 @@ namespace MorphicServer.Tests
             Assert.Equal(1, bpl.Count);
             Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -61,7 +61,7 @@ namespace MorphicServer.Tests
             Assert.Equal(2, bpl.Count);
             Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -71,7 +71,7 @@ namespace MorphicServer.Tests
             Assert.Equal(3, bpl.Count);
             Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -81,7 +81,7 @@ namespace MorphicServer.Tests
             Assert.Equal(4, bpl.Count);
             Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
             Assert.True(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);

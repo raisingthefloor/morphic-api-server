@@ -71,28 +71,24 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // GET, known, forbidden prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, forbidden user
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // GET, known, forbidden user & prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo2.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
@@ -161,7 +157,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known prefs, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userid}/preferences/{userInfo1.PreferencesId}");
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
@@ -169,7 +164,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known user & prefs, unauth
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
@@ -177,7 +171,6 @@ namespace MorphicServer.Tests
             Assert.Equal("Bearer", response.Headers.WwwAuthenticate.First().Scheme);
 
             // PUT, known user, forbidden prefs
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo2.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
@@ -185,7 +178,6 @@ namespace MorphicServer.Tests
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
             // PUT, known prefs, forbidden user
-            uuid = Guid.NewGuid().ToString();
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo2.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
@@ -198,6 +190,29 @@ namespace MorphicServer.Tests
             request.Content = new StringContent(@"{""default"": {""org.raisingthefloor.solution"": {""first"": 1, ""second"": ""two"", ""third"": 3.1, ""fourth"": true, ""fifth"": false, ""sixth"": null, ""seventh"": [1,true,null], ""eighth"": {""a"": 1, ""b"": false}}}}", Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+            
+            // PUT, bad (empty) payload
+            request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            request.Content = new StringContent(@"", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            // PUT, bad (empty dict) payload
+            request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            request.Content = new StringContent(@"{}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+            assertMissingRequired(error, new List<string> {"default"});
+
+            // PUT, bad default: null
+            request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            request.Content = new StringContent(@"{""default"": null}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+            assertMissingRequired(error, new List<string> {"default"});
 
             // PUT, success
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
@@ -259,6 +274,26 @@ namespace MorphicServer.Tests
             Assert.True(obj.TryGetProperty("b", out property));
             Assert.Equal(JsonValueKind.False, property.ValueKind);
 
+            // PUT, success, empty defaults
+            request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            request.Content = new StringContent(@"{""default"": {}}", Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(0, response.Content.Headers.ContentLength);
+            request = new HttpRequestMessage(HttpMethod.Get, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
+            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
+            json = await response.Content.ReadAsStringAsync();
+            document = JsonDocument.Parse(json);
+            element = document.RootElement;
+            Assert.True(element.TryGetProperty("default", out property));
+            Assert.Equal(JsonValueKind.Object, property.ValueKind);
+            defaults = property;
+            Assert.Equal("{}", defaults.GetRawText());
+            
             // PUT, bad solution (not an object)
             request = new HttpRequestMessage(HttpMethod.Put, $"/v1/users/{userInfo1.Id}/preferences/{userInfo1.PreferencesId}");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
@@ -349,6 +384,5 @@ namespace MorphicServer.Tests
             Assert.True(obj.TryGetProperty("b", out property));
             Assert.Equal(JsonValueKind.False, property.ValueKind);
         }
-
     }
 }

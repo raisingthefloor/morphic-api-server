@@ -63,7 +63,7 @@ namespace MorphicServer
                 DotNetRuntimeStatsBuilder.Default().StartCollecting();
             }
 
-            database.InitializeDatabaseIfNeeded();
+            database.InitializeDatabase();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
