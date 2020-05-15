@@ -58,9 +58,16 @@ namespace MorphicServer
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
-            if (!String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_METRICS")))
+            if (String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
             {
-                DotNetRuntimeStatsBuilder.Default().StartCollecting();
+                DotNetRuntimeStatsBuilder.Customize()
+                    // Only 1 in 10 contention events will be sampled 
+                    .WithContentionStats(sampleRate: SampleEvery.TenEvents)
+                    // Only 1 in 100 JIT events will be sampled
+                    .WithJitStats(sampleRate: SampleEvery.HundredEvents)
+                    // Every event will be sampled (disables sampling)
+                    .WithThreadPoolSchedulingStats(sampleRate: SampleEvery.OneEvent)
+                    .StartCollecting();
             }
 
             database.InitializeDatabase();
