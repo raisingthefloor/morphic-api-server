@@ -65,6 +65,7 @@ namespace MorphicServer
         {
             if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
             {
+                // https://github.com/djluck/prometheus-net.DotNetRuntime
                 DotNetRuntimeCollector = DotNetRuntimeStatsBuilder.Customize()
                     // Only 1 in 10 contention events will be sampled 
                     .WithContentionStats(sampleRate: SampleEvery.TenEvents)
