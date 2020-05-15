@@ -55,12 +55,17 @@ namespace MorphicServer
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
+
+        // this seems to be needed to dispose of the collector during tests.
+        // otherwise we don't care about disposing them
+        public static IDisposable? DotNetRuntimeCollector;
+        
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
-            if (String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
+            if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
             {
-                DotNetRuntimeStatsBuilder.Customize()
+                DotNetRuntimeCollector = DotNetRuntimeStatsBuilder.Customize()
                     // Only 1 in 10 contention events will be sampled 
                     .WithContentionStats(sampleRate: SampleEvery.TenEvents)
                     // Only 1 in 100 JIT events will be sampled
