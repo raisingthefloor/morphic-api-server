@@ -77,6 +77,20 @@ namespace MorphicServer
         public SendGridSettings SendGridSettings { get; set; } = null!;
     }
 
+    /// <summary>
+    /// Should probably look into https://www.hangfire.io/ later. For now this should work
+    ///
+    /// This is a background task that processes 'EmailsPerLoop' emails and then sleeps
+    /// 'AfterLoopSleepSeconds' seconds. Emails aren't so time critical that we have to
+    /// send them the millisecond we see them. Just process slowly and surely.
+    ///
+    /// The input to this job is a Mongo Collection that holds the pending emails. We
+    /// use Mongo's FindOneAndUpdate() to get an entry, mark it as ours (by process ID)
+    /// and when we grabbed it (so we can reset it to pending if we crash), and then send
+    /// the email. If it fails, we reset the entry and someone else (or we) can try again later.
+    ///
+    /// Various TODO items sprinkled around in the code here.
+    /// </summary>
     public class SendPendingEmailsService : BackgroundService
     { 
         private readonly ILogger logger;
@@ -173,6 +187,17 @@ namespace MorphicServer
             "Time it takes to send an email",
             new[] {"type", "destination", "code"});
 
+        /// <summary>
+        /// Find one email and reserve it: The tactic is to use Mongo's FindOneAndUpdate
+        /// to find any PendingEmail with an empty ProcessId, write in OUR ProcessId, and
+        /// then process it. This is guaranteed by mongo to be atomic, so should be a good
+        /// locking mechanism.
+        /// 
+        /// Also set the updated timestamp so we can tell WHEN we reserved it. If we fail
+        /// to process this (we crash?) then another check will free up the entry later.
+        /// </summary>
+        /// <param name="processorId"></param>
+        /// <returns></returns>
         private async Task<bool> FindAndProcessOnePendingEmail(string processorId)
         {
             var pending = await morphicDb.FindOneAndUpdate(
@@ -206,6 +231,7 @@ namespace MorphicServer
                     {
                         logger.LogError("Could not send email");
                         // throw it back.
+                        // TODO Need to add some exponential back-off here.
                         pending.ProcessorId = "";
                         await morphicDb.Save(pending);
                     }
@@ -222,6 +248,11 @@ namespace MorphicServer
             return false;
         }
 
+        /// <summary>
+        /// Send one email via SendGrid.
+        /// </summary>
+        /// <param name="pending"></param>
+        /// <returns></returns>
         private async Task<bool> SendViaSendGrid(PendingEmail pending)
         {
             var stopWatch = Stopwatch.StartNew();
@@ -259,6 +290,10 @@ namespace MorphicServer
             }
         }
 
+        /// <summary>
+        /// Just log the email. Useful for debugging, dangerous for production (that's why we log it as WARNING).
+        /// </summary>
+        /// <param name="pending"></param>
         private void LogEmail(PendingEmail pending)
         {
             using (LogContext.PushProperty("FromEmail", $"{pending.FromEmail} <{pending.FromFullName}>"))
@@ -267,6 +302,16 @@ namespace MorphicServer
                 logger.LogWarning(pending.EmailText);
         }
         
+        /// <summary>
+        /// Find all PendingEmails that have been 'reserved' (ProcessorId != "") and which
+        /// have been sitting longer than they should ("OrphanedPendingMinutes", default 5 minutes
+        /// when I wrote the code). Usually an email is grabbed and sent immediately, and if sendgrid
+        /// is super slow, perhaps we time out (it's not clear what the default timeout is, but
+        /// let's assume it's 30 seconds or 60 seconds or anyway something less than 5 minutes; perhaps
+        /// we should set a timer/cancellation token ourselves?).
+        /// TODO Figure out timeout situation
+        /// </summary>
+        /// <returns></returns>
         private async Task FindAndResetOrphanedPendingEmails()
         {
             var orphanedTime = DateTime.UtcNow - TimeSpan.FromMinutes(emailSettings.OrphanedPendingMinutes);
