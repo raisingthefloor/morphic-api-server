@@ -151,10 +151,7 @@ namespace MorphicServer
                         }
                         catch (Exception e)
                         {
-                            using (LogContext.PushProperty("Exception", e))
-                            {
-                                logger.LogError("Could not process pending email");
-                            }
+                            logger.LogError("Could not process pending email. {Exception}", e);
                         }
 
                         var timeInLoop = DateTime.UtcNow - topOfLoopTime;
