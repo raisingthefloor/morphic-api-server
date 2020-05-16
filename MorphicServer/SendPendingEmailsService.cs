@@ -79,6 +79,7 @@ namespace MorphicServer
 
     /// <summary>
     /// Should probably look into https://www.hangfire.io/ later. For now this should work
+    /// https://docs.hangfire.io/en/latest/getting-started/aspnet-core-applications.html
     ///
     /// This is a background task that processes 'EmailsPerLoop' emails and then sleeps
     /// 'AfterLoopSleepSeconds' seconds. Emails aren't so time critical that we have to
