@@ -24,6 +24,7 @@
 using System;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Antlr3.ST;
 using MongoDB.Bson.Serialization.Attributes;
 using Serilog;
 
@@ -185,46 +186,171 @@ namespace MorphicServer
         }
     }
 
-    public class EmailTemplates
+    public abstract class EmailTemplates
     {
         // https://github.com/sendgrid/sendgrid-csharp/blob/master/USE_CASES.md#transactional-templates
         // TODO i18n? localization?
-        private const string EmailVerificationMsgTemplate = 
-            @"Dear {0},
+        // TODO Should the templates themselves live in the DB for easier updating (and easier localization)?
 
-To verify your email Address {1} please click the following link: {2}
+        // TODO For tracking and user inquiries, we should have an audit log.
+        // Things we might need to know (i.e. things customers may call about):
+        // . "I didn't request this email!" -> Source IP? Username/email? What else can we know?
+        // . "I didn't get my email." -> Sendgrid logs? Do we need our own?
 
-Regards,
-{3} ({4})";
-        
-        public static async Task NewVerificationEmail(Database db, EmailSettings settings, User user, string urlTemplate)
+        /// <summary>
+        /// The DB reference
+        /// </summary>
+        protected Database Db;
+
+        /// <summary>
+        /// The Email Settings
+        /// </summary>
+        protected EmailSettings Settings;
+
+        /// <summary>
+        /// The user to send the email to
+        /// </summary>
+        protected User User = null!;
+
+        protected EmailTemplates(EmailSettings settings, Database db, User user)
         {
-            if (settings.Type == EmailSettings.EmailTypeDisabled)
+            Db = db;
+            Settings = settings;
+            User = user;
+        }
+
+        public async Task QueueEmail()
+        {
+            if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
                 Log.Logger.Warning("EmailSettings.Disable is set");
                 return;
             }
 
-            if (user.GetEmail() == null)
+            if (User.GetEmail() == null)
             {
-                Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
+                Log.Logger.Debug($"Sending email to user {User.Id} who doesn't have an email address");
                 return;
             }
-            
-            var oneTimeToken = new OneTimeToken(user.Id);
-            
+
+            await CreatePendingEmail();
+        }
+
+        protected abstract Task CreatePendingEmail();
+    }
+
+    public class NewVerificationEmail : EmailTemplates
+    {
+        private const string EmailVerificationMsgTemplate =
+            @"Dear $UserFullName$,
+
+To verify your email address $UserEmail$ please click the following link: $Link$
+
+Regards,
+$MorphicUser$ ($MorphicEmail$)";
+        /// <summary>
+        /// The urlTemplate used to create some kind of link the user needs to follow in the email
+        /// </summary>
+        protected string UrlTemplate;
+        
+        public NewVerificationEmail(EmailSettings settings, Database db, User user, string urlTemplate) : base(settings, db, user)
+        {
+            UrlTemplate = urlTemplate;
+        }
+
+        protected override async Task CreatePendingEmail()
+        {
+            var oneTimeToken = new OneTimeToken(User.Id);
+
             // Create the email message
-            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
-            var msg = string.Format(EmailVerificationMsgTemplate,
-                user.FullnameOrEmail(),
-                user.GetEmail(),
-                link,
-                settings.EmailFromFullname, settings.EmailFromAddress);
-            var pending = new PendingEmail(user, settings.EmailFromAddress, settings.EmailFromFullname, 
-                "Email Verification", msg, 
+            var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            StringTemplate emailVerificationMsg = new StringTemplate(EmailVerificationMsgTemplate);
+            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("Link", link);
+            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
+            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+
+            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+                "Email Verification", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
-            await db.Save(oneTimeToken);
-            await db.Save(pending);
+            await Db.Save(oneTimeToken);
+            await Db.Save(pending);
+        }
+    }
+
+    public class NewPasswordResetEmail : EmailTemplates
+    {
+        private const string PasswordResetLinkMsgTemplate =
+            @"Dear $UserFullName$,
+
+Someone requested a password reset for this email address. If this wasn't you, you may ignore
+this email or contact Morphic Support.
+
+To reset your password, please click the following link: $Link$
+
+Regards,
+$MorphicUser$ ($MorphicEmail$)";
+
+        protected string UrlTemplate;
+
+        public NewPasswordResetEmail(EmailSettings settings, Database db, User user, string urlTemplate) : base(settings, db, user)
+        {
+            UrlTemplate = urlTemplate;
+        }
+
+        protected override async Task CreatePendingEmail()
+        {
+            var oneTimeToken = new OneTimeToken(User.Id);
+
+            // Create the email message
+            var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetLinkMsgTemplate);
+            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("Link", link);
+            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
+            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+
+            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+                "Password Reset", emailVerificationMsg.ToString(),
+                PendingEmail.EmailTypeEnum.EmailValidation);
+            await Db.Save(oneTimeToken);
+            await Db.Save(pending);
+        }
+    }
+    
+    public class NewNoPasswordResetEmail : EmailTemplates
+    {
+        private const string PasswordResetNoEmailMsgTemplate =
+            @"Dear $UserFullName$,
+
+Someone requested a password reset for this email address. However no account exists for this
+email. If this wasn't requested by you, you may ignore this email or contact Morphic Support.
+
+Regards,
+$MorphicUser$ ($MorphicEmail$)";
+
+        public NewNoPasswordResetEmail(EmailSettings settings, Database db, string destinationEmail) : base(settings, db, null)
+        {
+            // Don't save this. Just to carry the email
+            User = new User();
+            User.SetEmail(destinationEmail);
+        }
+
+        protected override async Task CreatePendingEmail()
+        {
+            // Create the email message
+            StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
+            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
+            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+
+            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+                "Password Reset", emailVerificationMsg.ToString(),
+                PendingEmail.EmailTypeEnum.EmailValidation);
+            await Db.Save(pending);
         }
     }
 }

@@ -99,14 +99,14 @@ namespace MorphicServer
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
 
-            await EmailTemplates.NewVerificationEmail(
-                Context.GetDatabase(),
-                Context.GetEmailSettings(),
-                user,
-                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(
-                    Request.Headers,
-                    Context.GetMorphicSettings()));
-
+            await new NewVerificationEmail(
+                    Context.GetEmailSettings(),
+                    Context.GetDatabase(),
+                    user,
+                    ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(
+                        Request.Headers,
+                        Context.GetMorphicSettings()))
+                .QueueEmail();
             await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
 
