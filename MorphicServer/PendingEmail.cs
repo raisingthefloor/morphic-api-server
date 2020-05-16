@@ -45,6 +45,8 @@ namespace MorphicServer
         public string SubjectEncr { get; set; } = null!;
         public string EmailTextEncr { get; set; } = null!;
         public string ProcessorId { get; set; }
+        public int Retries { get; set; } = 0;
+        public DateTime SendAfter { get; set; }
         public EmailTypeEnum EmailType { get; set; }
         
         public enum EmailTypeEnum
@@ -63,6 +65,7 @@ namespace MorphicServer
             EmailText = msg;
             Subject = subject;
             ProcessorId = "";
+            SendAfter = DateTime.UtcNow;
             EmailType = type;
             FromEmail = fromEmail;
             FromFullName = fromFullName;

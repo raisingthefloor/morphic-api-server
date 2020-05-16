@@ -48,7 +48,7 @@ namespace MorphicServer
         /// <summary>
         /// Number of seconds to sleep at the end of each process loop.
         /// </summary>
-        public int AfterLoopSleepSeconds { get; set; } = 5;
+        public int AfterLoopSleepSeconds { get; set; } = 60;
         /// <summary>
         /// Number of emails to process in each loop.
         /// </summary>
@@ -144,10 +144,12 @@ namespace MorphicServer
                     {
                         try
                         {
-                            if (await FindAndProcessOnePendingEmail(processorId))
-                            {
-                                emailCount++;
-                            }
+                            await FindAndProcessOnePendingEmail(processorId);
+                            emailCount++;
+                        }
+                        catch (NoPendingEmails)
+                        {
+                            break; // we can stop here.
                         }
                         catch (Exception e)
                         {
@@ -195,56 +197,65 @@ namespace MorphicServer
         /// </summary>
         /// <param name="processorId"></param>
         /// <returns></returns>
-        private async Task<bool> FindAndProcessOnePendingEmail(string processorId)
+        private async Task FindAndProcessOnePendingEmail(string processorId)
         {
+            var now = DateTime.UtcNow;
+            logger.LogDebug("Checking for pending email");
             var pending = await morphicDb.FindOneAndUpdate(
-                p => p.ProcessorId == "",
+                p => p.ProcessorId == "" && p.SendAfter <= now,
                 Builders<PendingEmail>.Update
                     .Set("ProcessorId", processorId)
                     .Set("Updated", DateTime.UtcNow)
             );
-            if (pending != null)
+            if (pending == null)
             {
-                using (LogContext.PushProperty("PendingEmail", pending.Id))
+                throw new NoPendingEmails();
+            }
+            using (LogContext.PushProperty("PendingEmail", pending.Id))
+            {
+                logger.LogDebug("SendPendingEmailsService processing PendingEmail");
+                bool sent = false;
+                if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
                 {
-                    logger.LogDebug("SendPendingEmailsService processing PendingEmail");
-                    bool sent = false;
-                    if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
+                    try
                     {
-                        try
-                        {
-                            sent = await SendViaSendGrid(pending);
-                        }
-                        catch (Exception e)
-                        {
-                            logger.LogError($"SendViaSendGrid failed: {e}");
-                        }
-                    } else if (emailSettings.Type == EmailSettings.EmailTypeLog)
-                    {
-                        LogEmail(pending);
+                        sent = await SendViaSendGrid(pending);
                     }
+                    catch (Exception e)
+                    {
+                        logger.LogError($"SendViaSendGrid failed: {e}");
+                    }
+                } else if (emailSettings.Type == EmailSettings.EmailTypeLog)
+                {
+                    LogEmail(pending);
+                    sent = true;
+                }
 
-                    if (!sent)
-                    {
-                        logger.LogError("Could not send email");
-                        // throw it back.
-                        // TODO Need to add some exponential back-off here.
-                        pending.ProcessorId = "";
-                        await morphicDb.Save(pending);
-                    }
-                    else
-                    {
-                        logger.LogInformation("SendPendingEmailsService deleting PendingEmail");
-                        await morphicDb.Delete(pending);
-                    }
-
-                    return true;
+                if (!sent)
+                {
+                    logger.LogError("Could not send email");
+                    // throw it back with exponential back-off.
+                    pending.ProcessorId = "";
+                    pending.Retries++;
+                    pending.SendAfter = DateTime.UtcNow + TimeSpan.FromMinutes(1 * pending.Retries);
+                    await morphicDb.Save(pending);
+                }
+                else
+                {
+                    logger.LogInformation("SendPendingEmailsService deleting PendingEmail");
+                    await morphicDb.Delete(pending);
                 }
             }
-
-            return false;
         }
 
+        public class PendingEmailException : MorphicServerException
+        {
+        }
+
+        public class NoPendingEmails : PendingEmailException
+        {
+        }
+        
         /// <summary>
         /// Send one email via SendGrid.
         /// </summary>
