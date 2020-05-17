@@ -287,7 +287,7 @@ $MorphicUser$ ($MorphicEmail$)";
 Someone requested a password reset for this email address. If this wasn't you, you may ignore
 this email or contact Morphic Support.
 
-To reset your password, please click the following link: $Link$
+To reset your password, please click the following link and follow the instructions: $Link$
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
@@ -320,7 +320,7 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
     
-    public class NewNoPasswordResetEmail : EmailTemplates
+    public class NewNoEmailPasswordResetEmail : EmailTemplates
     {
         private const string PasswordResetNoEmailMsgTemplate =
             @"Dear $UserFullName$,
@@ -331,7 +331,7 @@ email. If this wasn't requested by you, you may ignore this email or contact Mor
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
 
-        public NewNoPasswordResetEmail(EmailSettings settings, Database db, string destinationEmail) : base(settings, db, null)
+        public NewNoEmailPasswordResetEmail(EmailSettings settings, Database db, string destinationEmail) : base(settings, db, null)
         {
             // Don't save this. Just to carry the email
             User = new User();
