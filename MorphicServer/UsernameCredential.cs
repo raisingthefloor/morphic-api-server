@@ -88,7 +88,7 @@ namespace MorphicServer
 
             if (!credential.IsValidPassword(password))
             {
-                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId!);
                 if (lockedOut)
                 {
                     // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
@@ -104,7 +104,7 @@ namespace MorphicServer
             }
 
 
-            var user = await db.Get<User>(credential.UserId);
+            var user = await db.Get<User>(credential.UserId!);
             if (user == null)
             {
                 // Not sure how this could happen: It means we have a credential for the user, but no user!
