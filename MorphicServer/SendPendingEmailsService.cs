@@ -7,9 +7,7 @@ using Microsoft.Extensions.Logging;
 using Prometheus;
 using SendGrid;
 using SendGrid.Helpers.Mail;
-using Serilog;
 using Serilog.Context;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace MorphicServer
 {
