@@ -103,9 +103,7 @@ namespace MorphicServer
                     Context.GetEmailSettings(),
                     Context.GetDatabase(),
                     user,
-                    ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(
-                        Request.Headers,
-                        Context.GetMorphicSettings()))
+                    GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()))
                 .QueueEmail();
             await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }

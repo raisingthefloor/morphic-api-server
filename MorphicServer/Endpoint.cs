@@ -139,6 +139,14 @@ namespace MorphicServer
                 path = "(unknown)";
             }
 
+            var clientIp = ClientIpFromRequest(context.Request);
+            if (clientIp == null)
+            {
+                Log.Logger.Warning("No client IP could be found for request");
+                clientIp = "";
+            }
+
+            using (LogContext.PushProperty("ClientIp", clientIp))
             using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
             using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
             {
@@ -350,6 +358,120 @@ namespace MorphicServer
             if (!success){
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
+        }
+
+        public static string? ClientIpFromRequest(HttpRequest request)
+        {
+            var clientIp = request.Headers["x-forwarded-for"].ToString();
+            if (clientIp == null)
+            {
+                clientIp = request.Headers["x-real-ip"].ToString();
+            }
+
+            if (clientIp == null)
+            {
+                clientIp = request.Headers["client_address"].ToString();
+                if (clientIp != null && IsPrivateIp(clientIp))
+                {
+                    // ignore private IP addresses
+                    clientIp = null;
+                }
+            }
+
+            return clientIp;
+        }
+        
+        private static bool IsPrivateIp(string ipAddress)
+        {
+            if(ipAddress == "::1") return true;
+            byte[] ip = IPAddress.Parse(ipAddress).GetAddressBytes();
+            switch (ip[0])
+            {
+                case 10:
+                case 127:
+                    return true;
+                case 172:
+                    return ip[1] >= 16 && ip[1] < 32;
+                case 192:
+                    return ip[1] == 168;
+                default:
+                    return false;
+            }
+        }
+
+        public class EndpointException : MorphicServerException
+        {
+            protected EndpointException(string error) : base(error)
+            {
+            }
+
+            protected EndpointException() : base()
+            {
+            }
+        }
+
+        public class NotValidPathException : EndpointException
+        {
+            public NotValidPathException(string error) : base(error)
+            {
+            }
+        }
+        public class NoServerUrlFoundException : EndpointException
+        {
+            public NoServerUrlFoundException(string error) : base(error)
+            {
+            }
+
+            public NoServerUrlFoundException() : base()
+            {
+            }
+        }
+
+        public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        {
+            var pathTemplate = GetPathTemplate(typeof(T));
+            if (!pathTemplate.StartsWith("/"))
+            {
+                throw new NotValidPathException(pathTemplate);
+            }
+            string serverUrl = morphicSettings.ServerUrlPrefix ?? "";
+            if (serverUrl != "")
+            {
+                // validate it really is a URL
+                try
+                {
+                    var url = new Uri(serverUrl);
+                    if (url.Host == "" || url.Scheme == "")
+                    {
+                        throw new NoServerUrlFoundException(serverUrl);
+                    }
+                }
+                catch (UriFormatException e)
+                {
+                    throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
+                }
+                char[] charsToTrim = {'/'}; // in case a human added the trailing slash in the settings.
+                serverUrl = serverUrl.TrimEnd(charsToTrim);
+            }
+            else
+            {
+                // try to assemble it from X-Forwarded-For- headers.
+                var host = requestHeaders["x-forwarded-host"].ToString();
+                var scheme = requestHeaders["x-forwarded-proto"].ToString();
+                if (host == "" || scheme == "")
+                {
+                    throw new NoServerUrlFoundException();
+                }
+
+                serverUrl = $"{scheme}://{host}";
+                var port = requestHeaders["x-forwarded-port"].ToString();
+                if (port != "" && ((scheme == "http" && port != "80") || (scheme == "https" && port != "443")))
+                {
+                    serverUrl += $":{port}";
+                }
+            }
+
+            return $"{serverUrl}{pathTemplate}";
         }
     }
 
