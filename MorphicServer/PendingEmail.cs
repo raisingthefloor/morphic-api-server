@@ -25,6 +25,7 @@ using System;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Antlr3.ST;
+using Hangfire;
 using MongoDB.Bson.Serialization.Attributes;
 using Serilog;
 
@@ -45,9 +46,6 @@ namespace MorphicServer
         public string ToFullNameEncr { get; set; } = null!;
         public string SubjectEncr { get; set; } = null!;
         public string EmailTextEncr { get; set; } = null!;
-        public string ProcessorId { get; set; }
-        public int Retries { get; set; } = 0;
-        public DateTime SendAfter { get; set; }
         public EmailTypeEnum EmailType { get; set; }
         
         public enum EmailTypeEnum
@@ -65,8 +63,6 @@ namespace MorphicServer
             ToEmail = user.GetEmail() ?? throw new PendingEmailException("Email can not be null");
             EmailText = msg;
             Subject = subject;
-            ProcessorId = "";
-            SendAfter = DateTime.UtcNow;
             EmailType = type;
             FromEmail = fromEmail;
             FromFullName = fromFullName;
@@ -233,10 +229,11 @@ namespace MorphicServer
                 return;
             }
 
-            await CreatePendingEmail();
+            var pending = await CreatePendingEmail();
+            BackgroundJob.Enqueue<SendPendingEmailsService>(x => x.SendOneEmail(pending.Id));
         }
 
-        protected abstract Task CreatePendingEmail();
+        protected abstract Task<PendingEmail> CreatePendingEmail();
     }
 
     public class NewVerificationEmail : EmailTemplates
@@ -258,7 +255,7 @@ $MorphicUser$ ($MorphicEmail$)";
             UrlTemplate = urlTemplate;
         }
 
-        protected override async Task CreatePendingEmail()
+        protected override async Task<PendingEmail> CreatePendingEmail()
         {
             var oneTimeToken = new OneTimeToken(User.Id);
 
@@ -276,6 +273,7 @@ $MorphicUser$ ($MorphicEmail$)";
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await Db.Save(oneTimeToken);
             await Db.Save(pending);
+            return pending;
         }
     }
 
@@ -299,7 +297,7 @@ $MorphicUser$ ($MorphicEmail$)";
             UrlTemplate = urlTemplate;
         }
 
-        protected override async Task CreatePendingEmail()
+        protected override async Task<PendingEmail> CreatePendingEmail()
         {
             var oneTimeToken = new OneTimeToken(User.Id);
 
@@ -317,6 +315,7 @@ $MorphicUser$ ($MorphicEmail$)";
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await Db.Save(oneTimeToken);
             await Db.Save(pending);
+            return pending;
         }
     }
     
@@ -338,7 +337,7 @@ $MorphicUser$ ($MorphicEmail$)";
             User.SetEmail(destinationEmail);
         }
 
-        protected override async Task CreatePendingEmail()
+        protected override async Task<PendingEmail> CreatePendingEmail()
         {
             // Create the email message
             StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
@@ -351,6 +350,7 @@ $MorphicUser$ ($MorphicEmail$)";
                 "Password Reset", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await Db.Save(pending);
+            return pending;
         }
     }
 }

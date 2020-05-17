@@ -5,6 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr3.StringTemplate" Version="3.4.1.9005" />
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.11" />
+    <PackageReference Include="Hangfire.Core" Version="1.7.11" />
+    <PackageReference Include="Hangfire.Mongo" Version="0.6.7" />
     <PackageReference Include="MongoDB.Driver" Version="2.10.2" />
     <PackageReference Include="prometheus-net" Version="3.5.0" />
     <PackageReference Include="prometheus-net.AspNetCore" Version="3.5.0" />
