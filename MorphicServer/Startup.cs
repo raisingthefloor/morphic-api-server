@@ -78,7 +78,6 @@ namespace MorphicServer
                         MigrationOptions = migrationOptions
                     } )
             );
-            services.AddHangfireServer();
 
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
@@ -99,6 +98,7 @@ namespace MorphicServer
             {
                 endpoints.MapMetrics();
             });
+            app.UseHangfireServer();
             app.UseHangfireDashboard();
         }
     }
