@@ -206,9 +206,9 @@ namespace MorphicServer
         /// <summary>
         /// The user to send the email to
         /// </summary>
-        protected User User = null!;
+        protected User? User = null;
 
-        protected EmailTemplates(EmailSettings settings, Database db, User user)
+        protected EmailTemplates(EmailSettings settings, Database db, User? user)
         {
             Db = db;
             Settings = settings;
@@ -223,6 +223,10 @@ namespace MorphicServer
                 return;
             }
 
+            if (User == null)
+            {
+                throw new EmailTemplatesException("No User");
+            }
             if (User.GetEmail() == null)
             {
                 Log.Logger.Debug($"Sending email to user {User.Id} who doesn't have an email address");
@@ -236,6 +240,12 @@ namespace MorphicServer
         protected abstract Task<PendingEmail> CreatePendingEmail();
     }
 
+    class EmailTemplatesException : MorphicServerException
+    {
+        public EmailTemplatesException(string error) : base(error)
+        {
+        }
+    }
     public class NewVerificationEmail : EmailTemplates
     {
         private const string EmailVerificationMsgTemplate =
@@ -257,7 +267,7 @@ $MorphicUser$ ($MorphicEmail$)";
 
         protected override async Task<PendingEmail> CreatePendingEmail()
         {
-            var oneTimeToken = new OneTimeToken(User.Id);
+            var oneTimeToken = new OneTimeToken(User!.Id);
 
             // Create the email message
             var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
@@ -299,7 +309,7 @@ $MorphicUser$ ($MorphicEmail$)";
 
         protected override async Task<PendingEmail> CreatePendingEmail()
         {
-            var oneTimeToken = new OneTimeToken(User.Id);
+            var oneTimeToken = new OneTimeToken(User!.Id);
 
             // Create the email message
             var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
@@ -341,8 +351,8 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             // Create the email message
             StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("UserFullName", User!.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", User!.GetEmail());
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
 
