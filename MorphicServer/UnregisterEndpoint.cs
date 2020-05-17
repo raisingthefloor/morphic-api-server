@@ -60,7 +60,15 @@ namespace MorphicServer
     }
 
 
-    /// <summary>Endpoint Controller for username unregister requests</summary>
+    /// <summary>
+    /// Endpoint Controller for username unregister requests. Security relies on the username-password
+    /// being passed in the request. The reason is two-fold: 1) the user may decide to unregister separately
+    /// from using the product (and perhaps not having logge in in a while), so it seems weird to ask them
+    /// to log in first, and then unregister (though perhaps that's not so unreasonable), and 2) since this
+    /// is a destructive action we don't want someone who hijacks the auth-token to be able to do this.
+    ///
+    /// TODO We could make this require the auth token, but I would still recommend we make the user enter their password for extra security anyway
+    /// </summary>
     [Path("/v1/unregister/username")]
     public class UnregisterUsernameEndpoint : UnregisterEndpoint
     {
