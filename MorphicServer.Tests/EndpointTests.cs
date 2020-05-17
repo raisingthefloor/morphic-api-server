@@ -81,6 +81,7 @@ namespace MorphicServer.Tests
         public void Dispose()
         {
             Database.DeleteDatabase();
+            if (Startup.DotNetRuntimeCollector != null) Startup.DotNetRuntimeCollector.Dispose();
         }
 
         /// <summary>Create a test user and return an auth token</summary>
