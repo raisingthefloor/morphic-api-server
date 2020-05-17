@@ -161,15 +161,20 @@ namespace MorphicServer
         /// </remarks>
         public async Task<bool> Delete<T>(T obj, Session? session = null) where T : Record
         {
+            return await Delete<T>(record => record.Id == obj.Id, session);
+        }
+
+        public async Task<bool> Delete<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.DeleteOneAsync(session.Handle, record => record.Id == obj.Id))
+                    return (await collection.DeleteOneAsync(session.Handle, filter))
                         .IsAcknowledged;
                 }
 
-                return (await collection.DeleteOneAsync(record => record.Id == obj.Id)).IsAcknowledged;
+                return (await collection.DeleteOneAsync(filter)).IsAcknowledged;
             }
 
             return false;
@@ -231,7 +236,7 @@ namespace MorphicServer
         {
             var stopWatch = Stopwatch.StartNew();
             morphic.DropCollection("DatabaseInfo"); // doesn't fail
-            
+
             // TODO: Deal with multi-server database update/upgrade
             // If multiple servers are spun up at the same time, we could have a situation where each
             // tries to initialize or upgrade the database.  We need some kind of locking system, or
@@ -243,7 +248,14 @@ namespace MorphicServer
             // up with that email. So we need an index to find it. See RegisterEndpoint.
             CreateOrUpdateIndexOrFail(user,
                 new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.EmailHash)));
-            CreateCollectionIfNotExists<UsernameCredential>();
+            var usernameCredentials = CreateCollectionIfNotExists<UsernameCredential>();
+            // IndexExplanation: When changing a user's password, which lives in the UsernameCredentials collection,
+            // we need to look up the UsernameCredentials by that user's ID, so we can change the password.
+            // See ChangePasswordEndpoint
+            CreateOrUpdateIndexOrFail(usernameCredentials,
+                new CreateIndexModel<UsernameCredential>(
+                    Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));
+
             CreateCollectionIfNotExists<KeyCredential>();
             var authToken = CreateCollectionIfNotExists<AuthToken>();
             // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
@@ -253,6 +265,7 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(authToken,
                 new CreateIndexModel<AuthToken>(
                     Builders<AuthToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
             var badPasswordLockout = CreateCollectionIfNotExists<BadPasswordLockout>();
             // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
             // the ExpiresAt index is needed to allow Mongo to expire the documents.
