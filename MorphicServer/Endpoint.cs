@@ -418,7 +418,7 @@ namespace MorphicServer
 
         public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
         {
-            var pathTemplate = GetPathTemplate(typeof(T));
+            string pathTemplate = typeof(T).GetRoutePath() ?? throw new NotValidPathException(typeof(T).FullName!.ToString());
             if (!pathTemplate.StartsWith("/"))
             {
                 throw new NotValidPathException(pathTemplate);
