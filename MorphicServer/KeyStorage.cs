@@ -62,7 +62,7 @@ namespace MorphicServer
         public static KeyInfo GetPrimaryHashSalt()
         {
             LoadKeysFromEnvIfNeeded();
-            if (keyArray == null) throw new KeysNotInitialized();
+            if (hashSaltArray == null) throw new KeysNotInitialized();
             var key = hashSaltArray.FirstOrDefault(k => k.IsPrimary);
             if (key == null) throw new KeyNotFoundException("PRIMARY_HASH");
             return key;
