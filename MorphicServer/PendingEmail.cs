@@ -32,8 +32,6 @@ namespace MorphicServer
 {
     /// <summary>
     /// Class for Pending Emails.
-    ///
-    /// TODO Need some retry-counter and/or retry timer so we don't retry X times directly in a row.
     /// </summary>
 
     public abstract class EmailTemplates
