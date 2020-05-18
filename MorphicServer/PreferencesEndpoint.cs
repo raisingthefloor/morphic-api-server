@@ -21,15 +21,13 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using Microsoft.AspNetCore.Http;
 using System.Net;
 using System.Text.Json.Serialization;
-using Serilog;
-using Serilog.Context;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -39,7 +37,7 @@ namespace MorphicServer
     public class PreferencesEndpoint: Endpoint
     {
 
-        public PreferencesEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public PreferencesEndpoint(IHttpContextAccessor contextAccessor, ILogger<PreferencesEndpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -55,18 +53,13 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var authenticatedUser = await RequireUser();
-            using (LogContext.PushProperty("AuthenticatedUserUid", authenticatedUser.Id))
-            using (LogContext.PushProperty("AuthenticatedUserPreferenceId", authenticatedUser.PreferencesId))
-            using (LogContext.PushProperty("RequestedPreferencesUid", Id))
+            if (authenticatedUser.Id != UserId || authenticatedUser.PreferencesId != Id)
             {
-                if (authenticatedUser.Id != UserId || authenticatedUser.PreferencesId != Id)
-                {
-                    Log.Logger.Information("PREFERENCE_ACCESS_DENIED: {AuthenticatedUserUid} may not request preferences {Id}");
-                    throw new HttpError(HttpStatusCode.Forbidden);
-                }
-                Log.Logger.Debug("PREFERENCE_LOADED");
-                Preferences = await Load<Preferences>(Id);
+                logger.LogInformation("PREFERENCE_ACCESS_DENIED({RequestedPreferencesUid}): {AuthenticatedUserUid}/{AuthenticatedUserPreferencesId}",
+                    Id, authenticatedUser.Id, authenticatedUser.PreferencesId);
+                throw new HttpError(HttpStatusCode.Forbidden);
             }
+            Preferences = await Load<Preferences>(Id);
         }
 
         /// <summary>The preferences data populated by <code>LoadResource()</code></summary>

@@ -26,7 +26,7 @@ using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using Microsoft.AspNetCore.Http;
 using System.Net;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -36,7 +36,7 @@ namespace MorphicServer
     public class ReadyEndpoint : Endpoint
     {
 
-        public ReadyEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public ReadyEndpoint(IHttpContextAccessor contextAccessor, ILogger<ReadyEndpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -49,7 +49,7 @@ namespace MorphicServer
 
             if (!Context.GetDatabase().IsClusterConnected)
             {
-                Log.Logger.Error("MongoDB Not connected");
+                logger.LogError("MongoDB Not connected");
                 ready["mongodb"] = "FAIL";
                 everythingOk = false;
             }

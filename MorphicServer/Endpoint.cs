@@ -36,8 +36,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using Prometheus;
-using Serilog;
 using Serilog.Context;
 
 namespace MorphicServer
@@ -80,12 +80,14 @@ namespace MorphicServer
     /// </example>
     public abstract class Endpoint
     {
+        protected readonly ILogger<Endpoint> logger;
 
-        public Endpoint(IHttpContextAccessor contextAccessor)
+        public Endpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger)
         {
             Context = contextAccessor.HttpContext;
             Request = Context.Request;
             Response = Context.Response;
+            this.logger = logger;
         }
 
         /// <summary>The http context for the current request</summary>
@@ -115,6 +117,7 @@ namespace MorphicServer
         public static async Task Run<T>(HttpContext context) where T: Endpoint
         {
             var endpoint = context.RequestServices.GetRequiredService<T>();
+            var logger = endpoint.logger;
             var method = context.Request.Method;
             var statusCode = 500;
             var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
@@ -123,7 +126,7 @@ namespace MorphicServer
 
             if (String.IsNullOrEmpty(path))
             {
-                Log.Logger.Error("Unknown path");
+                logger.LogError("Unknown path");
                 path = "(unknown)";
             }
 
@@ -175,12 +178,12 @@ namespace MorphicServer
                 catch (OperationCanceledException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught OperationCanceledException");
+                    logger.LogInformation("caught OperationCanceledException");
                 }
                 catch (BadHttpRequestException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught BadHttpRequestException");
+                    logger.LogInformation("caught BadHttpRequestException");
                 }
                 finally
                 {
@@ -205,10 +208,6 @@ namespace MorphicServer
             {
                 foreach (var (type, attr) in SubclassesWithPaths)
                 {
-                    Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
-                        type.ToString(),
-                        attr.Template
-                    );
                     var generic = run.MakeGenericMethod(new Type[] {type});
                     endpoints.Map(attr.Template,
                         generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);

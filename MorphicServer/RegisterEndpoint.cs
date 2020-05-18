@@ -30,8 +30,8 @@ using MorphicServer.Attributes;
 using System.Net;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Http;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -39,7 +39,7 @@ namespace MorphicServer
     public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
     {
 
-        public RegisterEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public RegisterEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -76,7 +76,7 @@ namespace MorphicServer
     public class RegisterUsernameEndpoint: RegisterEndpoint<UsernameCredential>
     {
 
-        public RegisterUsernameEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public RegisterUsernameEndpoint(IHttpContextAccessor contextAccessor, ILogger<RegisterUsernameEndpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -86,35 +86,38 @@ namespace MorphicServer
             var request = await Request.ReadJson<RegisterUsernameRequest>();
             if (request.Username == "")
             {
-                Log.Logger.Information("MISSING_USERNAME");
+                logger.LogInformation("MISSING_USERNAME");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            CheckPassword(request.Password);
-            await CheckEmail(request.Email);
-
-            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
-            if (existing != null)
+            using (LogContext.PushProperty("username", request.Username))
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
+                CheckPassword(request.Password);
+                await CheckEmail(request.Email);
+
+                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
+                if (existing != null)
+                {
+                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
+                }
+
+                var cred = new UsernameCredential();
+                cred.Id = request.Username;
+                cred.SetPassword(request.Password);
+
+                var user = new User();
+                user.Id = Guid.NewGuid().ToString();
+                user.SetEmail(request.Email);
+                user.FirstName = request.FirstName;
+                user.LastName = request.LastName;
+
+                await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
+                    user,
+                    ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
+                    ));
+
+                await Register(cred, user);
             }
-            
-            var cred = new UsernameCredential();
-            cred.Id = request.Username;
-            cred.SetPassword(request.Password);
-            
-            var user = new User();
-            user.Id = Guid.NewGuid().ToString();
-            user.SetEmail(request.Email);
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-
-            await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
-                user,
-                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
-                ));
-
-            await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
 
         private static bool IsValidEmail(string emailaddress)
@@ -140,17 +143,17 @@ namespace MorphicServer
             }
         );
 
-        private static void CheckPassword(String password)
+        private void CheckPassword(String password)
         {   
             if (password.Length < MinPasswordLength)
             {
-                Log.Logger.Information("SHORT_PASSWORD({username})");
+                logger.LogInformation("SHORT_PASSWORD");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
             }
 
             if (BadPasswords.Contains(password))
             {
-                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
+                logger.LogInformation("KNOWN_BAD_PASSWORD");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
             }
         }
@@ -159,7 +162,7 @@ namespace MorphicServer
         {
             if (!IsValidEmail(email))
             {
-                Log.Logger.Information("MALFORMED_EMAIL");
+                logger.LogInformation("MALFORMED_EMAIL");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
@@ -167,7 +170,7 @@ namespace MorphicServer
             var existingEmail = await Context.GetDatabase().Get<User>(a => a.EmailHash == hash, ActiveSession);
             if (existingEmail != null)
             {
-                Log.Logger.Information("EMAIL_EXISTS({username})");
+                logger.LogInformation("EMAIL_EXISTS");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingEmail);
             }
         }
@@ -214,7 +217,7 @@ namespace MorphicServer
     public class RegisterKeyEndpoint: RegisterEndpoint<KeyCredential>
     {
 
-        public RegisterKeyEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public RegisterKeyEndpoint(IHttpContextAccessor contextAccessor, ILogger<RegisterKeyEndpoint> logger): base(contextAccessor, logger)
         {
         }
 

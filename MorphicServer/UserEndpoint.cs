@@ -25,8 +25,7 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using System.Net;
-using Serilog;
-using Serilog.Context;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -35,7 +34,7 @@ namespace MorphicServer
     public class UserEndpoint: Endpoint
     {
 
-        public UserEndpoint(IHttpContextAccessor contextAccessor): base(contextAccessor)
+        public UserEndpoint(IHttpContextAccessor contextAccessor, ILogger<UserEndpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -49,12 +48,8 @@ namespace MorphicServer
             var authenticatedUser = await RequireUser();
             if (authenticatedUser.Id != Id)
             {
-                using (LogContext.PushProperty("AuthenticatedUserUid", authenticatedUser.Id))
-                using (LogContext.PushProperty("UserUid", Id))
-                {
-                    Log.Logger.Information("{AuthenticatedUserUid} may not request user {UserUid}");
-                }
-
+                logger.LogInformation("{AuthenticatedUserUid} may not request user {UserUid}",
+                        authenticatedUser.Id, Id);
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
             User = await Load<User>(Id);

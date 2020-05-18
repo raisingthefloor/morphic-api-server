@@ -25,6 +25,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using MorphicServer.Attributes;
 
 namespace MorphicServer
@@ -32,6 +33,10 @@ namespace MorphicServer
     [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
     public class ValidateEmailEndpoint : Endpoint
     {
+        public ValidateEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<ValidateEmailEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         /// <summary>The lookup id to use, populated from the request URL</summary>
         [Parameter]
         public string oneTimeToken = "";
