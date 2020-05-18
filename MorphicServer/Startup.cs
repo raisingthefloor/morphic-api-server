@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -29,6 +30,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Prometheus;
+using Prometheus.DotNetRuntime;
 using Serilog;
 
 namespace MorphicServer
@@ -46,6 +48,8 @@ namespace MorphicServer
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<MorphicSettings>(Configuration.GetSection("MorphicSettings"));
+            services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.AddSingleton<Database>();
@@ -56,9 +60,27 @@ namespace MorphicServer
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
+
+        // this seems to be needed to dispose of the collector during tests.
+        // otherwise we don't care about disposing them
+        public static IDisposable? DotNetRuntimeCollector;
+        
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
+            if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
+            {
+                // https://github.com/djluck/prometheus-net.DotNetRuntime
+                DotNetRuntimeCollector = DotNetRuntimeStatsBuilder.Customize()
+                    // Only 1 in 10 contention events will be sampled 
+                    .WithContentionStats(sampleRate: SampleEvery.TenEvents)
+                    // Only 1 in 100 JIT events will be sampled
+                    .WithJitStats(sampleRate: SampleEvery.HundredEvents)
+                    // Every event will be sampled (disables sampling)
+                    .WithThreadPoolSchedulingStats(sampleRate: SampleEvery.OneEvent)
+                    .StartCollecting();
+            }
+
             database.InitializeDatabase();
             if (env.IsDevelopment())
             {
@@ -73,5 +95,11 @@ namespace MorphicServer
                 endpoints.MapMetrics();
             });
         }
+    }
+    
+    public class MorphicSettings
+    {
+        /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
+        public string ServerUrlPrefix { get; set; } = "";
     }
 }

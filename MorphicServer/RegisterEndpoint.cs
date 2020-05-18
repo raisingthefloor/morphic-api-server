@@ -30,6 +30,7 @@ using MorphicServer.Attributes;
 using System.Net;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Http;
 using Serilog;
 
 namespace MorphicServer
@@ -104,10 +105,16 @@ namespace MorphicServer
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
-            user.Email = request.Email;
+            user.SetEmail(request.Email);
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
-            await Register(cred, user);
+
+            await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
+                user,
+                ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
+                ));
+
+            await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
 
         private static bool IsValidEmail(string emailaddress)

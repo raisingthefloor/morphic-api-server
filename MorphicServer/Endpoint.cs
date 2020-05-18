@@ -382,6 +382,11 @@ namespace MorphicServer
             return context.RequestServices.GetRequiredService<Database>();
         }
 
+        public static MorphicSettings GetMorphicSettings(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<MorphicSettings>();
+        }
+
         public static async Task<User?> GetUser(this HttpContext context)
         {
             var db = context.GetDatabase();

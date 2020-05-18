@@ -79,6 +79,8 @@ namespace MorphicServer
             CollectionByType[typeof(AuthToken)] = morphic.GetCollection<AuthToken>("AuthToken");
             CollectionByType[typeof(BadPasswordLockout)] =
                 morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
+            CollectionByType[typeof(OneTimeToken)] = morphic.GetCollection<OneTimeToken>("OneTimeToken");
+            CollectionByType[typeof(PendingEmail)] = morphic.GetCollection<PendingEmail>("PendingEmail");
         }
 
         public void DeleteDatabase()
@@ -254,6 +256,17 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(badPasswordLockout,
                 new CreateIndexModel<BadPasswordLockout>(
                     Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+            
+            var oneTimeToken = CreateCollectionIfNotExists<OneTimeToken>();
+            // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
+            // the ExpiresAt index is needed to allow Mongo to expire the documents.
+            options.ExpireAfter = TimeSpan.Zero;
+            CreateOrUpdateIndexOrFail(oneTimeToken,
+                new CreateIndexModel<OneTimeToken>(
+                    Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+            CreateCollectionIfNotExists<PendingEmail>();
+
             stopWatch.Stop();
             Log.Logger.Information("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);
