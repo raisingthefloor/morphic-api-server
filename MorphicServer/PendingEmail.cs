@@ -270,7 +270,9 @@ $MorphicUser$ ($MorphicEmail$)";
             var oneTimeToken = new OneTimeToken(User!.Id);
 
             // Create the email message
-            var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            var link = UrlTemplate
+                .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
+                .Replace("{userId}", oneTimeToken.UserId);
             StringTemplate emailVerificationMsg = new StringTemplate(EmailVerificationMsgTemplate);
             emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
             emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
