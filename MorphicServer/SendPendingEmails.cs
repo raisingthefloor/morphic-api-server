@@ -48,6 +48,48 @@ namespace MorphicServer
         public SendGridSettings SendGridSettings { get; set; } = null!;
     }
 
+    public class PendingEmail
+    {
+        // DB Fields
+        public string UserId { get; set; }
+        public string FromEmail { get; set; } = null!;
+        public string FromFullName { get; set; } = null!;
+        public string ToEmail { get; set; } = null!;
+        public string ToFullName { get; set; } = null!;
+        public string Subject { get; set; } = null!;
+        public string EmailText { get; set; } = null!;
+        public EmailTypeEnum EmailType { get; set; }
+        
+        public enum EmailTypeEnum
+        {
+            EmailValidation = 0
+        }
+
+        public PendingEmail(User user, string fromEmail, string fromFullName,
+            string subject, string msg, EmailTypeEnum type)
+        {
+            UserId = user.Id;
+
+            ToFullName = user.FullnameOrEmail();
+            ToEmail = user.GetEmail() ?? throw new PendingEmailException("Email can not be null");
+            EmailText = msg;
+            Subject = subject;
+            EmailType = type;
+            FromEmail = fromEmail;
+            FromFullName = fromFullName;
+        }
+
+
+        // Helpers
+        
+        public class PendingEmailException : MorphicServerException
+        {
+            public PendingEmailException(string error) : base(error)
+            {
+            }
+        }
+    }
+
     /// <summary>
     /// Should probably look into https://www.hangfire.io/ later. For now this should work
     /// https://docs.hangfire.io/en/latest/getting-started/aspnet-core-applications.html
