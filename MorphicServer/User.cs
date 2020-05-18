@@ -37,7 +37,7 @@ namespace MorphicServer
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
         [JsonPropertyName("email")]
-        public SearchableEncryptedString Email { get; set; } = new SearchableEncryptedString("N9DtOumwMC7A9KJLB3oCbA==");
+        public SearchableEncryptedString Email { get; set; } = new SearchableEncryptedString();
         [JsonIgnore]
         public bool EmailVerified { get; set; }
         [JsonIgnore]

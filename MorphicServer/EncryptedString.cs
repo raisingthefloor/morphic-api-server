@@ -69,9 +69,9 @@ namespace MorphicServer
     public class SearchableEncryptedString: EncryptedString
     {
 
-        public SearchableEncryptedString(string sharedSalt)
+        public SearchableEncryptedString()
         {
-            SharedSalt = sharedSalt;
+            SharedSalt = Convert.ToBase64String(KeyStorage.GetPrimaryHashSalt().KeyData);
         }
 
         public HashedData? Hash { get; set; }
@@ -109,10 +109,7 @@ namespace MorphicServer
             public override SearchableEncryptedString Read (ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 var plainText = reader.GetString();
-                // FIXME: where does the shared salt come from?
-                // Since we're not using a random salt, would simply
-                // using the plainText as the salt achieve the same level of security?
-                var encrypted = new SearchableEncryptedString("WRONG");
+                var encrypted = new SearchableEncryptedString();
                 encrypted.PlainText = plainText;
                 return encrypted;
             }
