@@ -94,7 +94,9 @@ Regards,
 
             var email = encrEmail.Decrypt(out _);
             var oneTimeToken = new OneTimeToken(user.Id);
-            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            var link = urlTemplate
+                .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
+                .Replace("{userId}", oneTimeToken.UserId);
             var from = "support@morphic.world";
             var msg = string.Format(EmailVerificationMsgTemplate,
                 GreetingName(user.FirstName, user.LastName, email),

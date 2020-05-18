@@ -29,17 +29,24 @@ using MorphicServer.Attributes;
 
 namespace MorphicServer
 {
-    [Path("/v1/verifyEmail/{oneTimeToken}")]
+    [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
     public class ValidateEmailEndpoint : Endpoint
     {
         /// <summary>The lookup id to use, populated from the request URL</summary>
         [Parameter]
         public string oneTimeToken = "";
-        
+
+        /// <summary>
+        /// The userid to use, populated from the request URL. Unused, since we get it from the token,
+        /// but it makes for a more coherent API.
+        /// </summary>
+        [Parameter]
+        public string UserId = "";
+
         /// <summary>The user data populated by <code>LoadResource()</code></summary>
-        public User User = null!;
+        private User user = null!;
         /// <summary>The limited-use token data populated by <code>LoadResource()</code></summary>
-        public OneTimeToken OneTimeToken = null!;
+        private OneTimeToken OneTimeToken = null!;
 
         public override async Task LoadResource()
         {
@@ -49,15 +56,15 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.NotFound);
             }
-            User = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
+            user = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
         }
         
         /// <summary>Fetch the user</summary>
         [Method]
         public async Task Get()
         {
-            User.EmailVerified = true;
-            await Save(User);
+            user.EmailVerified = true;
+            await Save(user);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             // TODO Need to respond with a nicer webpage than ""
         }
