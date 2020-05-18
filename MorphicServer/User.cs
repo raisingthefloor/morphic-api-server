@@ -23,7 +23,6 @@
 
 using System;
 using System.Text.Json.Serialization;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -87,7 +86,6 @@ namespace MorphicServer
                 // The encryption key used is not the primary key. It's an older one.
                 // This means we need to re-encrypt the data and save it back to the DB
                 // TODO implement key-rollover background task
-                Log.Logger.Error("TODO Need to re-encrypt with primary in background");
             }
 
             return plainText;
