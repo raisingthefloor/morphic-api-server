@@ -21,11 +21,15 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System.Collections.Generic;
+using System;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
-using Serilog;
+using System.Net.Http;
+using System.Threading;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -34,30 +38,105 @@ namespace MorphicServer
     [OmitMetrics]
     public class ReadyEndpoint : Endpoint
     {
+
         [Method]
         public async Task Get()
         {
-            bool everythingOk = true;
-            var ready = new Dictionary<string, string>();
-            ready.Add("webserver", "OK"); // we're here, aren't we? We must be ok.
-
-            if (!Context.GetDatabase().IsClusterConnected)
+            if (readyResponse == null)
             {
-                Log.Logger.Error("MongoDB Not connected");
-                ready["mongodb"] = "FAIL";
-                everythingOk = false;
+                throw new HttpError(HttpStatusCode.BadRequest);
             }
-            else
+            Response.ContentType = "application/json";
+            await Response.WriteAsync(readyResponse, Context.RequestAborted);
+        }
+
+        private static string? readyResponse;
+        
+        public class PeriodicReadyCheckService : BackgroundService
+        {
+            private readonly ILogger<PeriodicReadyCheckService> logger;
+
+            public PeriodicReadyCheckService(ILogger<PeriodicReadyCheckService> logger)
             {
-                ready.Add("mongodb", "OK");
+                this.logger = logger;
+            }
+            
+            protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+            {
+                logger.LogInformation(
+                    "PeriodicReadyCheckService running.");
+
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await GetReadyResponse(stoppingToken);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.LogError("GetReadyResponse threw an exception. Sleep 10. {Exception}", e.ToString());
+                        await Task.Delay(10 * 1000, stoppingToken);
+                    }
+                }
             }
 
-            if (!everythingOk)
+            private async Task GetReadyResponse(CancellationToken stoppingToken)
             {
-                throw new HttpError(HttpStatusCode.InternalServerError, ready);
-            }
+                var readyUrl = "http://localhost:5002/healthcheck/ready";
+                var startupDelaySeconds = 15;
+                var unhealthyDelaySeconds = 5;
+                var healthyDelaySeconds = 30;
+                
+                HttpClient client = new HttpClient();
+                var currentDelay = startupDelaySeconds;
+                var unhealthyCount = 0;
+                while (true)
+                {
+                    logger.LogDebug($"Delay {currentDelay}");
+                    await Task.Delay(currentDelay * 1000, stoppingToken);
+                    if (stoppingToken.IsCancellationRequested)
+                    {
+                        return;
+                    }
+                    
+                    var response = await client.GetAsync(readyUrl, stoppingToken);
+                    if (response != null)
+                    {
+                        logger.LogDebug($"{readyUrl} response {response.StatusCode}");
+                        if (response.IsSuccessStatusCode)
+                        {
+                            readyResponse = await response.Content.ReadAsStringAsync();
+                            currentDelay = healthyDelaySeconds;
+                            unhealthyCount = 0;
+                        }
+                        else
+                        {
+                            readyResponse = null;
+                            unhealthyCount++;
+                        }
+                    }
+                    else
+                    {
+                        logger.LogError($"Could not connect to {readyUrl}");
+                        readyResponse = null;
+                        unhealthyCount++;
+                    }
 
-            await Respond(ready);
+                    if (unhealthyCount > 0)
+                    {
+                        // back off
+                        currentDelay = unhealthyDelaySeconds * unhealthyCount;
+                    }
+                }
+            }
+            
+            public override async Task StopAsync(CancellationToken stoppingToken)
+            {
+                logger.LogInformation(
+                    "PeriodicReadyCheckService is stopping.");
+
+                await Task.CompletedTask;
+            }
         }
     }
 }

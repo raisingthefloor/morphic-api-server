@@ -28,11 +28,14 @@ using Hangfire.Logging;
 using Hangfire.Mongo;
 using Hangfire.States;
 using Hangfire.Storage;
+using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
 using Prometheus;
 using Prometheus.DotNetRuntime;
@@ -79,7 +82,15 @@ namespace MorphicServer
                         MigrationOptions = migrationOptions
                     } )
             );
-
+            services.AddHealthChecks()
+                .AddCheck("self", () => HealthCheckResult.Healthy())
+                .AddMongoDb(Configuration.GetSection("Hangfire")["ConnectionString"],
+                    tags: new[] {"services"})
+                .AddHangfire(null,
+                    tags: new[] {"services"});
+            
+            services.AddHostedService<ReadyEndpoint.PeriodicReadyCheckService>();
+            
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
@@ -116,6 +127,16 @@ namespace MorphicServer
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapMetrics();
+            });
+            app.UseHealthChecks("/alive", new HealthCheckOptions
+            {
+                Predicate = r => r.Name.Contains("self"),
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
+            });
+            app.UseHealthChecks("/healthcheck/ready", new HealthCheckOptions
+            {
+                Predicate = r => r.Tags.Contains("services"),
+                ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
             });
             app.UseHangfireServer();
             app.UseHangfireDashboard();

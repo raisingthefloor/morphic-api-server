@@ -5,6 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Antlr3.StringTemplate" Version="3.4.1.9005" />
+    <PackageReference Include="AspNetCore.HealthChecks.Hangfire" Version="3.1.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.MongoDb" Version="3.1.1" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI" Version="3.1.0" />
     <PackageReference Include="Hangfire.AspNetCore" Version="1.7.11" />
     <PackageReference Include="Hangfire.Core" Version="1.7.11" />
     <PackageReference Include="Hangfire.Mongo" Version="0.6.7" />
