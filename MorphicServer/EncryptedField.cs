@@ -157,14 +157,17 @@ namespace MorphicServer
         /// Caller should re-encrypt with the primary key if this is returned false</param>
         /// <returns>the plainText string</returns>
         /// <exception cref="UnknownCipherModeException"></exception>
-        public string Decrypt(out bool isPrimary)
+        public string Decrypt()
         {
             if (Cipher == Aes256CbcString)
             {
                 using (DecryptionHistogram.Labels(Aes256CbcString).NewTimer())
                 {
                     var keyInfo = KeyStorage.GetKey(KeyName);
-                    isPrimary = keyInfo.IsPrimary;
+                    if (!keyInfo.IsPrimary)
+                    {
+                        // do nothing (assume some background job is running?) or trigger some background to migrate old to new 
+                    }
                     var plainText = DecryptStringFromBytes_Aes256CBC(
                         Convert.FromBase64String(CipherText),
                         keyInfo.KeyData,

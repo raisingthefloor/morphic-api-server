@@ -98,7 +98,6 @@ namespace MorphicServer.Tests
             KeyStorage.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
-            bool isPrimary;
             var keyName = "TEST_KEY";
             var keyData = "8C532F0C2CCE7AF471111285340B6353FCB327DF9AB9F0121731F403E3FFDC7C";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{keyName}:{keyData}");
@@ -107,13 +106,11 @@ namespace MorphicServer.Tests
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
             var encryptedField = AssertProperlyEncrypted(keyName, plainText);
 
-            string decryptedText = encryptedField.Decrypt(out isPrimary);
-            Assert.True(isPrimary);
+            string decryptedText = encryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
 
             var otherEncryptedField = EncryptedField.FromCombinedString(encryptedField.ToCombinedString());
-            decryptedText = otherEncryptedField.Decrypt(out isPrimary);
-            Assert.True(isPrimary);
+            decryptedText = otherEncryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
 
             Assert.Throws<EncryptedField.PlainTextEmptyException>(
@@ -128,7 +125,6 @@ namespace MorphicServer.Tests
             KeyStorage.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
-            bool isPrimary;
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
             string plainText_1 = "thequickbrownfoxjumpedoverthelazydog_1";
             string plainText_2 = "thequickbrownfoxjumpedoverthelazydog_2";
@@ -144,9 +140,8 @@ namespace MorphicServer.Tests
             Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetPrimary().KeyData);
             
             var encryptedFieldRoll2 = AssertProperlyEncrypted(rolloverKeyName2, plainText_2);
-            string decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
+            string decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
-            Assert.True(isPrimary);
 
 
             // we move the previous key to rollover
@@ -157,13 +152,11 @@ namespace MorphicServer.Tests
             Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetKey(rolloverKeyName2).KeyData);
             
             var encryptedFieldRoll1 = AssertProperlyEncrypted(rolloverKeyName1, plainText_1);
-            decryptedText = encryptedFieldRoll1.Decrypt(out isPrimary);
+            decryptedText = encryptedFieldRoll1.Decrypt();
             Assert.Equal(plainText_1, decryptedText);
-            Assert.True(isPrimary);
 
             // when decrypting, the key used is no longer the primary.
-            decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
             
             // now we switch to the 'new' primary key, and other rollovers
@@ -176,16 +169,13 @@ namespace MorphicServer.Tests
             Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetKey(rolloverKeyName2).KeyData);
 
             var encryptedField = AssertProperlyEncrypted(keyName, plainText);
-            decryptedText = encryptedField.Decrypt(out isPrimary);
+            decryptedText = encryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
-            Assert.True(isPrimary);
 
-            decryptedText = encryptedFieldRoll1.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll1.Decrypt();
             Assert.Equal(plainText_1, decryptedText);
 
-            decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
 
             

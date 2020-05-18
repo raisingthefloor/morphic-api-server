@@ -20,12 +20,7 @@ namespace MorphicServer
             get{
                 if (Encrypted is EncryptedField encrypted)
                 {
-                    var plainText = encrypted.Decrypt(out var isPrimary);
-                    if (!isPrimary)
-                    {
-                        // TODO: queue re-encryption, but how do we know what record we're in??
-                    }
-                    return plainText;
+                    return encrypted.Decrypt();
                 }
                 return null;
             }
