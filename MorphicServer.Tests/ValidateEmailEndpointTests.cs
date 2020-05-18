@@ -63,14 +63,14 @@ namespace MorphicServer.Tests
             settings.ServerUrlPrefix = "";
             var urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("https://myhost.example.com:12345/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("https://myhost.example.com:12345/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
 
             // Good No headers, but settings has value
             requestHeaders = new HeaderDictionary();
             settings.ServerUrlPrefix = "http://someurl.org:5555";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("http://someurl.org:5555/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
             
             // Good: settings take precedence over headers
             requestHeaders = new HeaderDictionary
@@ -82,21 +82,21 @@ namespace MorphicServer.Tests
             settings.ServerUrlPrefix = "http://someurl.org:5555";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("http://someurl.org:5555/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
 
             // Good: make sure we trim the trailing /
             requestHeaders = new HeaderDictionary();
             settings.ServerUrlPrefix = "http://someurl.org:5555/";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("http://someurl.org:5555/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("http://someurl.org:5555/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
             
             // Good. A longer path. Unusual, but let's support it.
             requestHeaders = new HeaderDictionary();
             settings.ServerUrlPrefix = "http://someurl.org:5555/whatever/path/";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("http://someurl.org:5555/whatever/path/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("http://someurl.org:5555/whatever/path/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
 
             // No port from headers
             requestHeaders = new HeaderDictionary
@@ -107,7 +107,7 @@ namespace MorphicServer.Tests
             settings.ServerUrlPrefix = "";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("https://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("https://myhost.example.com/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
 
             // Standard ports from headers
             requestHeaders = new HeaderDictionary
@@ -119,7 +119,7 @@ namespace MorphicServer.Tests
             settings.ServerUrlPrefix = "";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("https://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("https://myhost.example.com/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
 
             requestHeaders = new HeaderDictionary
             {
@@ -130,7 +130,7 @@ namespace MorphicServer.Tests
             settings.ServerUrlPrefix = "";
             urlTemplate =
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings);
-            Assert.Equal("http://myhost.example.com/v1/verifyEmail/{oneTimeToken}", urlTemplate);
+            Assert.Equal("http://myhost.example.com/v1/users/{userId}/verify_email/{oneTimeToken}", urlTemplate);
         }
 
         [Fact]
@@ -155,7 +155,7 @@ namespace MorphicServer.Tests
             Assert.Equal(hashedToken, oneTimeToken.Id);
             
             // GET, bad token (we're sending the token hash (the ID))
-            var path = $"/v1/verifyEmail/{oneTimeToken.Id}";
+            var path = $"/v1/users/{user.Id}/verify_email/{oneTimeToken.Id}";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -168,7 +168,7 @@ namespace MorphicServer.Tests
             sameUser = await Database.Get<User>(user.Id);
             Assert.NotNull(sameUser);
             Assert.False(sameUser.EmailVerified);
-            path = $"/v1/verifyEmail/{token}";
+            path = $"/v1/users/{user.Id}/verify_email/{token}";
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
