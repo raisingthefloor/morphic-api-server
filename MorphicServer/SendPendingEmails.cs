@@ -2,7 +2,6 @@ using System;
 using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
-using Hangfire;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using SendGrid;
@@ -64,17 +63,14 @@ namespace MorphicServer
     ///
     /// Various TODO items sprinkled around in the code here.
     /// </summary>
-    public class SendPendingEmailsService
+    public class SendPendingEmails
     { 
         private readonly ILogger logger;
         private EmailSettings emailSettings;
-        private Database morphicDb;
 
-        public SendPendingEmailsService(EmailSettings emailSettings, ILogger<SendPendingEmailsService> logger,
-            Database morphicDb)
+        public SendPendingEmails(EmailSettings emailSettings, ILogger logger)
         {
             this.logger = logger;
-            this.morphicDb = morphicDb;
             this.emailSettings = emailSettings;
         }
         
@@ -84,8 +80,7 @@ namespace MorphicServer
             "Time it takes to send an email",
             new[] {"type", "destination", "code"});
 
-        [AutomaticRetry( Attempts = 20 )]
-        public async Task SendOneEmail(string pendingEmailId)
+        public async Task SendOneEmail(PendingEmail pending)
         {
             if (emailSettings.Type == EmailSettings.EmailTypeDisabled ||
                 (emailSettings.Type == EmailSettings.EmailTypeSendgrid &&
@@ -95,43 +90,29 @@ namespace MorphicServer
                                 "SendGrid Api Key. Note this task can be retried manually from the Hangfire console");
                 return;
             }
-            
-            PendingEmail pending = await morphicDb.Get<PendingEmail>(pendingEmailId) ?? throw new EmailIdNotFoundException();
-            if (pending == null)
+
+            logger.LogDebug("SendOneEmail processing PendingEmail");
+            bool sent = false;
+            if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
             {
-                logger.LogError($"Could not find email with ID {pendingEmailId}");
-                return;
+                try
+                {
+                    sent = await SendViaSendGrid(pending);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError($"SendViaSendGrid failed: {e}");
+                }
             }
-            
-            using (LogContext.PushProperty("PendingEmail", pending.Id))
+            else if (emailSettings.Type == EmailSettings.EmailTypeLog)
             {
-                logger.LogDebug("SendOneEmail processing PendingEmail");
-                bool sent = false;
-                if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
-                {
-                    try
-                    {
-                        sent = await SendViaSendGrid(pending);
-                    }
-                    catch (Exception e)
-                    {
-                        logger.LogError($"SendViaSendGrid failed: {e}");
-                    }
-                }
-                else if (emailSettings.Type == EmailSettings.EmailTypeLog)
-                {
-                    LogEmail(pending);
-                    sent = true;
-                }
-                if (sent)
-                {
-                    logger.LogInformation("SendOneEmail deleting PendingEmail");
-                    await morphicDb.Delete(pending);
-                }
-                else
-                {
-                    logger.LogError("Email not sent. Check logs");
-                }
+                LogEmail(pending);
+                sent = true;
+            }
+
+            if (!sent)
+            {
+                throw new UnableToSendEmailException();
             }
         }
 
@@ -139,7 +120,7 @@ namespace MorphicServer
         {
         }
         
-        public class EmailIdNotFoundException : PendingEmailException
+        public class UnableToSendEmailException : PendingEmailException
         {
             
         }

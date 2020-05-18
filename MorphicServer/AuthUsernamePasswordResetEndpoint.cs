@@ -24,6 +24,7 @@
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Hangfire;
 using MorphicServer.Attributes;
 using Serilog;
 using Serilog.Context;
@@ -151,21 +152,14 @@ namespace MorphicServer
                 if (user != null)
                 {
                     Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
-                    await new NewPasswordResetEmail(
-                            Context.GetEmailSettings(),
-                            Context.GetDatabase(),
-                            user,
-                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers, Context.GetMorphicSettings()))
-                        .QueueEmail();
+                    BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
+                        GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                            Context.GetMorphicSettings())));
                 }
                 else
                 {
                     Log.Logger.Information("Password reset requested but no email matching");
-                    await new NewNoEmailPasswordResetEmail(
-                            Context.GetEmailSettings(),
-                            Context.GetDatabase(),
-                            request.Email)
-                        .QueueEmail();
+                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(request.Email));
                 }
             }
         }

@@ -29,6 +29,7 @@ using MorphicServer.Attributes;
 using System.Net;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Serilog;
 
@@ -99,12 +100,10 @@ namespace MorphicServer
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
 
-            await new NewVerificationEmail(
-                    Context.GetEmailSettings(),
-                    Context.GetDatabase(),
-                    user,
-                    GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()))
-                .QueueEmail();
+            BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
+                user.Id,
+                GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()
+                )));
             await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
         }
 

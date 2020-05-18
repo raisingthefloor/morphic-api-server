@@ -21,13 +21,12 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Antlr3.ST;
 using Hangfire;
-using MongoDB.Bson.Serialization.Attributes;
+using Microsoft.Extensions.Logging;
 using Serilog;
+using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace MorphicServer
 {
@@ -36,16 +35,16 @@ namespace MorphicServer
     ///
     /// TODO Need some retry-counter and/or retry timer so we don't retry X times directly in a row.
     /// </summary>
-    public class PendingEmail : Record
+    public class PendingEmail
     {
         // DB Fields
         public string UserId { get; set; }
         public string FromEmail { get; set; } = null!;
         public string FromFullName { get; set; } = null!;
-        public string ToEmailEncr { get; set; } = null!;
-        public string ToFullNameEncr { get; set; } = null!;
-        public string SubjectEncr { get; set; } = null!;
-        public string EmailTextEncr { get; set; } = null!;
+        public string ToEmail { get; set; } = null!;
+        public string ToFullName { get; set; } = null!;
+        public string Subject { get; set; } = null!;
+        public string EmailText { get; set; } = null!;
         public EmailTypeEnum EmailType { get; set; }
         
         public enum EmailTypeEnum
@@ -56,7 +55,6 @@ namespace MorphicServer
         public PendingEmail(User user, string fromEmail, string fromFullName,
             string subject, string msg, EmailTypeEnum type)
         {
-            Id = Guid.NewGuid().ToString();
             UserId = user.Id;
 
             ToFullName = user.FullnameOrEmail();
@@ -71,114 +69,11 @@ namespace MorphicServer
 
         // Helpers
         
-        private string? toEmail;
-        [BsonIgnore]
-        [JsonIgnore]
-        public string ToEmail
-        {
-            get
-            {
-                if (toEmail == null)
-                {
-                    toEmail = EncryptedField.FromCombinedString(ToEmailEncr).Decrypt();
-                }
-                return toEmail;
-            }
-            
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new PendingEmailException("Empty or null ToEmail");
-                }
-                ToEmailEncr = EncryptedField.FromPlainText(value).ToCombinedString();
-                toEmail = value;
-            }
-        }
-
-        private string? toFullName;
-        [BsonIgnore]
-        [JsonIgnore]
-        public string ToFullName
-        {
-            get
-            {
-                if (toFullName == null)
-                {
-                    toFullName = ToFullNameEncr != "" ? EncryptedField.FromCombinedString(ToFullNameEncr).Decrypt() : "";
-                }
-                return toFullName;
-            }
-            
-            set
-            {
-                ToFullNameEncr = value != "" ? EncryptedField.FromPlainText(value).ToCombinedString() : "";
-                toFullName = value;
-            }
-        }
-
-        private string? subject;
-        [BsonIgnore]
-        [JsonIgnore]
-        public string Subject
-        {
-            get
-            {
-                if (subject == null)
-                {
-                    subject = EncryptedField.FromCombinedString(SubjectEncr).Decrypt();
-                }
-                return subject;
-            }
-            
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new PendingEmailException("Empty or null Subject");
-                }
-
-                SubjectEncr = EncryptedField.FromPlainText(value).ToCombinedString();
-                subject = value;
-            }
-        }
-
-        private string? emailText;
-        [BsonIgnore]
-        [JsonIgnore]
-        public string EmailText
-        {
-            get
-            {
-                if (emailText == null)
-                {
-                    emailText = EncryptedField.FromCombinedString(EmailTextEncr).Decrypt();
-                }
-                return emailText;
-            }
-            
-            set
-            {
-                if (string.IsNullOrEmpty(value))
-                {
-                    throw new PendingEmailException("Empty or null EmailText");
-                }
-
-                EmailTextEncr = EncryptedField.FromPlainText(value).ToCombinedString();
-                emailText = value;
-            }
-        }
-        
         public class PendingEmailException : MorphicServerException
         {
             public PendingEmailException(string error) : base(error)
             {
             }
-
-            public PendingEmailException() : base()
-            {
-            }
-
         }
     }
 
@@ -202,42 +97,16 @@ namespace MorphicServer
         /// The Email Settings
         /// </summary>
         protected EmailSettings Settings;
+        
+        protected readonly ILogger logger;
 
-        /// <summary>
-        /// The user to send the email to
-        /// </summary>
-        protected User? User = null;
-
-        protected EmailTemplates(EmailSettings settings, Database db, User? user)
+        
+        protected EmailTemplates(EmailSettings settings, ILogger<EmailTemplates> logger, Database db)
         {
             Db = db;
             Settings = settings;
-            User = user;
+            this.logger = logger;
         }
-
-        public async Task QueueEmail()
-        {
-            if (Settings.Type == EmailSettings.EmailTypeDisabled)
-            {
-                Log.Logger.Warning("EmailSettings.Disable is set");
-                return;
-            }
-
-            if (User == null)
-            {
-                throw new EmailTemplatesException("No User");
-            }
-            if (User.GetEmail() == null)
-            {
-                Log.Logger.Debug($"Sending email to user {User.Id} who doesn't have an email address");
-                return;
-            }
-
-            var pending = await CreatePendingEmail();
-            BackgroundJob.Enqueue<SendPendingEmailsService>(x => x.SendOneEmail(pending.Id));
-        }
-
-        protected abstract Task<PendingEmail> CreatePendingEmail();
     }
 
     class EmailTemplatesException : MorphicServerException
@@ -255,37 +124,55 @@ To verify your email address $UserEmail$ please click the following link: $Link$
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
-        /// <summary>
-        /// The urlTemplate used to create some kind of link the user needs to follow in the email
-        /// </summary>
-        protected string UrlTemplate;
         
-        public NewVerificationEmail(EmailSettings settings, Database db, User user, string urlTemplate) : base(settings, db, user)
+        public NewVerificationEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
-            UrlTemplate = urlTemplate;
         }
 
-        protected override async Task<PendingEmail> CreatePendingEmail()
+        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate)
         {
-            var oneTimeToken = new OneTimeToken(User!.Id);
+            var oneTimeToken = new OneTimeToken(user.Id);
 
             // Create the email message
-            var link = UrlTemplate
+            var link = urlTemplate
                 .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
                 .Replace("{userId}", oneTimeToken.UserId);
             StringTemplate emailVerificationMsg = new StringTemplate(EmailVerificationMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
             emailVerificationMsg.SetAttribute("Link", link);
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
 
-            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Email Verification", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await Db.Save(oneTimeToken);
-            await Db.Save(pending);
             return pending;
+        }
+        
+        [AutomaticRetry(Attempts = 20)]
+        public async Task QueueEmail(string userId, string urlTemplate)
+        {
+            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            {
+                Log.Logger.Warning("EmailSettings.Disable is set");
+                return;
+            }
+
+            var user = await Db.Get<User>(userId);
+            if (user == null)
+            {
+                throw new EmailTemplatesException("No User");
+            }
+            if (user.GetEmail() == null)
+            {
+                Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
+                return;
+            }
+
+            var pending = await CreatePendingEmail(user, urlTemplate);
+            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
 
@@ -301,33 +188,53 @@ To reset your password, please click the following link and follow the instructi
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
-
-        protected string UrlTemplate;
-
-        public NewPasswordResetEmail(EmailSettings settings, Database db, User user, string urlTemplate) : base(settings, db, user)
+        
+        public NewPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
-            UrlTemplate = urlTemplate;
         }
 
-        protected override async Task<PendingEmail> CreatePendingEmail()
+        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate)
         {
-            var oneTimeToken = new OneTimeToken(User!.Id);
+            var oneTimeToken = new OneTimeToken(user.Id);
 
             // Create the email message
-            var link = UrlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
             StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetLinkMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", User.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", User.GetEmail());
+            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
             emailVerificationMsg.SetAttribute("Link", link);
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
 
-            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Password Reset", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
             await Db.Save(oneTimeToken);
-            await Db.Save(pending);
             return pending;
+        }
+        
+        [AutomaticRetry(Attempts = 20)]
+        public async Task QueueEmail(string userId, string urlTemplate)
+        {
+            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            {
+                Log.Logger.Warning("EmailSettings.Disable is set");
+                return;
+            }
+
+            var user = await Db.Get<User>(userId);
+            if (user == null)
+            {
+                throw new EmailTemplatesException("No User");
+            }
+            if (user.GetEmail() == null)
+            {
+                Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
+                return;
+            }
+
+            var pending = await CreatePendingEmail(user, urlTemplate);
+            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
     
@@ -342,27 +249,39 @@ email. If this wasn't requested by you, you may ignore this email or contact Mor
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
 
-        public NewNoEmailPasswordResetEmail(EmailSettings settings, Database db, string destinationEmail) : base(settings, db, null)
+        public NewNoEmailPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
-            // Don't save this. Just to carry the email
-            User = new User();
-            User.SetEmail(destinationEmail);
         }
 
-        protected override async Task<PendingEmail> CreatePendingEmail()
+        protected async Task<PendingEmail> CreatePendingEmail(User user)
         {
             // Create the email message
             StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", User!.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", User!.GetEmail());
+            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
 
-            var pending = new PendingEmail(User, Settings.EmailFromAddress, Settings.EmailFromFullname,
+            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Password Reset", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
-            await Db.Save(pending);
             return pending;
+        }
+        [AutomaticRetry(Attempts = 20)]
+        public async Task QueueEmail(string destinationEmail)
+        {
+            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            {
+                Log.Logger.Warning("EmailSettings.Disable is set");
+                return;
+            }
+
+            // Don't save this. Just to carry the email
+            var user = new User();
+            user.SetEmail(destinationEmail);
+            
+            var pending = await CreatePendingEmail(user);
+            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
 }
