@@ -30,10 +30,16 @@ namespace MorphicServer
 {
     public class KeyStorage
     {
+        //Create keys with: openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
+
         private const string EncryptionKeyPrimary = "MORPHIC_ENC_KEY_PRIMARY";
         private const string EncryptionKeyRolloverPrefix = "MORPHIC_ENC_KEY_ROLLOVER_";
 
+        // Create hash with: openssl rand -hex 16
+        private const string HashSaltPrimary = "MORPHIC_HASH_SALT_PRIMARY";
+
         private static List<KeyInfo>? keyArray;
+        private static List<KeyInfo>? hashSaltArray;
         
         public static KeyInfo GetKey(string keyName)
         {
@@ -53,12 +59,22 @@ namespace MorphicServer
             return key;
         }
 
+        public static KeyInfo GetPrimaryHashSalt()
+        {
+            LoadKeysFromEnvIfNeeded();
+            if (keyArray == null) throw new KeysNotInitialized();
+            var key = hashSaltArray.FirstOrDefault(k => k.IsPrimary);
+            if (key == null) throw new KeyNotFoundException("PRIMARY_HASH");
+            return key;
+        }
+        
         /// <summary>
         /// Clear the keys and re-read. Mostly useful for testing right now, but may be useful in the future.
         /// </summary>
         public static void ClearKeys()
         {
-            keyArray = null; // Do I need to dispose this?
+            keyArray = null; // TODO Do I need to dispose this?
+            hashSaltArray = null; // TODO Do I need to dispose this?
         }
         
         public static void LoadKeysFromEnvIfNeeded()
@@ -93,10 +109,30 @@ namespace MorphicServer
                     {
                         throw new DuplicateKey(key.KeyName);
                     }
+
                     myKeyArray.Add(key);
                 }
+
                 keyArray = myKeyArray;
                 Log.Logger.Debug($"Loaded {keyArray.Count} keys");
+            }
+
+            if (hashSaltArray == null)
+            {
+                var myHashSaltArray = new List<KeyInfo>();
+
+                // Get the hash salt
+                var hashValue = Environment.GetEnvironmentVariable(HashSaltPrimary) ?? "";
+                if (String.IsNullOrWhiteSpace(hashValue))
+                {
+                    throw new EmptyKey(HashSaltPrimary);
+                }
+
+                var hash = KeyInfoFromEnvValue(HashSaltPrimary, hashValue, true);
+
+                myHashSaltArray.Add(hash);
+                hashSaltArray = myHashSaltArray;
+                Log.Logger.Debug($"Loaded {hashSaltArray.Count} hash-salts");
             }
         }
 
