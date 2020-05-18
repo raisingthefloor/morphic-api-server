@@ -57,6 +57,7 @@ namespace MorphicServer
         
         protected readonly ILogger logger;
 
+        protected const string UnknownClientIp = "Unknown Client Ip";
         
         protected EmailTemplates(EmailSettings settings, ILogger<EmailTemplates> logger, Database db)
         {
@@ -86,7 +87,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
         }
 
-        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate)
+        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate, string? clientIp)
         {
             var oneTimeToken = new OneTimeToken(user.Id);
 
@@ -100,6 +101,7 @@ $MorphicUser$ ($MorphicEmail$)";
             emailVerificationMsg.SetAttribute("Link", link);
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
 
             var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Email Verification", emailVerificationMsg.ToString(),
@@ -109,7 +111,7 @@ $MorphicUser$ ($MorphicEmail$)";
         }
         
         [AutomaticRetry(Attempts = 20)]
-        public async Task QueueEmail(string userId, string urlTemplate)
+        public async Task QueueEmail(string userId, string urlTemplate, string? clientIp)
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -128,7 +130,7 @@ $MorphicUser$ ($MorphicEmail$)";
                 return;
             }
 
-            var pending = await CreatePendingEmail(user, urlTemplate);
+            var pending = await CreatePendingEmail(user, urlTemplate, clientIp);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
@@ -150,7 +152,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
         }
 
-        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate)
+        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate, string? clientIp)
         {
             var oneTimeToken = new OneTimeToken(user.Id);
 
@@ -162,6 +164,7 @@ $MorphicUser$ ($MorphicEmail$)";
             emailVerificationMsg.SetAttribute("Link", link);
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
 
             var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Password Reset", emailVerificationMsg.ToString(),
@@ -171,7 +174,7 @@ $MorphicUser$ ($MorphicEmail$)";
         }
         
         [AutomaticRetry(Attempts = 20)]
-        public async Task QueueEmail(string userId, string urlTemplate)
+        public async Task QueueEmail(string userId, string urlTemplate, string? clientIp)
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -190,7 +193,7 @@ $MorphicUser$ ($MorphicEmail$)";
                 return;
             }
 
-            var pending = await CreatePendingEmail(user, urlTemplate);
+            var pending = await CreatePendingEmail(user, urlTemplate, clientIp);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
@@ -210,7 +213,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
         }
 
-        protected async Task<PendingEmail> CreatePendingEmail(User user)
+        protected PendingEmail CreatePendingEmail(User user, string? clientIp)
         {
             // Create the email message
             StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
@@ -218,14 +221,16 @@ $MorphicUser$ ($MorphicEmail$)";
             emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
             emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
             emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
 
             var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
                 "Password Reset", emailVerificationMsg.ToString(),
                 PendingEmail.EmailTypeEnum.EmailValidation);
             return pending;
         }
+        
         [AutomaticRetry(Attempts = 20)]
-        public async Task QueueEmail(string destinationEmail)
+        public async Task QueueEmail(string destinationEmail, string? clientIp)
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -237,7 +242,7 @@ $MorphicUser$ ($MorphicEmail$)";
             var user = new User();
             user.SetEmail(destinationEmail);
             
-            var pending = await CreatePendingEmail(user);
+            var pending = CreatePendingEmail(user, clientIp);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }

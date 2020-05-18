@@ -351,7 +351,7 @@ namespace MorphicServer
 
         public static string? ClientIpFromRequest(HttpRequest request)
         {
-            var clientIp = request.Headers["x-forwarded-for"].ToString();
+            string? clientIp = request.Headers["x-forwarded-for"].ToString();
             if (clientIp == null)
             {
                 clientIp = request.Headers["x-real-ip"].ToString();
@@ -359,6 +359,8 @@ namespace MorphicServer
 
             if (clientIp == null)
             {
+                // Last resort. This is almost never correct. It's either the
+                // load-balancer in front of the server, or localhost in development.
                 clientIp = request.Headers["client_address"].ToString();
                 if (clientIp != null && IsPrivateIp(clientIp))
                 {

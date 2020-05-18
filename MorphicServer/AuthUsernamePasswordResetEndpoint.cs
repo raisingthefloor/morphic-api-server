@@ -154,12 +154,15 @@ namespace MorphicServer
                     Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
                     BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
                         GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                            Context.GetMorphicSettings())));
+                            Context.GetMorphicSettings()),
+                            ClientIpFromRequest(Request)));
                 }
                 else
                 {
                     Log.Logger.Information("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(request.Email));
+                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(
+                        request.Email,
+                        ClientIpFromRequest(Request)));
                 }
             }
         }
