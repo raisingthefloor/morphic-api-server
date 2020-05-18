@@ -93,7 +93,7 @@ namespace MorphicServer
         
         public static string GetEmailVerificationLinkTemplate(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
         {
-            var pathTemplate = GetPathTemplate(typeof(ValidateEmailEndpoint));
+            string pathTemplate = typeof(ValidateEmailEndpoint).GetRoutePath() ?? throw new NotValidPathException("No path");
             if (!pathTemplate.StartsWith("/"))
             {
                 throw new NotValidPathException(pathTemplate);

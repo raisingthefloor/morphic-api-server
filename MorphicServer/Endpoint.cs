@@ -102,17 +102,6 @@ namespace MorphicServer
         private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
             "HTTP Request Duration",
             labelNames);
-
-        public static string GetPathTemplate(Type T)
-        {
-            // Get instance of the attribute.
-            if (!(Attribute.GetCustomAttribute(T, typeof (Path)) is Path customAttribute))
-            {
-                throw new Exception("{T} has no Path attribute");
-            }
-
-            return customAttribute.Template;
-        }
         
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
