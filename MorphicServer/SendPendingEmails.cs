@@ -84,8 +84,12 @@ namespace MorphicServer
         
         public enum EmailTypeEnum
         {
-            EmailValidation = 0
+            None = 0,
+            EmailValidation,
+            PasswordResetExistingUser,
+            PasswordResetNoUser,
         }
+        
 
         public PendingEmail(User user, string fromEmail, string fromFullName,
             string subject, string msg, EmailTypeEnum type)
