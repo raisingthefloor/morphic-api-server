@@ -23,6 +23,7 @@
 
 using System;
 using System.Net;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
@@ -51,12 +52,28 @@ namespace MorphicServer
         public override async Task LoadResource()
         {
             var hashedToken = OneTimeToken.TokenHashedWithDefault(oneTimeToken);
-            OneTimeToken = await Load<OneTimeToken>(hashedToken);
-            if (OneTimeToken == null || !OneTimeToken.IsValid())
+            try
             {
-                throw new HttpError(HttpStatusCode.NotFound);
+                OneTimeToken = await Load<OneTimeToken>(hashedToken);
+                if (OneTimeToken == null || !OneTimeToken.IsValid())
+                {
+                    throw new HttpError(HttpStatusCode.NotFound, BadVerificationResponse.InvalidToken);
+                }
             }
-            user = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest);
+            catch (HttpError httpError)
+            {
+                throw new HttpError(httpError.Status, BadVerificationResponse.InvalidToken);
+            }
+            
+            try
+            {
+                user = await Load<User>(OneTimeToken.UserId) ?? throw new HttpError(HttpStatusCode.BadRequest,
+                           BadVerificationResponse.UserNotFound);
+            }
+            catch (HttpError httpError)
+            {
+                throw new HttpError(httpError.Status, BadVerificationResponse.UserNotFound);
+            }
         }
         
         /// <summary>Fetch the user</summary>
@@ -67,82 +84,29 @@ namespace MorphicServer
             await Save(user);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             // TODO Need to respond with a nicer webpage than ""
+            await Respond(new SuccessResponse("email_verified"));
         }
 
-        public class ValidateEmailEndpointException : MorphicServerException
+        public class SuccessResponse
         {
-            protected ValidateEmailEndpointException(string error) : base(error)
-            {
-            }
+            [JsonPropertyName("message")]
+            public string Status { get; }
 
-            protected ValidateEmailEndpointException()
+            public SuccessResponse(string message)
             {
+                Status = message;
             }
         }
-        
-        public class NoServerUrlFoundException : ValidateEmailEndpointException
+
+        public class BadVerificationResponse : BadRequestResponse
         {
-            public NoServerUrlFoundException(string error) : base(error)
+            public static readonly BadVerificationResponse InvalidToken = new BadVerificationResponse("invalid_token");
+            public static readonly BadVerificationResponse UserNotFound = new BadVerificationResponse("invalid_user");
+
+            public BadVerificationResponse(string error) : base(error)
             {
             }
 
-            public NoServerUrlFoundException()
-            {
-            }
-        }
-        
-        public class NotValidPathException : ValidateEmailEndpointException
-        {
-            public NotValidPathException(string error) : base(error)
-            {
-            }
-        }
-        
-        public static string GetEmailVerificationLinkTemplate(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
-        {
-            string pathTemplate = typeof(ValidateEmailEndpoint).GetRoutePath() ?? throw new NotValidPathException("No path");
-            if (!pathTemplate.StartsWith("/"))
-            {
-                throw new NotValidPathException(pathTemplate);
-            }
-            string serverUrl = morphicSettings.ServerUrlPrefix ?? "";
-            if (serverUrl != "")
-            {
-                // validate it really is a URL
-                try
-                {
-                    var url = new Uri(serverUrl);
-                    if (url.Host == "" || url.Scheme == "")
-                    {
-                        throw new NoServerUrlFoundException(serverUrl);
-                    }
-                }
-                catch (UriFormatException e)
-                {
-                    throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
-                }
-                char[] charsToTrim = {'/'}; // in case a human added the trailing slash in the settings.
-                serverUrl = serverUrl.TrimEnd(charsToTrim);
-            }
-            else
-            {
-                // try to assemble it from X-Forwarded-For- headers.
-                var host = requestHeaders["x-forwarded-host"].ToString();
-                var scheme = requestHeaders["x-forwarded-proto"].ToString();
-                if (host == "" || scheme == "")
-                {
-                    throw new NoServerUrlFoundException();
-                }
-
-                serverUrl = $"{scheme}://{host}";
-                var port = requestHeaders["x-forwarded-port"].ToString();
-                if (port != "" && ((scheme == "http" && port != "80") || (scheme == "https" && port != "443")))
-                {
-                    serverUrl += $":{port}";
-                }
-            }
-
-            return $"{serverUrl}{pathTemplate}";
         }
     }
 }

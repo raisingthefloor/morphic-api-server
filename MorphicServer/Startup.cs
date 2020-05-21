@@ -22,6 +22,12 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.Logging;
+using Hangfire.Mongo;
+using Hangfire.States;
+using Hangfire.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
@@ -51,8 +57,28 @@ namespace MorphicServer
             services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
+            services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
+            services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddRouting();
+
+            var migrationOptions = new MongoMigrationOptions
+            {
+                Strategy = MongoMigrationStrategy.Migrate,
+                BackupStrategy = MongoBackupStrategy.Collections
+            };
+            services.AddHangfire(configuration => configuration
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSerilogLogProvider()
+                .UseFilter(new LogFailureAttribute())
+                .UseMongoStorage(Configuration.GetSection("Hangfire")["ConnectionString"], // TODO Is there a better way than GetSection[]?
+                    new MongoStorageOptions
+                    {
+                        MigrationOptions = migrationOptions
+                    } )
+            );
 
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
@@ -91,6 +117,8 @@ namespace MorphicServer
             {
                 endpoints.MapMetrics();
             });
+            app.UseHangfireServer();
+            app.UseHangfireDashboard();
         }
     }
     
@@ -98,5 +126,30 @@ namespace MorphicServer
     {
         /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
         public string ServerUrlPrefix { get; set; } = "";
+    }
+
+    public class Hangfire
+    {
+        public string ConnectionString { get; set; } = "";
+    }
+    
+    public class LogFailureAttribute : JobFilterAttribute, IApplyStateFilter
+    {
+        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+
+        public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
+            var failedState = context.NewState as FailedState;
+            if (failedState != null)
+            {
+                Logger.ErrorException(
+                    String.Format("Background job #{0} was failed with an exception.", context.BackgroundJob.Id),
+                    failedState.Exception);
+            }
+        }
+
+        public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
+        }
     }
 }
