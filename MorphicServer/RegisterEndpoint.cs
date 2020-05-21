@@ -104,7 +104,7 @@ namespace MorphicServer
             BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
                 user.Id,
                 GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
-                ClientIpFromRequest(Request)
+                Request.ClientIp()
             ));
         }
 
