@@ -195,7 +195,7 @@ namespace MorphicServer
                     }
                     else
                     {
-                        logger.LogError("Email send succeeded");
+                        logger.LogDebug("Email send succeeded");
                         return true;
                     }
                 }
