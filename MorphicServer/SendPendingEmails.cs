@@ -163,14 +163,7 @@ namespace MorphicServer
             bool sent = false;
             if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
             {
-                try
-                {
-                    sent = await SendViaSendGrid(pending);
-                }
-                catch (Exception e)
-                {
-                    logger.LogError($"SendViaSendGrid failed: {e}");
-                }
+                sent = await SendViaSendGrid(pending);
             }
             else if (emailSettings.Type == EmailSettings.EmailTypeLog)
             {
