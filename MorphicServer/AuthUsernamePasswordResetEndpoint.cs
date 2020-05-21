@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -144,6 +145,10 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequestRequest>();
+            if (request.Email == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
+            }
             var db = Context.GetDatabase();
             var hash = User.UserEmailHashCombined(request.Email);
             using (LogContext.PushProperty("EmailHash", hash))
@@ -175,5 +180,19 @@ namespace MorphicServer
             [JsonPropertyName("email")]
             public string Email { get; set; } = null!;
         }
+        
+        public class BadPasswordRequestResponse : BadRequestResponse
+        {
+            public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> { "email" } }
+                });
+            public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+        }
+
     }
 }
