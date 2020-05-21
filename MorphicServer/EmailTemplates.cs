@@ -65,6 +65,31 @@ namespace MorphicServer
             Settings = settings;
             this.logger = logger;
         }
+
+        protected string EmailMsgTemplate = "";
+        protected string EmailSubject = "";
+        protected PendingEmail.EmailTypeEnum EmailType = PendingEmail.EmailTypeEnum.None;
+
+        protected PendingEmail CreatePendingEmail(User user, string? link, string? clientIp)
+        {
+            StringTemplate emailVerificationMsg = new StringTemplate(EmailMsgTemplate);
+            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
+            if (link != null)
+            {
+                emailVerificationMsg.SetAttribute("Link", link);
+            }
+            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
+            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
+            var emailMsg = emailVerificationMsg.ToString();
+            
+            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
+                EmailSubject, 
+                emailMsg,
+                EmailType);
+            return pending;
+        }
     }
 
     class EmailTemplatesException : MorphicServerException
@@ -75,39 +100,16 @@ namespace MorphicServer
     }
     public class NewVerificationEmail : EmailTemplates
     {
-        private const string EmailVerificationMsgTemplate =
-            @"Dear $UserFullName$,
+        public NewVerificationEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        {
+            EmailMsgTemplate = @"Dear $UserFullName$,
 
 To verify your email address $UserEmail$ please click the following link: $Link$
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
-        
-        public NewVerificationEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
-        {
-        }
-
-        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate, string? clientIp)
-        {
-            var oneTimeToken = new OneTimeToken(user.Id);
-
-            // Create the email message
-            var link = urlTemplate
-                .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
-                .Replace("{userId}", oneTimeToken.UserId);
-            StringTemplate emailVerificationMsg = new StringTemplate(EmailVerificationMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
-            emailVerificationMsg.SetAttribute("Link", link);
-            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
-            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
-            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
-
-            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
-                "Email Verification", emailVerificationMsg.ToString(),
-                PendingEmail.EmailTypeEnum.EmailValidation);
-            await Db.Save(oneTimeToken);
-            return pending;
+            EmailType = PendingEmail.EmailTypeEnum.EmailValidation;
+            EmailSubject = "Morphic Email Verification";
         }
         
         [AutomaticRetry(Attempts = 20)]
@@ -130,15 +132,22 @@ $MorphicUser$ ($MorphicEmail$)";
                 return;
             }
 
-            var pending = await CreatePendingEmail(user, urlTemplate, clientIp);
+            var oneTimeToken = new OneTimeToken(user.Id);
+            var link = urlTemplate
+                .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
+                .Replace("{userId}", oneTimeToken.UserId);
+            var pending = CreatePendingEmail(user, link, clientIp);
+            await Db.Save(oneTimeToken);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
 
     public class NewPasswordResetEmail : EmailTemplates
     {
-        private const string PasswordResetLinkMsgTemplate =
-            @"Dear $UserFullName$,
+        public NewPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        {
+            EmailMsgTemplate =
+                @"Dear $UserFullName$,
 
 Someone requested a password reset for this email address. If this wasn't you, you may ignore
 this email or contact Morphic Support.
@@ -147,32 +156,10 @@ To reset your password, please click the following link and follow the instructi
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
-        
-        public NewPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
-        {
+            EmailType = PendingEmail.EmailTypeEnum.PasswordResetExistingUser;
+            EmailSubject = "Morphic Password Reset Requested";
         }
 
-        protected async Task<PendingEmail> CreatePendingEmail(User user, string urlTemplate, string? clientIp)
-        {
-            var oneTimeToken = new OneTimeToken(user.Id);
-
-            // Create the email message
-            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
-            StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetLinkMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
-            emailVerificationMsg.SetAttribute("Link", link);
-            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
-            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
-            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
-
-            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
-                "Password Reset", emailVerificationMsg.ToString(),
-                PendingEmail.EmailTypeEnum.EmailValidation);
-            await Db.Save(oneTimeToken);
-            return pending;
-        }
-        
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string userId, string urlTemplate, string? clientIp)
         {
@@ -193,42 +180,30 @@ $MorphicUser$ ($MorphicEmail$)";
                 return;
             }
 
-            var pending = await CreatePendingEmail(user, urlTemplate, clientIp);
+            var oneTimeToken = new OneTimeToken(user.Id);
+            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
+            var pending = CreatePendingEmail(user, link, clientIp);
+            await Db.Save(oneTimeToken);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }
     
     public class NewNoEmailPasswordResetEmail : EmailTemplates
     {
-        private const string PasswordResetNoEmailMsgTemplate =
-            @"Dear $UserFullName$,
+        public NewNoEmailPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        {
+            EmailMsgTemplate =
+                @"Dear $UserFullName$,
 
-Someone requested a password reset for this email address. However no account exists for this
-email. If this wasn't requested by you, you may ignore this email or contact Morphic Support.
+Someone requested a password reset for this email address, however no account exists.
+If this wasn't requested by you, you may ignore this email or contact Morphic Support.
 
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
-
-        public NewNoEmailPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
-        {
+            EmailType = PendingEmail.EmailTypeEnum.PasswordResetNoUser;
+            EmailSubject = "Morphic Password Reset Requested";
         }
 
-        protected PendingEmail CreatePendingEmail(User user, string? clientIp)
-        {
-            // Create the email message
-            StringTemplate emailVerificationMsg = new StringTemplate(PasswordResetNoEmailMsgTemplate);
-            emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
-            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
-            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
-            emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
-
-            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
-                "Password Reset", emailVerificationMsg.ToString(),
-                PendingEmail.EmailTypeEnum.EmailValidation);
-            return pending;
-        }
-        
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string destinationEmail, string? clientIp)
         {
@@ -238,11 +213,10 @@ $MorphicUser$ ($MorphicEmail$)";
                 return;
             }
 
-            // Don't save this. Just to carry the email
+            // Don't save this. It's just to carry the email
             var user = new User();
             user.SetEmail(destinationEmail);
-            
-            var pending = CreatePendingEmail(user, clientIp);
+            var pending = CreatePendingEmail(user, null, clientIp);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
     }

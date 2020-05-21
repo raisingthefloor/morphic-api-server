@@ -100,12 +100,12 @@ namespace MorphicServer
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
 
+            await Register(cred, user);
             BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
                 user.Id,
                 GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
-                ClientIpFromRequest(Request)
-                ));
-            await Register(cred, user); // TODO Should back out the verification email stuff if this fails.
+                Request.ClientIp()
+            ));
         }
 
         private static bool IsValidEmail(string emailaddress)

@@ -73,7 +73,7 @@ namespace MorphicServer
                 .UseRecommendedSerializerSettings()
                 .UseSerilogLogProvider()
                 .UseFilter(new LogFailureAttribute())
-                .UseMongoStorage(Configuration.GetSection("Hangfire")["ConnectionString"], // TODO Is there a better way than GetSection[]?
+                .UseMongoStorage(Configuration.GetSection("HangfireSettings")["ConnectionString"], // TODO Is there a better way than GetSection[]?
                     new MongoStorageOptions
                     {
                         MigrationOptions = migrationOptions
@@ -128,7 +128,7 @@ namespace MorphicServer
         public string ServerUrlPrefix { get; set; } = "";
     }
 
-    public class Hangfire
+    public class HangfireSettings
     {
         public string ConnectionString { get; set; } = "";
     }
