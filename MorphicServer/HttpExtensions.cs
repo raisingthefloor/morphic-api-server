@@ -108,5 +108,48 @@ namespace MorphicServer
             }
             throw new HttpError(HttpStatusCode.UnsupportedMediaType);
         }
+        
+        private static bool IsPrivateIp(string ipAddress)
+        {
+            if(ipAddress == "::1") return true;
+            byte[] ip = IPAddress.Parse(ipAddress).GetAddressBytes();
+            switch (ip[0])
+            {
+                case 10:
+                case 127:
+                    return true;
+                case 172:
+                    return ip[1] >= 16 && ip[1] < 32;
+                case 192:
+                    return ip[1] == 168;
+                default:
+                    return false;
+            }
+        }
+        
+        public static string? ClientIp(this HttpRequest request)
+        {
+            string? clientIp = request.Headers["x-forwarded-for"].ToString();
+            if (clientIp == null)
+            {
+                clientIp = request.Headers["x-real-ip"].ToString();
+            }
+
+            if (clientIp == null)
+            {
+                // Last resort. This is almost never correct. It's either the
+                // load-balancer in front of the server, or localhost in development.
+                clientIp = request.Headers["client_address"].ToString();
+                if (clientIp != null && IsPrivateIp(clientIp))
+                {
+                    // ignore private IP addresses
+                    clientIp = null;
+                }
+            }
+
+            return clientIp;
+        }
+
+        
     }
 }

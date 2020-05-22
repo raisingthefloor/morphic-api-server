@@ -32,6 +32,7 @@ using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Serilog.Context;
+using Hangfire;
 
 namespace MorphicServer
 {
@@ -90,34 +91,31 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            using (LogContext.PushProperty("username", request.Username))
+            CheckPassword(request.Password);
+            await CheckEmail(request.Email);
+
+            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
+            if (existing != null)
             {
-                CheckPassword(request.Password);
-                await CheckEmail(request.Email);
-
-                var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
-                if (existing != null)
-                {
-                    throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
-                }
-
-                var cred = new UsernameCredential();
-                cred.Id = request.Username;
-                cred.SetPassword(request.Password);
-
-                var user = new User();
-                user.Id = Guid.NewGuid().ToString();
-                user.SetEmail(request.Email);
-                user.FirstName = request.FirstName;
-                user.LastName = request.LastName;
-
-                await EmailTemplates.NewVerificationEmail(Context.GetDatabase(),
-                    user,
-                    ValidateEmailEndpoint.GetEmailVerificationLinkTemplate(Request.Headers, Context.GetMorphicSettings()
-                    ));
-
-                await Register(cred, user);
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
             }
+
+            var cred = new UsernameCredential();
+            cred.Id = request.Username;
+            cred.SetPassword(request.Password);
+
+            var user = new User();
+            user.Id = Guid.NewGuid().ToString();
+            user.SetEmail(request.Email);
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+
+            await Register(cred, user);
+            BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
+                user.Id,
+                GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
+                Request.ClientIp()
+            ));
         }
 
         private static bool IsValidEmail(string emailaddress)

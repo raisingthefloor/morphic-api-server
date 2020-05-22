@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
@@ -72,7 +73,47 @@ namespace MorphicServer
         {
             return HashedData.FromString(email, User.DefaultUserEmailSalt).ToCombinedString();
         }
-        
+
+        public string FullnameOrEmail()
+        {
+            if (FullName == "")
+            {
+                return GetEmail() ?? "";
+            }
+            else
+            {
+                return FullName;
+            }
+        }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public string FullName
+        {
+            get
+            {
+                string fullName = "";
+
+                if (!string.IsNullOrEmpty(FirstName) || !string.IsNullOrEmpty(LastName))
+                {
+                    if (!string.IsNullOrEmpty(FirstName)) fullName = FirstName!;
+                    if (!string.IsNullOrEmpty(LastName))
+                    {
+                        if (fullName == "")
+                        {
+                            fullName = LastName;
+                        }
+                        else
+                        {
+                            fullName += " " + LastName;
+                        }
+                    }
+                }
+
+                return fullName;
+            }
+        }
+
         public string GetEmail()
         {
             if (String.IsNullOrWhiteSpace(EmailEncrypted))

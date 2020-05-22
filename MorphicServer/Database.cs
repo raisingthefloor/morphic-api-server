@@ -82,7 +82,6 @@ namespace MorphicServer
             CollectionByType[typeof(BadPasswordLockout)] =
                 morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
             CollectionByType[typeof(OneTimeToken)] = morphic.GetCollection<OneTimeToken>("OneTimeToken");
-            CollectionByType[typeof(PendingEmail)] = morphic.GetCollection<PendingEmail>("PendingEmail");
         }
 
         public void DeleteDatabase()
@@ -266,9 +265,7 @@ namespace MorphicServer
             CreateOrUpdateIndexOrFail(oneTimeToken,
                 new CreateIndexModel<OneTimeToken>(
                     Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
-
-            CreateCollectionIfNotExists<PendingEmail>();
-
+            
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);
