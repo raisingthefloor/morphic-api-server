@@ -25,8 +25,6 @@ using System.Threading.Tasks;
 using Antlr3.ST;
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using Serilog;
-using ILogger = Microsoft.Extensions.Logging.ILogger;
 
 namespace MorphicServer
 {
@@ -117,7 +115,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
-                Log.Logger.Warning("EmailSettings.Disable is set");
+                logger.LogWarning("EmailSettings.Disable is set");
                 return;
             }
 
@@ -128,7 +126,7 @@ $MorphicUser$ ($MorphicEmail$)";
             }
             if (user.GetEmail() == null)
             {
-                Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
+                logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
             }
 
@@ -165,7 +163,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
-                Log.Logger.Warning("EmailSettings.Disable is set");
+                logger.LogWarning("EmailSettings.Disable is set");
                 return;
             }
 
@@ -176,7 +174,7 @@ $MorphicUser$ ($MorphicEmail$)";
             }
             if (user.GetEmail() == null)
             {
-                Log.Logger.Debug($"Sending email to user {user.Id} who doesn't have an email address");
+                logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
             }
 
@@ -209,7 +207,7 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
-                Log.Logger.Warning("EmailSettings.Disable is set");
+                logger.LogWarning("EmailSettings.Disable is set");
                 return;
             }
 

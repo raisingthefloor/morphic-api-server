@@ -30,7 +30,6 @@ using System;
 using System.Net;
 using System.Text.Encodings.Web;
 using Serilog;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -84,7 +83,6 @@ namespace MorphicServer
                 }
                 catch (NonNullableExceptionJsonConverter.NullOrMissingProperties e)
                 {
-                    Log.Logger.Information("Could not deserialize payload, missing required field");
                     var content = new Dictionary<string, object>(){
                         { "error", "missing_required" },
                         { "details", new Dictionary<string, object>() {
@@ -99,10 +97,7 @@ namespace MorphicServer
                 }
                 catch (Exception e)
                 {
-                    using (LogContext.PushProperty("exception", e))
-                    {
-                        Log.Logger.Information("Unknown error during deserialize payload");
-                    }
+                    Log.Logger.Information("Unknown error during deserialize payload {Exception}", e.ToString());
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }

@@ -23,7 +23,7 @@
 
 using System.Net;
 using System.Threading.Tasks;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -44,7 +44,7 @@ namespace MorphicServer
             {
                 // Not sure how this could happen: It means we have a credential for the user, but no user!
                 // How did the credential get there if there's no user?
-                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                db.logger.LogError("{UserId} UserNotFound from credential", credential.UserId);
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
 

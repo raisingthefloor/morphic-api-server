@@ -57,7 +57,8 @@ namespace MorphicServer
 
         /// <summary>The Morphic Database</summary>
         private readonly IMongoDatabase morphic;
-        private readonly ILogger<Database> logger;
+
+        internal readonly ILogger<Database> logger;
 
         /// <summary>Create a database using the given settings</summary>
         /// <remarks>
