@@ -31,7 +31,6 @@ using System.Net;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Serilog.Context;
 using Hangfire;
 
 namespace MorphicServer
