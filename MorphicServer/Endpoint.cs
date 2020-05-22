@@ -405,16 +405,15 @@ namespace MorphicServer
             }
             else
             {
-                foreach (var header in requestHeaders)
-                {
-                    Log.Logger.Information("Request Header {key}={value}", header.Key, header.Value);
-                }
                 // try to assemble it from X-Forwarded-For- headers.
-                var host1 = requestHeaders["x-forwarded-host1"].FirstOrDefault();
                 var host = requestHeaders["x-forwarded-host"].FirstOrDefault();
                 var scheme = requestHeaders["x-forwarded-proto"].FirstOrDefault();
                 if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(scheme))
                 {
+                    foreach (var header in requestHeaders)
+                    {
+                        Log.Logger.Debug("Request Header {key}={value}", header.Key, header.Value);
+                    }
                     throw new NoServerUrlFoundException();
                 }
 
