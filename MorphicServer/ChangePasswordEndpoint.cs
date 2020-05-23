@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -55,6 +56,10 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<ChangePasswordRequest>();
+            if (request.NewPassword == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordChangeResponse.MissingRequired);
+            }
             var db = Context.GetDatabase();
             var user = await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
             usernameCredentials.CheckAndSetPassword(request.NewPassword);
@@ -74,6 +79,24 @@ namespace MorphicServer
             public string NewPassword { get; set; } = null!;
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
+        }
+
+        public class BadPasswordChangeResponse : BadRequestResponse
+        {
+            public static readonly BadPasswordChangeResponse MissingRequired = new BadPasswordChangeResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> {"new_password"}}
+                });
+
+            public BadPasswordChangeResponse(string error) : base(error)
+            {
+            }
+
+            public BadPasswordChangeResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
         }
     }
 }

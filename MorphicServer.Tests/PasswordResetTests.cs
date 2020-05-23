@@ -110,7 +110,8 @@ namespace MorphicServer.Tests
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            
+            assertMissingRequired(error, new List<string> {"new_password"});
+
             // Success
             request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
             content = new Dictionary<string, object>();
