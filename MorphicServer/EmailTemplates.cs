@@ -98,9 +98,9 @@ namespace MorphicServer
         {
         }
     }
-    public class NewVerificationEmail : EmailTemplates
+    public class EmailVerificationEmail : EmailTemplates
     {
-        public NewVerificationEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public EmailVerificationEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate = @"Dear $UserFullName$,
 
@@ -142,9 +142,9 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
 
-    public class NewPasswordResetEmail : EmailTemplates
+    public class PasswordResetEmail : EmailTemplates
     {
-        public NewPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public PasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -188,9 +188,9 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
     
-    public class NewNoEmailPasswordResetEmail : EmailTemplates
+    public class UnknownEmailPasswordResetEmail : EmailTemplates
     {
-        public NewNoEmailPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public UnknownEmailPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -221,9 +221,9 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
     
-    public class NewEmailNotVerifiedPasswordResetEmail : EmailTemplates
+    public class EmailNotVerifiedPasswordResetEmail : EmailTemplates
     {
-        public NewEmailNotVerifiedPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public EmailNotVerifiedPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,

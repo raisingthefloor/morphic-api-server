@@ -176,7 +176,7 @@ namespace MorphicServer
                     if (user.EmailVerified)
                     {
                         Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
-                        BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
+                        BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
                             GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
                                 Context.GetMorphicSettings()),
                             Request.ClientIp()));
@@ -184,7 +184,7 @@ namespace MorphicServer
                     else
                     {
                         Log.Logger.Information("Password reset requested for userId {userId}, but email not verified", user.Id);
-                        BackgroundJob.Enqueue<NewEmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                        BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                             request.Email,
                             Request.ClientIp()));
                     }
@@ -192,7 +192,7 @@ namespace MorphicServer
                 else
                 {
                     Log.Logger.Information("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(
+                    BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }
