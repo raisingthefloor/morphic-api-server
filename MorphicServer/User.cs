@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Serilog;
@@ -132,6 +133,20 @@ namespace MorphicServer
             }
 
             return plainText;
+        }
+        
+        public static bool IsValidEmail(string emailaddress)
+        {
+            try
+            {
+                // ReSharper disable once ObjectCreationAsStatement
+                new MailAddress(emailaddress);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
     }
 }

@@ -161,6 +161,11 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
             }
+
+            if (!User.IsValidEmail(request.Email))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadEmailAddress);
+            }
             var db = Context.GetDatabase();
             var hash = User.UserEmailHashCombined(request.Email);
             using (LogContext.PushProperty("EmailHash", hash))
@@ -195,6 +200,7 @@ namespace MorphicServer
         
         public class BadPasswordRequestResponse : BadRequestResponse
         {
+            public static readonly BadPasswordRequestResponse BadEmailAddress = new BadPasswordRequestResponse("bad_email_address");
             public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
                 "missing_required",
                 new Dictionary<string, object>
@@ -202,6 +208,9 @@ namespace MorphicServer
                     {"required", new List<string> { "email" } }
                 });
             public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+            public BadPasswordRequestResponse(string error) : base(error)
             {
             }
         }
