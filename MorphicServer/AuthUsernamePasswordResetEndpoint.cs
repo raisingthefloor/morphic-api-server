@@ -114,8 +114,7 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
             }
-            
-            usernameCredentials.SetPassword(request.NewPassword);
+            usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             if (request.DeleteExistingTokens)
@@ -253,16 +252,26 @@ namespace MorphicServer
                 var user = await db.Get<User>(a => a.EmailHash == hash, ActiveSession);
                 if (user != null)
                 {
-                    Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
-                    BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
-                        GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                            Context.GetMorphicSettings()),
+                    if (user.EmailVerified)
+                    {
+                        Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
+                        BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
+                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                                Context.GetMorphicSettings()),
                             Request.ClientIp()));
+                    }
+                    else
+                    {
+                        Log.Logger.Information("Password reset requested for userId {userId}, but email not verified", user.Id);
+                        BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                            request.Email,
+                            Request.ClientIp()));
+                    }
                 }
                 else
                 {
                     Log.Logger.Information("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(
+                    BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }

@@ -24,6 +24,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Net;
 using System.Threading.Tasks;
 using Prometheus;
@@ -38,8 +39,10 @@ namespace MorphicServer
         public string PasswordSalt = null!;
         public string PasswordHash = null!;
 
-        public void SetPassword(string password)
+        public void CheckAndSetPassword(string password)
         {
+            CheckPassword(password);
+
             var hashedData = HashedData.FromString(password);
             PasswordFunction = hashedData.HashFunction;
             PasswordSalt = hashedData.Salt;
@@ -52,6 +55,50 @@ namespace MorphicServer
             var hashedData = new HashedData(PasswordIterationCount, PasswordFunction, PasswordSalt, PasswordHash);
             return hashedData.Equals(password);
         }
+        
+        private const int MinPasswordLength = 6;
+
+        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
+            new[] {
+                "password",
+                "testing"
+            }
+        );
+
+        private void CheckPassword(String password)
+        {   
+            if (password.Length < MinPasswordLength)
+            {
+                Log.Logger.Information("SHORT_PASSWORD({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
+            }
+
+            if (BadPasswords.Contains(password))
+            {
+                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
+            }
+        }
+
+        class BadRequestResponseUser : BadRequestResponse
+        {
+            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
+                "short_password",
+                new Dictionary<string, object>
+                {
+                    {"minimum_length", MinPasswordLength}
+                });
+            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
+
+            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+
+            private BadRequestResponseUser(string error) : base(error)
+            {
+            }
+        }
+
     }
 
     public static class UsernameCredentialDatabase

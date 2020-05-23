@@ -22,8 +22,6 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
@@ -79,7 +77,6 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            CheckPassword(request.Password);
             await CheckEmail(request.Email);
 
             var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
@@ -90,7 +87,7 @@ namespace MorphicServer
             
             var cred = new UsernameCredential();
             cred.Id = request.Username;
-            cred.SetPassword(request.Password);
+            cred.CheckAndSetPassword(request.Password);
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
@@ -99,35 +96,11 @@ namespace MorphicServer
             user.LastName = request.LastName;
 
             await Register(cred, user);
-            BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
+            BackgroundJob.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
                 user.Id,
                 GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
                 Request.ClientIp()
             ));
-        }
-
-        private const int MinPasswordLength = 6;
-
-        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
-            new[] {
-                "password",
-                "testing"
-            }
-        );
-
-        private static void CheckPassword(String password)
-        {   
-            if (password.Length < MinPasswordLength)
-            {
-                Log.Logger.Information("SHORT_PASSWORD({username})");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
-            }
-
-            if (BadPasswords.Contains(password))
-            {
-                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
-            }
         }
 
         private async Task CheckEmail(String email)
@@ -164,17 +137,6 @@ namespace MorphicServer
             public static readonly BadRequestResponse ExistingEmail = new BadRequestResponseUser("existing_email");
             public static readonly BadRequestResponse MalformedEmail = new BadRequestResponseUser("malformed_email");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
-            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
-                "short_password",
-                new Dictionary<string, object>
-                {
-                    {"minimum_length", MinPasswordLength}
-                });
-            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
-
-            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
-            {
-            }
 
             private BadRequestResponseUser(string error) : base(error)
             {
