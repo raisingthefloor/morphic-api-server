@@ -56,6 +56,8 @@ namespace MorphicServer.Tests
         /// <summary>A reference to the test database</summary>
         protected Database Database;
 
+        protected MorphicSettings MorphicSettings;
+        
         /// <summary>Create a test database, test http server, and client connection to the test server</summary>
         public EndpointTests()
         {
@@ -75,6 +77,7 @@ namespace MorphicServer.Tests
             Server = new TestServer(builder);
             Client = Server.CreateClient();
             Database = Server.Services.GetService(typeof(Database)) as Database;
+            MorphicSettings = Server.Services.GetService(typeof(MorphicSettings)) as MorphicSettings;
         }
 
         /// <summary>Delete the test database after every test case so each test can start fresh</summary>

@@ -78,12 +78,16 @@ namespace MorphicServer
             }
         }
 
-        /// <summary>Fetch the user</summary>
+        /// <summary>Reset the password</summary>
         [Method]
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequest>();
-            usernameCredentials.SetPassword(request.NewPassword);
+            if (request.NewPassword == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
+            }
+            usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             if (request.DeleteExistingTokens)
@@ -115,16 +119,24 @@ namespace MorphicServer
 
         public class BadPasswordResetResponse : BadRequestResponse
         {
-            public static readonly BadPasswordResetResponse
-                InvalidToken = new BadPasswordResetResponse("invalid_token");
-
+            public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
+            public static readonly BadPasswordResetResponse MissingRequired = new BadPasswordResetResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> { "new_password" } }
+                });
 
             public BadPasswordResetResponse(string error) : base(error)
             {
             }
-
+        
+            public BadPasswordResetResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
         }
+
     }
 
     /// <summary>
