@@ -173,11 +173,21 @@ namespace MorphicServer
                 var user = await db.Get<User>(a => a.EmailHash == hash, ActiveSession);
                 if (user != null)
                 {
-                    Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
-                    BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
-                        GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                            Context.GetMorphicSettings()),
+                    if (user.EmailVerified)
+                    {
+                        Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
+                        BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
+                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                                Context.GetMorphicSettings()),
                             Request.ClientIp()));
+                    }
+                    else
+                    {
+                        Log.Logger.Information("Password reset requested for userId {userId}, but email not verified", user.Id);
+                        BackgroundJob.Enqueue<NewEmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                            request.Email,
+                            Request.ClientIp()));
+                    }
                 }
                 else
                 {

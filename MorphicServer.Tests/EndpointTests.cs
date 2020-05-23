@@ -88,7 +88,7 @@ namespace MorphicServer.Tests
         }
 
         /// <summary>Create a test user and return an auth token</summary>
-        protected async Task<UserInfo> CreateTestUser(string firstName = "Test", string lastName = "User")
+        protected async Task<UserInfo> CreateTestUser(string firstName = "Test", string lastName = "User", bool verifiedEmail = false)
         {
             ++TestUserCount;
             var content = new Dictionary<string, object>();
@@ -126,6 +126,14 @@ namespace MorphicServer.Tests
             Assert.NotEqual("", property.GetString());
             var preferencesId = property.GetString();
             Assert.False(user.TryGetProperty("EmailVerified", out property));
+
+            if (verifiedEmail)
+            {
+                var dbUser = await Database.Get<User>(id);
+                Assert.NotNull(dbUser);
+                dbUser.EmailVerified = true;
+                await Database.Save(dbUser);
+            }
 
             return new UserInfo()
             {

@@ -13,7 +13,7 @@ namespace MorphicServer.Tests
         [Fact]
         public async Task ResetPasswordRequestHeaderTests()
         {
-            var userInfo1 = await CreateTestUser();
+            var userInfo1 = await CreateTestUser(verifiedEmail:true);
 
             // Fail: No headers
             var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/request");
