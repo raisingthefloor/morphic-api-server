@@ -27,10 +27,8 @@ using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Net;
-using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Hangfire;
-using Microsoft.AspNetCore.Http;
 using Serilog;
 
 namespace MorphicServer
@@ -108,20 +106,6 @@ namespace MorphicServer
             ));
         }
 
-        private static bool IsValidEmail(string emailaddress)
-        {
-            try
-            {
-                // ReSharper disable once ObjectCreationAsStatement
-                new MailAddress(emailaddress);
-                return true;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-        }
-
         private const int MinPasswordLength = 6;
 
         private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
@@ -148,7 +132,7 @@ namespace MorphicServer
 
         private async Task CheckEmail(String email)
         {
-            if (!IsValidEmail(email))
+            if (!User.IsValidEmail(email))
             {
                 Log.Logger.Information("MALFORMED_EMAIL");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);

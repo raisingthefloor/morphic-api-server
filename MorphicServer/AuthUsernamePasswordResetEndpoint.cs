@@ -26,6 +26,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Hangfire;
+using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using Serilog;
 using Serilog.Context;
@@ -78,11 +79,42 @@ namespace MorphicServer
             }
         }
 
-        /// <summary>Fetch the user</summary>
+        [Method]
+        public async Task Get()
+        {
+            // We're posting back to the same URL with the same OneTimeToken. We COULD/SHOULD create a new one, perhaps.
+            // But this is just a short-term hack for testers to be able to reset passwords.
+            var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+            var password_input = "<p><label for=\"new_password\">Password:</label><input type=\"password\" name=\"new_password\"><br>";
+            var delete_existing_tokens = "<p><label for=\"delete_existing_tokens\">Delete all Auth Tokens:</label><input type=\"checkbox\" name=\"delete_existing_tokens\" value=\"true\"><br>";
+            var form = $"<form action=\"{link}\" method=\"POST\" name=\"PasswordResetForm\">{password_input}{delete_existing_tokens} <input type=\"submit\"></form>";
+            var head = "<head><title>PasswordResetForm</title></head>";
+            var body = $"<body>{form}</body>";
+            await Response.WriteHtml($"<html>{head}{body}</html>");
+        }
+        
+        /// <summary>Reset the password</summary>
         [Method]
         public async Task Post()
         {
-            var request = await Request.ReadJson<PasswordResetRequest>();
+            PasswordResetRequest request;
+            if (Request.ContentType.Contains("application/json"))
+            {
+                request = await Request.ReadJson<PasswordResetRequest>();
+            } 
+            else if (Request.ContentType.Contains("application/x-www-form-urlencoded"))
+            {
+                request = await FromForm(Request);
+            }
+            else
+            {
+                throw new HttpError(HttpStatusCode.BadRequest);
+            }
+            if (request.NewPassword == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
+            }
+            
             usernameCredentials.SetPassword(request.NewPassword);
             await Save(usernameCredentials);
             await OneTimeToken.Invalidate(Context.GetDatabase());
@@ -95,6 +127,34 @@ namespace MorphicServer
             await Respond(new SuccessResponse("password_was_reset"));
         }
 
+        private async Task<PasswordResetRequest> FromForm(HttpRequest request)
+        {
+            var result = await request.GetHtmlBodyStringAsync();
+            var resetRequest = new PasswordResetRequest();
+            var elements = result.Split("&");
+            foreach (var el in elements)
+            {
+                var parts = el.Split("=");
+                if (parts[0] == "new_password")
+                {
+                    resetRequest.NewPassword = parts[1];
+                }
+                else if (parts[0] == "delete_existing_tokens")
+                {
+                    if (parts[1] == "true")
+                    {
+                        resetRequest.DeleteExistingTokens = true;
+                    }
+                }
+                else
+                {
+                    throw new HttpError(HttpStatusCode.BadRequest);
+                }
+            }
+
+            return resetRequest;
+        }
+        
         public class PasswordResetRequest
         {
             [JsonPropertyName("new_password")] public string NewPassword { get; set; } = null!;
@@ -115,16 +175,24 @@ namespace MorphicServer
 
         public class BadPasswordResetResponse : BadRequestResponse
         {
-            public static readonly BadPasswordResetResponse
-                InvalidToken = new BadPasswordResetResponse("invalid_token");
-
+            public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
+            public static readonly BadPasswordResetResponse MissingRequired = new BadPasswordResetResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> { "new_password" } }
+                });
 
             public BadPasswordResetResponse(string error) : base(error)
             {
             }
-
+        
+            public BadPasswordResetResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
         }
+
     }
 
     /// <summary>
@@ -137,6 +205,17 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/request")]
     public class AuthUsernamePasswordResetRequestEndpoint : Endpoint
     {
+        [Method]
+        public async Task Get()
+        {
+            // short-term hack for testers to be able to reset passwords.
+            var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
+            var email = "<p><label for=\"email\">Email:</label><input type=\"text\" name=\"email\"><br>";
+            var form = $"<form action=\"{link}\" method=\"POST\" name=\"PasswordResetRequestForm\">{email}<input type=\"submit\"></form>";
+            var head = "<head><title>PasswordResetRequestForm</title></head>";
+            var body = $"<body>{form}</body>";
+            await Response.WriteHtml($"<html>{head}{body}</html>");
+        }
         /// <summary>
         /// TODO: Need to rate-limit this and/or use re-captcha
         /// </summary>
@@ -144,10 +223,28 @@ namespace MorphicServer
         [Method]
         public async Task Post()
         {
-            var request = await Request.ReadJson<PasswordResetRequestRequest>();
+            PasswordResetRequestRequest request;
+            if (Request.ContentType.Contains("application/json"))
+            {
+                request = await Request.ReadJson<PasswordResetRequestRequest>();
+            } 
+            else if (Request.ContentType.Contains("application/x-www-form-urlencoded"))
+            {
+                request = await FromForm(Request);
+            }
+            else
+            {
+                throw new HttpError(HttpStatusCode.BadRequest);
+            }
+
             if (request.Email == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
+            }
+
+            if (!User.IsValidEmail(request.Email))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadEmailAddress);
             }
             var db = Context.GetDatabase();
             var hash = User.UserEmailHashCombined(request.Email);
@@ -170,7 +267,41 @@ namespace MorphicServer
                         Request.ClientIp()));
                 }
             }
+            // TODO Need to respond with a nicer webpage than this
+            await Respond(new SuccessResponse("password_reset_sent"));
         }
+
+        public class SuccessResponse
+        {
+            [JsonPropertyName("message")] public string Status { get; }
+
+            public SuccessResponse(string message)
+            {
+                Status = message;
+            }
+        }
+
+        private async Task<PasswordResetRequestRequest> FromForm(HttpRequest request)
+        {
+            var result = await request.GetHtmlBodyStringAsync();
+            var resetRequest = new PasswordResetRequestRequest();
+            var elements = result.Split("&");
+            foreach (var el in elements)
+            {
+                var parts = el.Split("=");
+                if (parts[0] == "email")
+                {
+                    resetRequest.Email = parts[1];
+                }
+                else
+                {
+                    throw new HttpError(HttpStatusCode.BadRequest);
+                }
+            }
+
+            return resetRequest;
+        }
+
 
         /// <summary>
         /// Model the password-reset-request request (yea I know...)
@@ -183,6 +314,7 @@ namespace MorphicServer
         
         public class BadPasswordRequestResponse : BadRequestResponse
         {
+            public static readonly BadPasswordRequestResponse BadEmailAddress = new BadPasswordRequestResponse("bad_email_address");
             public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
                 "missing_required",
                 new Dictionary<string, object>
@@ -190,6 +322,9 @@ namespace MorphicServer
                     {"required", new List<string> { "email" } }
                 });
             public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+            public BadPasswordRequestResponse(string error) : base(error)
             {
             }
         }
