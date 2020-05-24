@@ -85,10 +85,16 @@ namespace MorphicServer
             // We're posting back to the same URL with the same OneTimeToken. We COULD/SHOULD create a new one, perhaps.
             // But this is just a short-term hack for testers to be able to reset passwords.
             var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
-            var password_input = "<p><label for=\"new_password\">Password:</label><input type=\"password\" name=\"new_password\"><br>";
-            var delete_existing_tokens = "<p><label for=\"delete_existing_tokens\">Delete all Auth Tokens:</label><input type=\"checkbox\" name=\"delete_existing_tokens\" value=\"true\"><br>";
-            var form = $"<form action=\"{link}\" method=\"POST\" name=\"PasswordResetForm\">{password_input}{delete_existing_tokens} <input type=\"submit\"></form>";
-            var head = "<head><title>PasswordResetForm</title></head>";
+
+            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
+            var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
+            var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetForm\").submit();}</script>";
+            var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
+
+            var passwordInput = "<p><label for=\"new_password\">Password:</label><input type=\"password\" name=\"new_password\"><br>";
+            var deleteExistingTokens = "<p><label for=\"delete_existing_tokens\">Delete all Auth Tokens:</label><input type=\"checkbox\" name=\"delete_existing_tokens\" value=\"true\"><br>";
+            var form = $"<form action=\"{link}\" method=\"POST\" id=\"PasswordResetForm\" name=\"PasswordResetForm\">{passwordInput}{deleteExistingTokens}{recaptchaButton}</form>";
+            var head = $"<head>{script}{script2}<title>PasswordResetForm</title></head>";
             var body = $"<body>{form}</body>";
             await Response.WriteHtml($"<html>{head}{body}</html>");
         }
@@ -110,9 +116,19 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
+            if (request.GRecaptchaResponse == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> { "g_captcha_response" }));
+            }
+            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
+            if (!recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.BadReCaptcha);
+            }
+            
             if (request.NewPassword == "")
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> {"new_password"}));
             }
             usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
@@ -145,6 +161,10 @@ namespace MorphicServer
                         resetRequest.DeleteExistingTokens = true;
                     }
                 }
+                else if (parts[0] == "g-recaptcha-response")
+                {
+                    resetRequest.GRecaptchaResponse = parts[1];
+                }
                 else
                 {
                     throw new HttpError(HttpStatusCode.BadRequest);
@@ -156,15 +176,21 @@ namespace MorphicServer
         
         public class PasswordResetRequest
         {
-            [JsonPropertyName("new_password")] public string NewPassword { get; set; } = null!;
+            [JsonPropertyName("new_password")]
+            public string NewPassword { get; set; } = null!;
 
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
+
+            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
+            [JsonPropertyName("g_recaptcha_response")]
+            public string GRecaptchaResponse { get; set; } = null!;
         }
 
         public class SuccessResponse
         {
-            [JsonPropertyName("message")] public string Status { get; }
+            [JsonPropertyName("message")]
+            public string Status { get; }
 
             public SuccessResponse(string message)
             {
@@ -176,12 +202,17 @@ namespace MorphicServer
         {
             public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
-            public static readonly BadPasswordResetResponse MissingRequired = new BadPasswordResetResponse(
-                "missing_required",
-                new Dictionary<string, object>
-                {
-                    {"required", new List<string> { "new_password" } }
-                });
+            public static readonly BadPasswordResetResponse BadReCaptcha = new BadPasswordResetResponse("bad_recaptcha");
+
+            public static BadPasswordResetResponse MissingRequired(List<string> missing)
+            {
+                return new BadPasswordResetResponse(
+                    "missing_required",
+                    new Dictionary<string, object>
+                    {
+                        {"required", missing}
+                    });
+            }
 
             public BadPasswordResetResponse(string error) : base(error)
             {
@@ -209,9 +240,15 @@ namespace MorphicServer
         {
             // short-term hack for testers to be able to reset passwords.
             var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
-            var email = "<p><label for=\"email\">Email:</label><input type=\"text\" name=\"email\"><br>";
-            var form = $"<form action=\"{link}\" method=\"POST\" name=\"PasswordResetRequestForm\">{email}<input type=\"submit\"></form>";
-            var head = "<head><title>PasswordResetRequestForm</title></head>";
+
+            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
+            var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
+            var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetRequestForm\").submit();}</script>";
+            var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
+            
+            var emailInput = "<p><label for=\"email\">Email:</label><input type=\"text\" name=\"email\"><br>";
+            var form = $"<form action=\"{link}\" method=\"POST\" id=\"PasswordResetRequestForm\" name=\"PasswordResetRequestForm\">{emailInput}{recaptchaButton}</form>";
+            var head = $"<head>{script}{script2}<title>PasswordResetRequestForm</title></head>";
             var body = $"<body>{form}</body>";
             await Response.WriteHtml($"<html>{head}{body}</html>");
         }
@@ -236,9 +273,19 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
 
+            if (request.GRecaptchaResponse == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "g_captcha_response" }));
+            }
+            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
+            if (!recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadReCaptcha);
+            }
+            
             if (request.Email == "")
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "email" }));
             }
 
             if (!User.IsValidEmail(request.Email))
@@ -282,7 +329,8 @@ namespace MorphicServer
 
         public class SuccessResponse
         {
-            [JsonPropertyName("message")] public string Status { get; }
+            [JsonPropertyName("message")]
+            public string Status { get; }
 
             public SuccessResponse(string message)
             {
@@ -302,6 +350,10 @@ namespace MorphicServer
                 {
                     resetRequest.Email = parts[1];
                 }
+                else if (parts[0] == "g-recaptcha-response")
+                {
+                    resetRequest.GRecaptchaResponse = parts[1];
+                }
                 else
                 {
                     throw new HttpError(HttpStatusCode.BadRequest);
@@ -319,17 +371,27 @@ namespace MorphicServer
         {
             [JsonPropertyName("email")]
             public string Email { get; set; } = null!;
+            
+            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
+            [JsonPropertyName("g_recaptcha_response")]
+            public string GRecaptchaResponse { get; set; } = null!;
         }
         
         public class BadPasswordRequestResponse : BadRequestResponse
         {
             public static readonly BadPasswordRequestResponse BadEmailAddress = new BadPasswordRequestResponse("bad_email_address");
-            public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
-                "missing_required",
-                new Dictionary<string, object>
-                {
-                    {"required", new List<string> { "email" } }
-                });
+            public static readonly BadPasswordRequestResponse BadReCaptcha = new BadPasswordRequestResponse("bad_recaptcha");
+
+            public static BadPasswordRequestResponse MissingRequired(List<string> missing)
+            {
+                return new BadPasswordRequestResponse(
+                    "missing_required",
+                    new Dictionary<string, object>
+                    {
+                        {"required", missing}
+                    });
+            }
+
             public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
             {
             }

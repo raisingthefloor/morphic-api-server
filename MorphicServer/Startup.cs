@@ -126,8 +126,16 @@ namespace MorphicServer
     {
         /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
         public string ServerUrlPrefix { get; set; } = "";
+
+        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
     }
 
+    public class Recaptcha3Settings
+    {
+        public string Key { get; set; } = "";
+        public string Secret { get; set; } = "";
+
+    }
     public class HangfireSettings
     {
         public string ConnectionString { get; set; } = "";
