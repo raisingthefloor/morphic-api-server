@@ -21,24 +21,13 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Threading.Tasks;
 using Hangfire;
-using Hangfire.Common;
-using Hangfire.Logging;
-using Hangfire.MemoryStorage;
-using Hangfire.Mongo;
-using Hangfire.States;
-using Hangfire.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
-using Prometheus;
-using Prometheus.DotNetRuntime;
 using Serilog;
 
 namespace MorphicServer.Tests
@@ -48,21 +37,6 @@ namespace MorphicServer.Tests
         public MockStartup(IConfiguration configuration)
         {
             Configuration = configuration;
-        }
-
-        public class MockRecaptcha : IRecaptcha
-        {
-            public string Key
-            {
-                get
-                {
-                    return "MockRecaptchaKey";
-                }
-            }
-            public async Task<bool> ReCaptchaPassed(string gRecaptchaResponse)
-            {
-                return true;
-            }
         }
         
         public IConfiguration Configuration;
@@ -85,15 +59,6 @@ namespace MorphicServer.Tests
             services.AddRouting();
             services.AddEndpoints();
 
-            services.AddHangfire(configuration => configuration
-                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
-                .UseSimpleAssemblyNameTypeSerializer()
-                .UseRecommendedSerializerSettings()
-                .UseSerilogLogProvider()
-                .UseFilter(new LogFailureAttribute())
-                .UseMemoryStorage()
-            );
-
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
         
@@ -105,22 +70,6 @@ namespace MorphicServer.Tests
             app.UseSerilogRequestLogging();
             //app.UseHttpMetrics(); // doesn't work. Probably because we have our own mapping, and something is missing
             app.UseEndpoints(Endpoint.All);
-            app.UseHangfireServer();
-        }
-
-        public class MockBackgroundJobClient : IBackgroundJobClient
-        {
-            public Job Job { get; set; }
-            public string Create(Job job, IState state)
-            {
-                Job = job;
-                return job.Method.Name;
-            }
-
-            public bool ChangeState(string jobId, IState state, string expectedState)
-            {
-                throw new NotImplementedException();
-            }
         }
     }
 }
