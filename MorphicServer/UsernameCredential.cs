@@ -27,8 +27,8 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Prometheus;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -69,13 +69,11 @@ namespace MorphicServer
         {   
             if (password.Length < MinPasswordLength)
             {
-                Log.Logger.Information("SHORT_PASSWORD({username})");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
             }
 
             if (BadPasswords.Contains(password))
             {
-                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
             }
         }
@@ -117,7 +115,7 @@ namespace MorphicServer
             var credential = await db.Get<UsernameCredential>(username);
             if (credential == null || credential.UserId == null)
             {
-                Log.Logger.Information("CredentialNotFound");
+                db.logger.LogInformation("CredentialNotFound");
                 BadAuthCounter.Labels("CredentialNotFound").Inc();
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
@@ -127,7 +125,7 @@ namespace MorphicServer
         
         public static async Task<User> UserForUsernameCredential(this Database db, UsernameCredential credential, string password)
         {
-            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId!);
+            DateTime? until = await db.UserLockedOut(credential.UserId!);
             if (until != null)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));
@@ -135,7 +133,7 @@ namespace MorphicServer
 
             if (!credential.IsValidPassword(password))
             {
-                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId!);
+                var lockedOut = await db.BadPasswordAuthAttempt(credential.UserId!);
                 if (lockedOut)
                 {
                     // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
@@ -143,7 +141,7 @@ namespace MorphicServer
                 }
                 else
                 {
-                    Log.Logger.Information("{UserId} InvalidPassword", credential.UserId);
+                    db.logger.LogInformation("{UserId} InvalidPassword", credential.UserId);
                     BadAuthCounter.Labels("InvalidPassword").Inc();
 
                 }
@@ -156,7 +154,7 @@ namespace MorphicServer
             {
                 // Not sure how this could happen: It means we have a credential for the user, but no user!
                 // How did the credential get there if there's no user?
-                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                db.logger.LogError("{UserId} UserNotFound from credential", credential.UserId);
                 BadAuthCounter.Labels("UserNotFound").Inc();
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }

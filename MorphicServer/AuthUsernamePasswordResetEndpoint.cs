@@ -27,8 +27,8 @@ using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using MorphicServer.Attributes;
-using Serilog;
 using Serilog.Context;
 
 namespace MorphicServer
@@ -44,6 +44,10 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
     {
+        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         /// <summary>The lookup id to use, populated from the request URL</summary>
         [Parameter] public string oneTimeToken = "";
 
@@ -235,6 +239,10 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/request")]
     public class AuthUsernamePasswordResetRequestEndpoint : Endpoint
     {
+        public AuthUsernamePasswordResetRequestEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         [Method]
         public async Task Get()
         {
@@ -252,6 +260,7 @@ namespace MorphicServer
             var body = $"<body>{form}</body>";
             await Response.WriteHtml($"<html>{head}{body}</html>");
         }
+
         /// <summary>
         /// TODO: Need to rate-limit this and/or use re-captcha
         /// </summary>
@@ -301,15 +310,26 @@ namespace MorphicServer
                 {
                     if (user.EmailVerified)
                     {
-                        Log.Logger.Information("Password reset requested for userId {userId}", user.Id);
-                        BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
-                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                                Context.GetMorphicSettings()),
-                            Request.ClientIp()));
+                        logger.LogInformation("Password reset requested for userId {userId}", user.Id);
+                        try
+                        {
+                            BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
+                                GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                                    Context.GetMorphicSettings()),
+                                Request.ClientIp()));
+                        }
+                        catch (NoServerUrlFoundException e)
+                        {
+                            logger.LogError("Could not create the URL for the email-link. " +
+                                            "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
+                                e.ToString());
+                            throw new HttpError(HttpStatusCode.InternalServerError);
+                        }
                     }
                     else
                     {
-                        Log.Logger.Information("Password reset requested for userId {userId}, but email not verified", user.Id);
+                        logger.LogInformation(
+                            "Password reset requested for userId {userId}, but email not verified", user.Id);
                         BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                             request.Email,
                             Request.ClientIp()));
@@ -317,7 +337,7 @@ namespace MorphicServer
                 }
                 else
                 {
-                    Log.Logger.Information("Password reset requested but no email matching");
+                    logger.LogInformation("Password reset requested but no email matching");
                     BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));

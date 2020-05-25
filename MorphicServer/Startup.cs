@@ -30,6 +30,7 @@ using Hangfire.States;
 using Hangfire.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -60,7 +61,9 @@ namespace MorphicServer
             services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddRouting();
+            services.AddEndpoints();
 
             var migrationOptions = new MongoMigrationOptions
             {
