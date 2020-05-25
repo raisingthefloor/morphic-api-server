@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
@@ -21,8 +22,9 @@ namespace MorphicServer.Tests
             content.Add("email", userInfo1.Email);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             MorphicSettings.ServerUrlPrefix = "";
-            await Assert.ThrowsAsync<Endpoint.NoServerUrlFoundException>(() => Client.SendAsync(request));
-            
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
+
             // Success using x-forwarded headers
             request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/request");
             content = new Dictionary<string, object>();
@@ -32,7 +34,7 @@ namespace MorphicServer.Tests
             request.Headers.Add("X-Forwarded-Host", new List<string> {"foo"});
             request.Headers.Add("X-Forwarded-Port", new List<string> {"443"});
             request.Headers.Add("X-Forwarded-Proto", new List<string> {"https"});
-            var response = await Client.SendAsync(request);
+            response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // Success using MorphicSettings.ServerUrlPrefix
