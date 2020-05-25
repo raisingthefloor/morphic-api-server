@@ -80,6 +80,8 @@ namespace MorphicServer.Tests
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, MockRecaptcha>();
+            services.AddSingleton<IBackgroundJobClient, MockBackgroundJobClient>();
+
             services.AddRouting();
             services.AddEndpoints();
 
@@ -104,6 +106,21 @@ namespace MorphicServer.Tests
             //app.UseHttpMetrics(); // doesn't work. Probably because we have our own mapping, and something is missing
             app.UseEndpoints(Endpoint.All);
             app.UseHangfireServer();
+        }
+
+        public class MockBackgroundJobClient : IBackgroundJobClient
+        {
+            public Job Job { get; set; }
+            public string Create(Job job, IState state)
+            {
+                Job = job;
+                return job.Method.Name;
+            }
+
+            public bool ChangeState(string jobId, IState state, string expectedState)
+            {
+                throw new NotImplementedException();
+            }
         }
     }
 }

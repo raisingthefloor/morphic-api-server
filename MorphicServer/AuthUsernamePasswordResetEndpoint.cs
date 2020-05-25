@@ -241,10 +241,16 @@ namespace MorphicServer
     public class AuthUsernamePasswordResetRequestEndpoint : Endpoint
     {
         private IRecaptcha recaptcha;
-
-        public AuthUsernamePasswordResetRequestEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger, IRecaptcha recaptcha): base(contextAccessor, logger)
+        private IBackgroundJobClient jobClient;
+        
+        public AuthUsernamePasswordResetRequestEndpoint(
+            IHttpContextAccessor contextAccessor, 
+            ILogger<AuthUsernameEndpoint> logger,
+            IRecaptcha recaptcha,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
             this.recaptcha = recaptcha;
+            this.jobClient = jobClient;
         }
 
         [Method]
@@ -315,7 +321,7 @@ namespace MorphicServer
                         logger.LogInformation("Password reset requested for userId {userId}", user.Id);
                         try
                         {
-                            BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
+                            jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
                                 GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
                                     Context.GetMorphicSettings()),
                                 Request.ClientIp()));
@@ -332,7 +338,7 @@ namespace MorphicServer
                     {
                         logger.LogInformation(
                             "Password reset requested for userId {userId}, but email not verified", user.Id);
-                        BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                        jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                             request.Email,
                             Request.ClientIp()));
                     }
@@ -340,7 +346,7 @@ namespace MorphicServer
                 else
                 {
                     logger.LogInformation("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
+                    jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }

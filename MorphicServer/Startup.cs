@@ -63,6 +63,7 @@ namespace MorphicServer
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, Recaptcha>();
+            services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
             services.AddRouting();
             services.AddEndpoints();
 
