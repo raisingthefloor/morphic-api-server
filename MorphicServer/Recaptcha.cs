@@ -24,6 +24,7 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Threading.Tasks;
 using Newtonsoft.Json.Linq;
 using Serilog;
 
@@ -32,7 +33,7 @@ namespace MorphicServer
     public interface IRecaptcha
     {
         public string Key { get; }
-        public bool ReCaptchaPassed(string gRecaptchaResponse);
+        public Task<bool> ReCaptchaPassed(string gRecaptchaResponse);
     }
     
     public class Recaptcha : IRecaptcha
@@ -63,10 +64,10 @@ namespace MorphicServer
             this.settings = settings.Recaptcha3Settings;
         }
 
-        public bool ReCaptchaPassed(string gRecaptchaResponse)
+        public async Task<bool> ReCaptchaPassed(string gRecaptchaResponse)
         {
             HttpClient httpClient = new HttpClient();
-            var res = httpClient.GetAsync($"https://www.google.com/recaptcha/api/siteverify?secret={settings.Secret}&response={gRecaptchaResponse}").Result;
+            var res = await httpClient.GetAsync($"https://www.google.com/recaptcha/api/siteverify?secret={settings.Secret}&response={gRecaptchaResponse}");
             if (res.StatusCode != HttpStatusCode.OK)
             {
                 Log.Logger.Error("Error while sending request to ReCaptcha");

@@ -44,8 +44,11 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
     {
-        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IRecaptcha recaptcha;
+        
+        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger, IRecaptcha recaptcha): base(contextAccessor, logger)
         {
+            this.recaptcha = recaptcha;
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
@@ -90,7 +93,6 @@ namespace MorphicServer
             // But this is just a short-term hack for testers to be able to reset passwords.
             var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
 
-            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
             var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
             var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetForm\").submit();}</script>";
             var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
@@ -124,8 +126,7 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> { "g_captcha_response" }));
             }
-            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
-            if (!recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.BadReCaptcha);
             }
@@ -239,8 +240,11 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/request")]
     public class AuthUsernamePasswordResetRequestEndpoint : Endpoint
     {
-        public AuthUsernamePasswordResetRequestEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IRecaptcha recaptcha;
+
+        public AuthUsernamePasswordResetRequestEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger, IRecaptcha recaptcha): base(contextAccessor, logger)
         {
+            this.recaptcha = recaptcha;
         }
 
         [Method]
@@ -249,7 +253,6 @@ namespace MorphicServer
             // short-term hack for testers to be able to reset passwords.
             var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
 
-            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
             var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
             var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetRequestForm\").submit();}</script>";
             var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
@@ -286,8 +289,7 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "g_captcha_response" }));
             }
-            var recaptcha = new Recaptcha(Context.GetMorphicSettings());
-            if (!recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadReCaptcha);
             }

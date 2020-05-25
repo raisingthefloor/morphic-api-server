@@ -28,6 +28,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Xunit;
 using Microsoft.AspNetCore.Hosting;
@@ -72,12 +73,13 @@ namespace MorphicServer.Tests
 
             var builder = new WebHostBuilder();
             builder.UseConfiguration(config.Build());
-            builder.UseStartup<Startup>();
+            builder.UseStartup<MockStartup>();
             builder.UseSerilog();
             Server = new TestServer(builder);
             Client = Server.CreateClient();
             Database = Server.Services.GetService(typeof(Database)) as Database;
             MorphicSettings = Server.Services.GetService(typeof(MorphicSettings)) as MorphicSettings;
+            Debug.Assert(MorphicSettings != null, nameof(MorphicSettings) + " != null");
         }
 
         /// <summary>Delete the test database after every test case so each test can start fresh</summary>

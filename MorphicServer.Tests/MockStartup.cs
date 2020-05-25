@@ -22,9 +22,11 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Threading.Tasks;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.Logging;
+using Hangfire.MemoryStorage;
 using Hangfire.Mongo;
 using Hangfire.States;
 using Hangfire.Storage;
@@ -39,15 +41,30 @@ using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
 
-namespace MorphicServer
+namespace MorphicServer.Tests
 {
-    public class Startup
+    public class MockStartup
     {
-        public Startup(IConfiguration configuration)
+        public MockStartup(IConfiguration configuration)
         {
             Configuration = configuration;
         }
 
+        public class MockRecaptcha : IRecaptcha
+        {
+            public string Key
+            {
+                get
+                {
+                    return "MockRecaptchaKey";
+                }
+            }
+            public async Task<bool> ReCaptchaPassed(string gRecaptchaResponse)
+            {
+                return true;
+            }
+        }
+        
         public IConfiguration Configuration;
 
         // This method gets called by the runtime. Use this method to add services to the container.
@@ -62,106 +79,31 @@ namespace MorphicServer
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddSingleton<IRecaptcha, Recaptcha>();
+            services.AddSingleton<IRecaptcha, MockRecaptcha>();
             services.AddRouting();
             services.AddEndpoints();
 
-            var migrationOptions = new MongoMigrationOptions
-            {
-                Strategy = MongoMigrationStrategy.Migrate,
-                BackupStrategy = MongoBackupStrategy.Collections
-            };
             services.AddHangfire(configuration => configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
                 .UseSerilogLogProvider()
                 .UseFilter(new LogFailureAttribute())
-                .UseMongoStorage(Configuration.GetSection("HangfireSettings")["ConnectionString"], // TODO Is there a better way than GetSection[]?
-                    new MongoStorageOptions
-                    {
-                        MigrationOptions = migrationOptions
-                    } )
+                .UseMemoryStorage()
             );
 
-            // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
-
-        // this seems to be needed to dispose of the collector during tests.
-        // otherwise we don't care about disposing them
-        public static IDisposable? DotNetRuntimeCollector;
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
         {
-            if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
-            {
-                // https://github.com/djluck/prometheus-net.DotNetRuntime
-                DotNetRuntimeCollector = DotNetRuntimeStatsBuilder.Customize()
-                    // Only 1 in 10 contention events will be sampled 
-                    .WithContentionStats(sampleRate: SampleEvery.TenEvents)
-                    // Only 1 in 100 JIT events will be sampled
-                    .WithJitStats(sampleRate: SampleEvery.HundredEvents)
-                    // Every event will be sampled (disables sampling)
-                    .WithThreadPoolSchedulingStats(sampleRate: SampleEvery.OneEvent)
-                    .StartCollecting();
-            }
-
             database.InitializeDatabase();
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
             app.UseRouting();
             app.UseSerilogRequestLogging();
             //app.UseHttpMetrics(); // doesn't work. Probably because we have our own mapping, and something is missing
             app.UseEndpoints(Endpoint.All);
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapMetrics();
-            });
             app.UseHangfireServer();
-            app.UseHangfireDashboard();
-        }
-    }
-    
-    public class MorphicSettings
-    {
-        /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
-        public string ServerUrlPrefix { get; set; } = "";
-
-        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
-    }
-
-    public class Recaptcha3Settings
-    {
-        public string Key { get; set; } = "";
-        public string Secret { get; set; } = "";
-
-    }
-    public class HangfireSettings
-    {
-        public string ConnectionString { get; set; } = "";
-    }
-    
-    public class LogFailureAttribute : JobFilterAttribute, IApplyStateFilter
-    {
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
-
-        public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-        {
-            var failedState = context.NewState as FailedState;
-            if (failedState != null)
-            {
-                Logger.ErrorException(
-                    String.Format("Background job #{0} was failed with an exception.", context.BackgroundJob.Id),
-                    failedState.Exception);
-            }
-        }
-
-        public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-        {
         }
     }
 }
