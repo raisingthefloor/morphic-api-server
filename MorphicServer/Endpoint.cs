@@ -138,8 +138,6 @@ namespace MorphicServer
             }
 
             using (LogContext.PushProperty("ClientIp", clientIp))
-            using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
-            using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
             {
                 var stopWatch = Stopwatch.StartNew();
                 try
