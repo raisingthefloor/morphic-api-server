@@ -166,10 +166,20 @@ namespace MorphicServer
                 if (user != null)
                 {
                     logger.LogInformation("Password reset requested for userId {userId}", user.Id);
-                    BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
-                        GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                            Context.GetMorphicSettings()),
+                    try
+                    {
+                        BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
+                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                                Context.GetMorphicSettings()),
                             Request.ClientIp()));
+                    }
+                    catch (NoServerUrlFoundException e)
+                    {
+                        logger.LogError("Could not create the URL for the email-link. " +
+                                        "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
+                            e.ToString());
+                        throw new HttpError(HttpStatusCode.InternalServerError);
+                    }
                 }
                 else
                 {

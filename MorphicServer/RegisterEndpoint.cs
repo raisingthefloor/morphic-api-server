@@ -110,11 +110,22 @@ namespace MorphicServer
             user.LastName = request.LastName;
 
             await Register(cred, user);
-            BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
-                user.Id,
-                GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
-                Request.ClientIp()
-            ));
+            try
+            {
+                BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
+                    user.Id,
+                    GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
+                    Request.ClientIp()
+                ));
+            }
+            catch (NoServerUrlFoundException e)
+            {
+                logger.LogError("Could not create the URL for the email-link. " +
+                                "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
+                    e.ToString());
+                throw new HttpError(HttpStatusCode.InternalServerError);
+            }
+
         }
 
         private static bool IsValidEmail(string emailaddress)

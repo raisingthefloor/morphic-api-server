@@ -34,6 +34,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
@@ -418,11 +419,16 @@ namespace MorphicServer
                 var scheme = requestHeaders["x-forwarded-proto"].FirstOrDefault();
                 if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(scheme))
                 {
+                    // serialize the headers so we can see what happened.
+                    var first = true;
+                    var headers = new StringBuilder("Request headers: ");
                     foreach (var header in requestHeaders)
                     {
-                        Log.Logger.Debug("Request Header {key}={value}", header.Key, header.Value);
+                        if (!first) headers.Append(",");
+                        first = false;
+                        headers.AppendFormat("{0}={1}", header.Key, header.Value);
                     }
-                    throw new NoServerUrlFoundException();
+                    throw new NoServerUrlFoundException(headers.ToString());
                 }
 
                 serverUrl = $"{scheme}://{host}";
