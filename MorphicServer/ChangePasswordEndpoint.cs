@@ -25,14 +25,19 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using MorphicServer.Attributes;
-using Serilog;
 
 namespace MorphicServer
 {
     [Path("/v1/users/{userid}/password")]
     public class ChangePasswordEndpoint : Endpoint
     {
+        public ChangePasswordEndpoint(IHttpContextAccessor contextAccessor, ILogger<ChangePasswordEndpoint> logger) : base(contextAccessor, logger)
+        {
+        }
+
         /// <summary>The user id to use, populated from the request URL</summary>
         [Parameter]
         public string UserId = "";
@@ -46,7 +51,7 @@ namespace MorphicServer
             }
             
             usernameCredentials = await Load<UsernameCredential>(u => u.UserId == authenticatedUser.Id);
-            Log.Logger.Debug("Loaded user credential for {UserId}", authenticatedUser.Id);
+            logger.LogDebug("Loaded user credential for {UserId}", authenticatedUser.Id);
         }
 
         /// <summary>The UsernameCredential data populated by <code>LoadResource()</code></summary>

@@ -23,7 +23,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Serilog;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -40,47 +40,17 @@ namespace MorphicServer
     {
         private const int MaxCount = 5;
         private const int BadPasswordsInTimeSeconds = 5 * 60;
-        private const int LockOutForTimeSeconds = 15 * 60;
-        
+        public const int LockOutForTimeSeconds = 15 * 60;
+
         public DateTime ExpiresAt { get; private set; }
-        public int Count { get; private set; }
-        
-        private BadPasswordLockout(string userId)
+        public int Count { get; set; }
+
+        public BadPasswordLockout(string userId)
         {
             Id = userId;
             Touch(BadPasswordsInTimeSeconds);
         }
-
-        public static async Task<bool> BadAuthAttempt(Database db, string userId)
-        {
-            BadPasswordLockout badPasswordLockout = await db.Get<BadPasswordLockout>(userId) ?? new BadPasswordLockout(userId);
-            badPasswordLockout.Count++;
-            bool lockedOut = false;
-            if (badPasswordLockout.ShouldBlockLogin())
-            {
-                badPasswordLockout.Touch(LockOutForTimeSeconds);
-                Log.Logger.Information(
-                    "Blocking Logins for {UserUid} after {BadLoginCount} attempts. Blocked until {BlockedUntil}",
-                    userId, badPasswordLockout.Count, badPasswordLockout.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                lockedOut = true;
-            }
-
-            await db.Save(badPasswordLockout);
-            return lockedOut;
-        }
-
-        public static async Task<DateTime?> UserLockedOut(Database db, string userId)
-        {
-            var badPasswordLockout = await db.Get<BadPasswordLockout>(userId);
-            if (badPasswordLockout != null)
-            {
-                return badPasswordLockout.UserLockedOut();
-            }
-
-            // user is not locked out
-            return null;
-        }
-
+        
         public DateTime? UserLockedOut()
         {
             if (ShouldBlockLogin())
@@ -92,7 +62,7 @@ namespace MorphicServer
             return null;
         }
 
-        private bool ShouldBlockLogin()
+        public bool ShouldBlockLogin()
         {
             if (Count >= MaxCount)
             {
@@ -102,9 +72,42 @@ namespace MorphicServer
             return false;
         }
 
-        private void Touch(int ttl)
+        public void Touch(int ttl)
         {
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, ttl);
+        }
+    }
+    
+    public static class BadPasswordLockoutDatabase
+    {
+        public static async Task<bool> BadPasswordAuthAttempt(this Database db, string userId)
+        {
+            BadPasswordLockout badPasswordLockout = await db.Get<BadPasswordLockout>(userId) ?? new BadPasswordLockout(userId);
+            badPasswordLockout.Count++;
+            bool lockedOut = false;
+            if (badPasswordLockout.ShouldBlockLogin())
+            {
+                badPasswordLockout.Touch(BadPasswordLockout.LockOutForTimeSeconds);
+                db.logger.LogInformation(
+                    "Blocking Logins for {UserUid} after {BadLoginCount} attempts. Blocked until {BlockedUntil}",
+                    userId, badPasswordLockout.Count, badPasswordLockout.ExpiresAt.ToString("yyyy-MM-ddTHH:mm:ssZ"));
+                lockedOut = true;
+            }
+
+            await db.Save(badPasswordLockout);
+            return lockedOut;
+        }
+        
+        public static async Task<DateTime?> UserLockedOut(this Database db, string userId)
+        {
+            var badPasswordLockout = await db.Get<BadPasswordLockout>(userId);
+            if (badPasswordLockout != null)
+            {
+                return badPasswordLockout.UserLockedOut();
+            }
+
+            // user is not locked out
+            return null;
         }
     }
 }

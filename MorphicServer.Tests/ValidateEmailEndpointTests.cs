@@ -40,10 +40,15 @@ namespace MorphicServer.Tests
             {
                 ServerUrlPrefix = ""
             };
-            var requestHeaders = new HeaderDictionary();
-            Assert.Throws<Endpoint.NoServerUrlFoundException>(() => 
+            var requestHeaders = new HeaderDictionary
+            {
+                {"foo1", "something1"},
+                {"foo2", "something2"},
+            };
+            var ex = Assert.Throws<Endpoint.NoServerUrlFoundException>(() => 
                 Endpoint.GetControllerPathUrl<ValidateEmailEndpoint>(requestHeaders, settings));
-
+            Assert.Equal("Request Headers: [foo1, something1],[foo2, something2]", ex.Message);
+            
             // bad: settings with bad URL's
             settings.ServerUrlPrefix = "http:///";
             Assert.Throws<Endpoint.NoServerUrlFoundException>(() => 

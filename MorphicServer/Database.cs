@@ -28,11 +28,11 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Core.Clusters;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -57,18 +57,21 @@ namespace MorphicServer
 
         /// <summary>The Morphic Database</summary>
         private readonly IMongoDatabase morphic;
-        
+
+        internal readonly ILogger<Database> logger;
+
         /// <summary>Create a database using the given settings</summary>
         /// <remarks>
         /// Since the database is registered as a service, it is constructed by the service system.
         /// See <code>Startup></code> for service registration.
         /// </remarks>
-        public Database(DatabaseSettings settings)
+        public Database(DatabaseSettings settings, ILogger<Database> logger)
         {
+            this.logger = logger;
             client = new MongoClient(settings.ConnectionString);
             morphic = client.GetDatabase(settings.DatabaseName);
 
-            Log.Logger.Information("Opened DB {Database}: {ConnectionSettings}",
+            logger.LogInformation("Opened DB {Database}: {ConnectionSettings}",
                 settings.DatabaseName, client.Settings.ToString());
 
             CollectionByType[typeof(Preferences)] = morphic.GetCollection<Preferences>("Preferences");
@@ -265,7 +268,7 @@ namespace MorphicServer
                     Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
             
             stopWatch.Stop();
-            Log.Logger.Information("Database create/update took {TotalElapsedSeconds}secs",
+            logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);
         }
 
@@ -275,13 +278,13 @@ namespace MorphicServer
             try
             {
                 morphic.CreateCollection(collName);
-                Log.Logger.Debug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collName);
+                logger.LogDebug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collName);
             }
             catch (MongoCommandException e)
             {
                 if (e.CodeName != "NamespaceExists")
                     throw;
-                Log.Logger.Debug("Collection {Database}.{Collection} existed already (no error)", morphic.DatabaseNamespace,collName);
+                logger.LogDebug("Collection {Database}.{Collection} existed already (no error)", morphic.DatabaseNamespace,collName);
             }
 
             return morphic.GetCollection<T>(collName);
@@ -307,7 +310,7 @@ namespace MorphicServer
         private void CreateOrUpdateIndexOrFail<T>(IMongoCollection<T> collection, CreateIndexModel<T> index)
         {
             var indexName = collection.Indexes.CreateOne(index);
-            Log.Logger.Debug(
+            logger.LogDebug(
                 "Created/updated index {DBname}.{Collection}:{IndexName}",
                 morphic.DatabaseNamespace,
                 collection.CollectionNamespace,
