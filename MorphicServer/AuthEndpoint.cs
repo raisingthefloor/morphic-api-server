@@ -24,8 +24,8 @@
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
 using System.Text.Json.Serialization;
-using Serilog;
-using Serilog.Context;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -37,22 +37,22 @@ namespace MorphicServer
     public abstract class AuthEndpoint<T>: Endpoint where T: class
     {
 
+        public AuthEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         /// <summary>Parse the request JSON, call AuthenticatedUser, and respond with a token or error</summary>
         public async Task Authenticate()
         {
             var request = await Request.ReadJson<T>();
             var user = await AuthenticatedUser(request);
-            using (LogContext.PushProperty("UserUid", user.Id))
-            {
-                var token = new AuthToken(user);
-                await Save(token);
-                Log.Logger.Debug("NEW_TOKEN for {UserUid}");
-
-                var response = new AuthResponse();
-                response.token = token.Id;
-                response.user = user;
-                await Respond(response);
-            }
+            var token = new AuthToken(user);
+            await Save(token);
+            logger.LogDebug("NEW_TOKEN for {UserUid}", user.Id);
+            var response = new AuthResponse();
+            response.token = token.Id;
+            response.user = user;
+            await Respond(response);
         }
 
         public abstract Task<User> AuthenticatedUser(T request);
@@ -88,12 +88,17 @@ namespace MorphicServer
     [Path("/v1/auth/username")]
     public class AuthUsernameEndpoint: AuthEndpoint<AuthUsernameRequest>
     {
-        private static async Task SaveOrLog(Database db, User user)
+
+        public AuthUsernameEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
+        private async Task SaveOrLog(Database db, User user)
         {
             var saved = await db.Save(user);
             if (!saved)
             {
-                Log.Logger.Error("could not save {UserId}", user.Id);
+                logger.LogError("could not save {UserId}", user.Id);
             }
         }
         
@@ -119,6 +124,11 @@ namespace MorphicServer
     // [Path("/v1/auth/key")]
     public class AuthKeyEndpoint: AuthEndpoint<AuthKeyRequest>
     {
+
+        public AuthKeyEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthKeyEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         public override async Task<User> AuthenticatedUser(AuthKeyRequest request)
         {
             var db = Context.GetDatabase();

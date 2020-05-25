@@ -24,7 +24,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -96,7 +95,6 @@ namespace MorphicServer
                     myKeyArray.Add(key);
                 }
                 keyArray = myKeyArray;
-                Log.Logger.Debug($"Loaded {keyArray.Count} keys");
             }
         }
 
