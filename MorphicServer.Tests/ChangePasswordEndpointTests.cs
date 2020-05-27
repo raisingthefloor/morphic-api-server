@@ -32,7 +32,7 @@ using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class ChangePasswordEndpointTests : EndpointTests
+    public class ChangePasswordEndpointTests : EndpointRequestTests
     {
         [Fact]
         public async Task TestGet()

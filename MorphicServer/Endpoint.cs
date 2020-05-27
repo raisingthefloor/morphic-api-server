@@ -371,23 +371,6 @@ namespace MorphicServer
             }
         }
 
-        public class NotValidPathException : EndpointException
-        {
-            public NotValidPathException(string error) : base(error)
-            {
-            }
-        }
-        public class NoServerUrlFoundException : EndpointException
-        {
-            public NoServerUrlFoundException(string error) : base(error)
-            {
-            }
-
-            public NoServerUrlFoundException() : base()
-            {
-            }
-        }
-
         public Uri ServerUri
         {
             get

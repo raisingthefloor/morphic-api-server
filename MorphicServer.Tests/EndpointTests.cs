@@ -20,195 +20,196 @@
 // * Canadian Foundation for Innovation
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
-
 using System;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
-using System.Net;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+using System.Security.Claims;
 using Xunit;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.TestHost;
-using Microsoft.Extensions.Configuration;
-using Serilog;
-using Serilog.Formatting.Compact;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer.Tests
 {
-    public class EndpointTests: IDisposable
+
+    public class EndpointTests
     {
 
-        /// <summary>A test HTTP server</summary>
-        protected TestServer Server;
-
-        /// <summary>A client that can make requests to the test server</summary>
-        protected HttpClient Client;
-
-        /// <summary>The expected Media Type for JSON requests and responses</summary>
-        protected const string JsonMediaType = "application/json";
-
-        /// <summary>The expected character set for JSON requests and responses</summary>
-        protected const string JsonCharacterSet = "utf-8";
-
-        /// <summary>A reference to the test database</summary>
-        protected Database Database;
-
-        protected MorphicSettings MorphicSettings;
-        
-        /// <summary>Create a test database, test http server, and client connection to the test server</summary>
-        public EndpointTests()
+        private class MockHttpRequest: HttpRequest
         {
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TESTKEY:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995");
-            var config = new ConfigurationBuilder();
-            var settingsFile = Environment.GetEnvironmentVariable("APPSETTINGS_FILENAME") ?? "appsettings.Test.json";
-            config.AddJsonFile(settingsFile);
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(config.Build())
-                .WriteTo.Console(new CompactJsonFormatter())
-                .CreateLogger();
 
-            var builder = new WebHostBuilder();
-            builder.UseConfiguration(config.Build());
-            builder.UseStartup<MockStartup>();
-            builder.UseSerilog();
-            Server = new TestServer(builder);
-            Client = Server.CreateClient();
-            Database = Server.Services.GetService(typeof(Database)) as Database;
-            MorphicSettings = Server.Services.GetService(typeof(MorphicSettings)) as MorphicSettings;
-            Debug.Assert(MorphicSettings != null, nameof(MorphicSettings) + " != null");
-        }
-
-        /// <summary>Delete the test database after every test case so each test can start fresh</summary>
-        public void Dispose()
-        {
-            Database.DeleteDatabase();
-            if (Startup.DotNetRuntimeCollector != null) Startup.DotNetRuntimeCollector.Dispose();
-        }
-
-        /// <summary>Create a test user and return an auth token</summary>
-        protected async Task<UserInfo> CreateTestUser(string firstName = "Test", string lastName = "User", bool verifiedEmail = false)
-        {
-            ++TestUserCount;
-            var content = new Dictionary<string, object>();
-            var username = $"user{TestUserCount}";
-            var password = "thisisatestpassword";
-            var email = $"user{TestUserCount}" + "@example.com";
-            content.Add("username", username);
-            content.Add("password", password);
-            content.Add("first_name", firstName);
-            content.Add("last_name", lastName);
-            content.Add("email", email);
-            var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/username");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            var response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
-            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
-            var json = await response.Content.ReadAsStringAsync();
-            var document = JsonDocument.Parse(json);
-            var element = document.RootElement;
-            JsonElement property;
-            Assert.Equal(JsonValueKind.Object, element.ValueKind);
-            Assert.True(element.TryGetProperty("token", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            var token = property.GetString();
-            Assert.True(element.TryGetProperty("user", out property));
-            Assert.Equal(JsonValueKind.Object, property.ValueKind);
-            var user = property;
-            Assert.True(user.TryGetProperty("id", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.NotEqual("", property.GetString());
-            var id = property.GetString();
-            Assert.True(user.TryGetProperty("preferences_id", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.NotEqual("", property.GetString());
-            var preferencesId = property.GetString();
-            Assert.False(user.TryGetProperty("EmailVerified", out property));
-
-            if (verifiedEmail)
+            public MockHttpRequest(HttpContext context)
             {
-                var dbUser = await Database.Get<User>(id);
-                Assert.NotNull(dbUser);
-                dbUser.EmailVerified = true;
-                await Database.Save(dbUser);
+                HttpContext = context;
+                Headers = new HeaderDictionary();
             }
 
-            return new UserInfo()
+            public override HttpContext HttpContext { get; }
+            public override string Protocol { get; set; }
+            public override string Scheme { get; set; }
+            public override HostString Host { get; set; }
+            public override PathString PathBase { get; set; }
+            public override PathString Path { get; set; }
+            public override string Method { get; set; }
+            public override QueryString QueryString { get; set; }
+            public override IRequestCookieCollection Cookies { get; set; }
+            public override bool IsHttps { get; set; }
+            public override bool HasFormContentType { get; }
+            public override Stream Body { get; set; }
+            public override IQueryCollection Query { get; set; }
+            public override IFormCollection Form { get; set; }
+            public override IHeaderDictionary Headers { get; }
+            public override string ContentType { get; set; }
+            public override long? ContentLength { get; set; }
+
+            public override Task<IFormCollection>  ReadFormAsync(CancellationToken cancellationToken = default(CancellationToken))
             {
-                Id = id,
-                PreferencesId = preferencesId,
-                AuthToken = token,
-                Username = username,
-                Password = password,
-                Email = email,
-                FirstName = firstName,
-                LastName = lastName
-            };
-        }
-
-        private int TestUserCount = 0;
-
-        protected class UserInfo
-        {
-            public string Id { get; set; }
-            public string PreferencesId { get; set; }
-            public string AuthToken { get; set; }
-            
-            public string Username { get; set; }
-            public string Password { get; set; }
-            public string Email { get; set; }
-            
-            public string FirstName { get; set; }
-            public string LastName { get; set; }
-        }
-
-        public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error)
-        {
-            JsonElement property;
-
-            Assert.Equal(code, response.StatusCode);
-            Assert.NotNull(response.Content);
-            Assert.NotNull(response.Content.Headers);
-            Assert.NotNull(response.Content.Headers.ContentType);
-            Assert.NotNull(response.Content.Headers.ContentType.MediaType);
-            Assert.Equal(JsonMediaType, response.Content.Headers.ContentType.MediaType);
-            Assert.NotNull(response.Content.Headers.ContentType.CharSet);
-            Assert.Equal(JsonCharacterSet, response.Content.Headers.ContentType.CharSet);
-            var json = await response.Content.ReadAsStringAsync();
-            var document = JsonDocument.Parse(json);
-            var element = document.RootElement;
-            Assert.True(element.TryGetProperty("error", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal(error, property.GetString());
-            Assert.True(element.TryGetProperty("details", out property));
-            // don't check value here. Caller can check the details of details.
-            return element;
-        }
-
-        public void assertMissingRequired(JsonElement error, List<string> missing, bool strict=true)
-        {
-            JsonElement property;
-            Assert.True(error.TryGetProperty("details", out property));
-            Assert.Equal(JsonValueKind.Object, property.ValueKind);
-            Assert.True(property.TryGetProperty("required", out property));
-            Assert.Equal(JsonValueKind.Array, property.ValueKind);
-            List<string> propertyArray = new List<string>();
-            for (int i = 0; i < property.GetArrayLength(); i++)
-            {
-                propertyArray.Add(property[i].GetString());
+                throw new NotImplementedException();
             }
-            if (strict)
+
+        }
+
+        private class MockHttpResponse: HttpResponse
+        {
+
+            public MockHttpResponse(HttpContext context)
             {
-                Assert.True(Enumerable.SequenceEqual(propertyArray.OrderBy(t => t), missing.OrderBy(t => t)));
+                HttpContext = context;
             }
-            else
+
+            public override HttpContext HttpContext { get; }
+            public override bool HasStarted { get; }
+            public override Stream Body { get; set; }
+            public override int StatusCode { get; set; }
+            public override IResponseCookies Cookies { get; }
+            public override IHeaderDictionary Headers { get; }
+            public override string ContentType { get; set; }
+            public override long? ContentLength { get; set; }
+
+            public override void OnCompleted(Func<object, Task> callback, object state)
             {
-                Assert.True(propertyArray.Intersect(missing).Equals(missing));
+            }
+
+            public override void OnStarting(Func<object, Task> callback, object state)
+            {
+            }
+
+            public override void Redirect(string location, bool permanent)
+            {
             }
         }
+
+        private class MockHttpContext: HttpContext
+        {
+
+            public MockHttpContext(IServiceProvider serviceProvider)
+            {
+                RequestServices = serviceProvider;
+                Request = new MockHttpRequest(this);
+                Response = new MockHttpResponse(this);
+            }
+
+            public override HttpRequest Request { get; }
+            public override HttpResponse Response { get; }
+            public override IServiceProvider RequestServices { get; set; }
+            public override CancellationToken RequestAborted { get; set; }
+            public override ISession Session { get; set; }
+            public override string TraceIdentifier { get; set; }
+            public override IDictionary<object, object> Items { get; set; }
+            public override ClaimsPrincipal User { get; set; }
+            public override IFeatureCollection Features { get; }
+            public override ConnectionInfo Connection { get; }
+            public override WebSocketManager WebSockets { get; }
+
+            public override void Abort()
+            {
+
+            }
+        }
+
+        private class MockContextAccessor: IHttpContextAccessor
+        {
+
+            public MockContextAccessor(HttpContext context)
+            {
+                HttpContext = context;
+            }
+
+            public HttpContext HttpContext { get; set; }
+        }
+
+        private class MockEndpoint: Endpoint
+        {
+            public MockEndpoint(IHttpContextAccessor contextAccessor, ILogger<MockEndpoint> logger): base(contextAccessor, logger)
+            {
+            }
+        }
+
+        [Fact]
+        public void TestServerUri()
+        {
+            // No setting, no request headers
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<MockEndpoint>();
+            var provider = services.BuildServiceProvider();
+            var context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            var endpoint = provider.GetRequiredService<MockEndpoint>();
+            var uri = endpoint.ServerUri;
+            Assert.Equal("", uri.ToString());
+
+            // No setting, with request headers
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<MockEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Headers.Add("x-forwarded-host", "myhost.example.com");
+            context.Request.Headers.Add("x-forwarded-proto", "https");
+            context.Request.Headers.Add("x-forwarded-port", "12345");
+            endpoint = provider.GetRequiredService<MockEndpoint>();
+            uri = endpoint.ServerUri;
+            Assert.Equal("https://myhost.example.com:12345/", uri.ToString());
+
+            // With setting, with request headers
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings(){
+                ServerUrlPrefix="https://settings.host"
+            });
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<MockEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Headers.Add("x-forwarded-host", "myhost.example.com");
+            context.Request.Headers.Add("x-forwarded-proto", "https");
+            context.Request.Headers.Add("x-forwarded-port", "12345");
+            endpoint = provider.GetRequiredService<MockEndpoint>();
+            uri = endpoint.ServerUri;
+            Assert.Equal("https://settings.host/", uri.ToString());
+
+            // With setting, no request headers
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings(){
+                ServerUrlPrefix="https://settings.host"
+            });
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<MockEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            endpoint = provider.GetRequiredService<MockEndpoint>();
+            uri = endpoint.ServerUri;
+            Assert.Equal("https://settings.host/", uri.ToString());
+        }
+
     }
+
 }

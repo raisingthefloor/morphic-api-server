@@ -110,21 +110,10 @@ namespace MorphicServer
             user.LastName = request.LastName;
 
             await Register(cred, user);
-            try
-            {
-                jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
-                    user.Id,
-                    Request.ClientIp()
-                ));
-            }
-            catch (NoServerUrlFoundException e)
-            {
-                logger.LogError("Could not create the URL for the email-link. " +
-                                "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
-                    e.ToString());
-                throw new HttpError(HttpStatusCode.InternalServerError);
-            }
-
+            jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
+                user.Id,
+                Request.ClientIp()
+            ));
         }
         
         private async Task CheckEmail(String email)

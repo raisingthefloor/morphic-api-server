@@ -30,7 +30,7 @@ using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class ValidateEmailEndpointTests : EndpointTests
+    public class ValidateEmailEndpointTests : EndpointRequestTests
     {
 
         [Fact]

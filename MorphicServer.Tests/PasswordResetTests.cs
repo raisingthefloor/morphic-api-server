@@ -9,7 +9,7 @@ using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class PasswordResetTests : EndpointTests
+    public class PasswordResetTests : EndpointRequestTests
     {
         
         [Fact]

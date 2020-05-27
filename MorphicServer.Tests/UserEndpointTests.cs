@@ -33,7 +33,7 @@ using System.Text;
 
 namespace MorphicServer.Tests
 {
-    public class UserEndpointTests : EndpointTests
+    public class UserEndpointTests : EndpointRequestTests
     {
 
         [Fact]
