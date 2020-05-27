@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Antlr3.ST;
@@ -52,7 +53,7 @@ namespace MorphicServer
         /// <summary>
         /// The Email Settings
         /// </summary>
-        protected EmailSettings Settings;
+        protected EmailSettings EmailSettings;
         
         protected readonly ILogger logger;
 
@@ -61,7 +62,7 @@ namespace MorphicServer
         protected EmailTemplates(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailTemplates> logger, Database db): base(morphicSettings)
         {
             Db = db;
-            Settings = settings;
+            EmailSettings = settings;
             this.logger = logger;
         }
 
@@ -78,12 +79,12 @@ namespace MorphicServer
             {
                 emailVerificationMsg.SetAttribute("Link", link);
             }
-            emailVerificationMsg.SetAttribute("MorphicUser", Settings.EmailFromFullname);
-            emailVerificationMsg.SetAttribute("MorphicEmail", Settings.EmailFromAddress);
+            emailVerificationMsg.SetAttribute("MorphicUser", EmailSettings.EmailFromFullname);
+            emailVerificationMsg.SetAttribute("MorphicEmail", EmailSettings.EmailFromAddress);
             emailVerificationMsg.SetAttribute("ClientIp", clientIp ?? UnknownClientIp);
             var emailMsg = emailVerificationMsg.ToString();
             
-            var pending = new PendingEmail(user, Settings.EmailFromAddress, Settings.EmailFromFullname,
+            var pending = new PendingEmail(user, EmailSettings.EmailFromAddress, EmailSettings.EmailFromFullname,
                 EmailSubject, 
                 emailMsg,
                 EmailType);
@@ -114,7 +115,7 @@ $MorphicUser$ ($MorphicEmail$)";
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string userId, string? clientIp)
         {
-            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
                 logger.LogWarning("EmailSettings.Disable is set");
                 return;
@@ -132,14 +133,14 @@ $MorphicUser$ ($MorphicEmail$)";
             }
 
             var oneTimeToken = new OneTimeToken(user.Id);
-            var uri = GetUri<ValidateEmailEndpoint>(new Dictionary<string, string>()
+            var verifyUri = GetFrontEndUri("/email/verify", new Dictionary<string, string>()
             {
-                {"userId", oneTimeToken.UserId},
-                {"oneTimeToken", oneTimeToken.GetUnhashedToken()},
+                {"user_id", oneTimeToken.UserId},
+                {"token", oneTimeToken.GetUnhashedToken()}
             });
-            var pending = CreatePendingEmail(user, uri.ToString(), clientIp);
+            var pending = CreatePendingEmail(user, verifyUri.ToString(), clientIp);
             await Db.Save(oneTimeToken);
-            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
+            await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }
     }
 
@@ -164,7 +165,7 @@ $MorphicUser$ ($MorphicEmail$)";
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string userId, string? clientIp)
         {
-            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
                 logger.LogWarning("EmailSettings.Disable is set");
                 return;
@@ -182,13 +183,13 @@ $MorphicUser$ ($MorphicEmail$)";
             }
 
             var oneTimeToken = new OneTimeToken(user.Id);
-            var uri = GetUri<AuthUsernamePasswordResetEndpoint>(new Dictionary<string, string>()
+            var uri = GetFrontEndUri("/password/reset", new Dictionary<string, string>()
             {
-                {"oneTimeToken", oneTimeToken.GetUnhashedToken()}
+                {"token", oneTimeToken.GetUnhashedToken()}
             });
             var pending = CreatePendingEmail(user, uri.ToString(), clientIp);
             await Db.Save(oneTimeToken);
-            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
+            await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }
     }
     
@@ -211,7 +212,7 @@ $MorphicUser$ ($MorphicEmail$)";
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string destinationEmail, string? clientIp)
         {
-            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
                 logger.LogWarning("EmailSettings.Disable is set");
                 return;
@@ -221,7 +222,7 @@ $MorphicUser$ ($MorphicEmail$)";
             var user = new User();
             user.SetEmail(destinationEmail);
             var pending = CreatePendingEmail(user, null, clientIp);
-            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
+            await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }
     }
     
@@ -245,7 +246,7 @@ $MorphicUser$ ($MorphicEmail$)";
         [AutomaticRetry(Attempts = 20)]
         public async Task QueueEmail(string destinationEmail, string? clientIp)
         {
-            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
                 logger.LogWarning("EmailSettings.Disable is set");
                 return;
@@ -255,7 +256,7 @@ $MorphicUser$ ($MorphicEmail$)";
             var user = new User();
             user.SetEmail(destinationEmail);
             var pending = CreatePendingEmail(user, null, clientIp);
-            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
+            await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }
     }
 }

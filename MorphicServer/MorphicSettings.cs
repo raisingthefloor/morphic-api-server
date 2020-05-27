@@ -34,20 +34,26 @@ namespace MorphicServer
             get{
                 if (ServerUrlPrefix != "")
                 {
-                    var uriString = ServerUrlPrefix;
-                    if (ServerUrlPrefix.EndsWith("/"))
-                    {
-                        uriString = uriString.Substring(0, uriString.Length - 1);
-                    }
-                    return new Uri(uriString);
+                    return new Uri(ServerUrlPrefix);
                 }
                 return null;
             }
         }
 
-        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
+        /// <summary>The Server URL prefix for the front-end web server used for things like password reset</summary>
+        public string FrontEndServerUrlPrefix { get; set; } = "";
 
-        public string ResetServerUrlTemplate { get; set; } = "{self}/password/reset#token={oneTimeToken}";
+        public Uri FrontEndServerUri {
+            get{
+                if (FrontEndServerUrlPrefix != "")
+                {
+                    return new Uri(FrontEndServerUrlPrefix);
+                }
+                return new Uri("", UriKind.Relative);
+            }
+        }
+
+        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
     }
 
 }
