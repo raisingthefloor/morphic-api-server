@@ -109,9 +109,6 @@ namespace MorphicServer
             {
                 await Delete<AuthToken>(token => token.UserId == usernameCredentials.UserId);
             }
-
-            // TODO Need to respond with a nicer webpage than this
-            await Respond(new SuccessResponse("password_was_reset"));
         }
         
         public class PasswordResetRequest
@@ -125,18 +122,6 @@ namespace MorphicServer
             // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
             [JsonPropertyName("g_recaptcha_response")]
             public string GRecaptchaResponse { get; set; } = null!;
-        }
-
-        public class SuccessResponse
-        {
-            [JsonPropertyName("message")]
-            // ReSharper disable once UnusedAutoPropertyAccessor.Global
-            public string Status { get; }
-
-            public SuccessResponse(string message)
-            {
-                Status = message;
-            }
         }
 
         public class BadPasswordResetResponse : BadRequestResponse
@@ -276,22 +261,8 @@ namespace MorphicServer
                         Request.ClientIp()));
                 }
             }
-            // TODO Need to respond with a nicer webpage than this
-            await Respond(new SuccessResponse("password_reset_sent"));
         }
-
-        public class SuccessResponse
-        {
-            [JsonPropertyName("message")]
-            // ReSharper disable once UnusedAutoPropertyAccessor.Global
-            public string Status { get; }
-
-            public SuccessResponse(string message)
-            {
-                Status = message;
-            }
-        }
-
+        
         /// <summary>
         /// Model the password-reset-request request (yea I know...)
         /// </summary>
