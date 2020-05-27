@@ -38,8 +38,6 @@ namespace MorphicServer
     /// (trust me, it gets worse in the other endpoint).
     ///
     /// This will reset the password to the given password, if the one-time-token is valid.
-    ///
-    /// TODO: This is an API and not a web-page. We probably should have a web-page for this.
     /// </summary>
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
@@ -86,42 +84,11 @@ namespace MorphicServer
             }
         }
 
-        [Method]
-        public async Task Get()
-        {
-            // We're posting back to the same URL with the same OneTimeToken. We COULD/SHOULD create a new one, perhaps.
-            // But this is just a short-term hack for testers to be able to reset passwords.
-            var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
-
-            var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
-            var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetForm\").submit();}</script>";
-            var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
-
-            var passwordInput = "<p><label for=\"new_password\">Password:</label><input type=\"password\" name=\"new_password\"><br>";
-            var deleteExistingTokens = "<p><label for=\"delete_existing_tokens\">Delete all Auth Tokens:</label><input type=\"checkbox\" name=\"delete_existing_tokens\" value=\"true\"><br>";
-            var form = $"<form action=\"{link}\" method=\"POST\" id=\"PasswordResetForm\" name=\"PasswordResetForm\">{passwordInput}{deleteExistingTokens}{recaptchaButton}</form>";
-            var head = $"<head>{script}{script2}<title>PasswordResetForm</title></head>";
-            var body = $"<body>{form}</body>";
-            await Response.WriteHtml($"<html>{head}{body}</html>");
-        }
-        
         /// <summary>Reset the password</summary>
         [Method]
         public async Task Post()
         {
-            PasswordResetRequest request;
-            if (Request.ContentType.Contains("application/json"))
-            {
-                request = await Request.ReadJson<PasswordResetRequest>();
-            } 
-            else if (Request.ContentType.Contains("application/x-www-form-urlencoded"))
-            {
-                request = await FromForm(Request);
-            }
-            else
-            {
-                throw new HttpError(HttpStatusCode.BadRequest);
-            }
+            var request = await Request.ReadJson<PasswordResetRequest>();
             if (request.GRecaptchaResponse == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> { "g_captcha_response" }));
@@ -146,38 +113,6 @@ namespace MorphicServer
             // TODO Need to respond with a nicer webpage than this
             await Respond(new SuccessResponse("password_was_reset"));
         }
-
-        private async Task<PasswordResetRequest> FromForm(HttpRequest request)
-        {
-            var result = await request.GetHtmlBodyStringAsync();
-            var resetRequest = new PasswordResetRequest();
-            var elements = result.Split("&");
-            foreach (var el in elements)
-            {
-                var parts = el.Split("=");
-                if (parts[0] == "new_password")
-                {
-                    resetRequest.NewPassword = parts[1];
-                }
-                else if (parts[0] == "delete_existing_tokens")
-                {
-                    if (parts[1] == "true")
-                    {
-                        resetRequest.DeleteExistingTokens = true;
-                    }
-                }
-                else if (parts[0] == "g-recaptcha-response")
-                {
-                    resetRequest.GRecaptchaResponse = parts[1];
-                }
-                else
-                {
-                    throw new HttpError(HttpStatusCode.BadRequest);
-                }
-            }
-
-            return resetRequest;
-        }
         
         public class PasswordResetRequest
         {
@@ -195,6 +130,7 @@ namespace MorphicServer
         public class SuccessResponse
         {
             [JsonPropertyName("message")]
+            // ReSharper disable once UnusedAutoPropertyAccessor.Global
             public string Status { get; }
 
             public SuccessResponse(string message)
@@ -253,44 +189,14 @@ namespace MorphicServer
             this.jobClient = jobClient;
         }
 
-        [Method]
-        public async Task Get()
-        {
-            // short-term hack for testers to be able to reset passwords.
-            var link = $"{Request.Scheme}://{Request.Host}{Request.Path}";
-
-            var script = "<script src=\"https://www.google.com/recaptcha/api.js\"></script>";
-            var script2 = "<script>function onSubmit(token) { document.getElementById(\"PasswordResetRequestForm\").submit();}</script>";
-            var recaptchaButton = $"<button class=\"g-recaptcha\" data-sitekey=\"{recaptcha.Key}\" data-callback='onSubmit' data-action='submit'>Submit</button>";
-            
-            var emailInput = "<p><label for=\"email\">Email:</label><input type=\"text\" name=\"email\"><br>";
-            var form = $"<form action=\"{link}\" method=\"POST\" id=\"PasswordResetRequestForm\" name=\"PasswordResetRequestForm\">{emailInput}{recaptchaButton}</form>";
-            var head = $"<head>{script}{script2}<title>PasswordResetRequestForm</title></head>";
-            var body = $"<body>{form}</body>";
-            await Response.WriteHtml($"<html>{head}{body}</html>");
-        }
-
         /// <summary>
-        /// TODO: Need to rate-limit this and/or use re-captcha
+        /// Process a request to send a password reset link. Requires a captcha result to be sent.
         /// </summary>
         /// <returns></returns>
         [Method]
         public async Task Post()
         {
-            PasswordResetRequestRequest request;
-            if (Request.ContentType.Contains("application/json"))
-            {
-                request = await Request.ReadJson<PasswordResetRequestRequest>();
-            } 
-            else if (Request.ContentType.Contains("application/x-www-form-urlencoded"))
-            {
-                request = await FromForm(Request);
-            }
-            else
-            {
-                throw new HttpError(HttpStatusCode.BadRequest);
-            }
-
+            var request = await Request.ReadJson<PasswordResetRequestRequest>();
             if (request.GRecaptchaResponse == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "g_captcha_response" }));
@@ -358,6 +264,7 @@ namespace MorphicServer
         public class SuccessResponse
         {
             [JsonPropertyName("message")]
+            // ReSharper disable once UnusedAutoPropertyAccessor.Global
             public string Status { get; }
 
             public SuccessResponse(string message)
@@ -365,32 +272,6 @@ namespace MorphicServer
                 Status = message;
             }
         }
-
-        private async Task<PasswordResetRequestRequest> FromForm(HttpRequest request)
-        {
-            var result = await request.GetHtmlBodyStringAsync();
-            var resetRequest = new PasswordResetRequestRequest();
-            var elements = result.Split("&");
-            foreach (var el in elements)
-            {
-                var parts = el.Split("=");
-                if (parts[0] == "email")
-                {
-                    resetRequest.Email = parts[1];
-                }
-                else if (parts[0] == "g-recaptcha-response")
-                {
-                    resetRequest.GRecaptchaResponse = parts[1];
-                }
-                else
-                {
-                    throw new HttpError(HttpStatusCode.BadRequest);
-                }
-            }
-
-            return resetRequest;
-        }
-
 
         /// <summary>
         /// Model the password-reset-request request (yea I know...)
