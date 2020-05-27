@@ -95,10 +95,6 @@ namespace MorphicServer
                     {"required", new List<string> {"new_password"}}
                 });
 
-            public BadPasswordChangeResponse(string error) : base(error)
-            {
-            }
-
             public BadPasswordChangeResponse(string error, Dictionary<string, object> details) : base(error, details)
             {
             }
