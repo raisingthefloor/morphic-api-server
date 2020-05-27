@@ -87,6 +87,7 @@ namespace MorphicServer
             Context = contextAccessor.HttpContext;
             Request = Context.Request;
             Response = Context.Response;
+            settings = Context.RequestServices.GetRequiredService<MorphicSettings>();
             this.logger = logger;
         }
 
@@ -96,6 +97,8 @@ namespace MorphicServer
         public HttpRequest Request { get; private set; }
         /// <summary>The current HTTP Response</summary>
         public HttpResponse Response { get; private set; }
+
+        protected MorphicSettings settings;
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
@@ -385,57 +388,32 @@ namespace MorphicServer
             }
         }
 
-        public static string GetServerUrl(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        public Uri ServerUri
         {
-            string? serverUrl = morphicSettings.ServerUrlPrefix;
-            if (!string.IsNullOrEmpty(serverUrl))
+            get
             {
-                // validate it really is a URL
-                try
+                // First, use the value from MorphicSettings if specified
+                if (settings.ServerUri is Uri settingsUri)
                 {
-                    var url = new Uri(serverUrl);
-                    if (url.Host == "" || url.Scheme == "")
-                    {
-                        throw new NoServerUrlFoundException(serverUrl);
-                    }
-                }
-                catch (UriFormatException e)
-                {
-                    throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
-                }
-            }
-            else 
-            {
-                // try to assemble it from X-Forwarded-For- headers.
-                var host = requestHeaders["x-forwarded-host"].FirstOrDefault();
-                var scheme = requestHeaders["x-forwarded-proto"].FirstOrDefault();
-                if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(scheme))
-                {
-                    throw new NoServerUrlFoundException("Request Headers: " + string.Join(",", requestHeaders.ToArray()));
+                    return settingsUri;
                 }
 
-                serverUrl = $"{scheme}://{host}";
-                var port = requestHeaders["x-forwarded-port"].FirstOrDefault();
-                if (!string.IsNullOrWhiteSpace(port) && ((scheme == "http" && port != "80") || (scheme == "https" && port != "443")))
+                /// Next, use the value from the requset
+                if (Request.GetServerUri() is Uri requestUri)
                 {
-                    serverUrl += $":{port}";
+                    return requestUri;
                 }
-            }
 
-            char[] charsToTrim = {'/'}; // in case something added the trailing slash in the settings.
-            return serverUrl.TrimEnd(charsToTrim);
+                return new Uri("", UriKind.Relative);
+            }
         }
-        
-        public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
-        {
-            string pathTemplate = typeof(T).GetRoutePath() ?? throw new NotValidPathException(typeof(T).FullName!.ToString());
-            if (!pathTemplate.StartsWith("/"))
-            {
-                throw new NotValidPathException(pathTemplate);
-            }
 
-            var serverUrl = GetServerUrl(requestHeaders, morphicSettings);
-            return $"{serverUrl}{pathTemplate}";
+        public Uri GetUri<T>(Dictionary<string, string> pathParameters) where T: Endpoint
+        {
+            var type = typeof(T);
+            var builder = new UriBuilder(ServerUri);
+            builder.Path = type.GetRoutePath(pathParameters);
+            return builder.Uri;
         }
     }
 

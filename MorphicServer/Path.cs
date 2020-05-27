@@ -23,6 +23,7 @@
 
 using System;
 using System.Reflection;
+using System.Collections.Generic;
 
 namespace MorphicServer.Attributes
 {
@@ -59,6 +60,20 @@ namespace MorphicServer.Attributes
             if (type.GetCustomAttribute(typeof(Path)) is Path attr)
             {
                 return attr.Template;
+            }
+            return null;
+        }
+
+        /// <summary>Gets the registered URL path template for this class, or <code>null</code> if no <code>[Path()]</code> attribute was specified</summary>
+        public static string? GetRoutePath(this Type type, Dictionary<string, string> pathParameters)
+        {
+            if (type.GetRoutePath() is string path)
+            {
+                foreach (var pair in pathParameters)
+                {
+                    path = path.Replace($"{pair.Key}", pair.Value);
+                }
+                return path;
             }
             return null;
         }

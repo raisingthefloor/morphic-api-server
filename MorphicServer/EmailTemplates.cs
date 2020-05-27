@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Antlr3.ST;
 using Hangfire;
@@ -32,7 +33,7 @@ namespace MorphicServer
     /// Class for Pending Emails.
     /// </summary>
 
-    public abstract class EmailTemplates
+    public abstract class EmailTemplates: BackgroundJob
     {
         // https://github.com/sendgrid/sendgrid-csharp/blob/master/USE_CASES.md#transactional-templates
         // TODO i18n? localization?
@@ -57,7 +58,7 @@ namespace MorphicServer
 
         protected const string UnknownClientIp = "Unknown Client Ip";
         
-        protected EmailTemplates(EmailSettings settings, ILogger<EmailTemplates> logger, Database db)
+        protected EmailTemplates(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailTemplates> logger, Database db): base(morphicSettings)
         {
             Db = db;
             Settings = settings;
@@ -98,7 +99,7 @@ namespace MorphicServer
     }
     public class EmailVerificationEmail : EmailTemplates
     {
-        public EmailVerificationEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public EmailVerificationEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
             EmailMsgTemplate = @"Dear $UserFullName$,
 
@@ -111,7 +112,7 @@ $MorphicUser$ ($MorphicEmail$)";
         }
         
         [AutomaticRetry(Attempts = 20)]
-        public async Task QueueEmail(string userId, string urlTemplate, string? clientIp)
+        public async Task QueueEmail(string userId, string? clientIp)
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -131,10 +132,12 @@ $MorphicUser$ ($MorphicEmail$)";
             }
 
             var oneTimeToken = new OneTimeToken(user.Id);
-            var link = urlTemplate
-                .Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken())
-                .Replace("{userId}", oneTimeToken.UserId);
-            var pending = CreatePendingEmail(user, link, clientIp);
+            var uri = GetUri<ValidateEmailEndpoint>(new Dictionary<string, string>()
+            {
+                {"userId", oneTimeToken.UserId},
+                {"oneTimeToken", oneTimeToken.GetUnhashedToken()},
+            });
+            var pending = CreatePendingEmail(user, uri.ToString(), clientIp);
             await Db.Save(oneTimeToken);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
@@ -142,7 +145,7 @@ $MorphicUser$ ($MorphicEmail$)";
 
     public class PasswordResetEmail : EmailTemplates
     {
-        public PasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public PasswordResetEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -159,7 +162,7 @@ $MorphicUser$ ($MorphicEmail$)";
         }
 
         [AutomaticRetry(Attempts = 20)]
-        public async Task QueueEmail(string userId, string urlTemplate, string? clientIp)
+        public async Task QueueEmail(string userId, string? clientIp)
         {
             if (Settings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -179,8 +182,11 @@ $MorphicUser$ ($MorphicEmail$)";
             }
 
             var oneTimeToken = new OneTimeToken(user.Id);
-            var link = urlTemplate.Replace("{oneTimeToken}", oneTimeToken.GetUnhashedToken());
-            var pending = CreatePendingEmail(user, link, clientIp);
+            var uri = GetUri<AuthUsernamePasswordResetEndpoint>(new Dictionary<string, string>()
+            {
+                {"oneTimeToken", oneTimeToken.GetUnhashedToken()}
+            });
+            var pending = CreatePendingEmail(user, uri.ToString(), clientIp);
             await Db.Save(oneTimeToken);
             await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
         }
@@ -188,7 +194,7 @@ $MorphicUser$ ($MorphicEmail$)";
     
     public class UnknownEmailPasswordResetEmail : EmailTemplates
     {
-        public UnknownEmailPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public UnknownEmailPasswordResetEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -221,7 +227,7 @@ $MorphicUser$ ($MorphicEmail$)";
     
     public class EmailNotVerifiedPasswordResetEmail : EmailTemplates
     {
-        public EmailNotVerifiedPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public EmailNotVerifiedPasswordResetEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
