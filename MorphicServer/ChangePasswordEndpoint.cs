@@ -21,17 +21,23 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using MorphicServer.Attributes;
-using Serilog;
 
 namespace MorphicServer
 {
     [Path("/v1/users/{userid}/password")]
     public class ChangePasswordEndpoint : Endpoint
     {
+        public ChangePasswordEndpoint(IHttpContextAccessor contextAccessor, ILogger<ChangePasswordEndpoint> logger) : base(contextAccessor, logger)
+        {
+        }
+
         /// <summary>The user id to use, populated from the request URL</summary>
         [Parameter]
         public string UserId = "";
@@ -45,7 +51,7 @@ namespace MorphicServer
             }
             
             usernameCredentials = await Load<UsernameCredential>(u => u.UserId == authenticatedUser.Id);
-            Log.Logger.Debug("Loaded user credential for {UserId}", authenticatedUser.Id);
+            logger.LogDebug("Loaded user credential for {UserId}", authenticatedUser.Id);
         }
 
         /// <summary>The UsernameCredential data populated by <code>LoadResource()</code></summary>
@@ -55,9 +61,13 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<ChangePasswordRequest>();
+            if (request.NewPassword == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordChangeResponse.MissingRequired);
+            }
             var db = Context.GetDatabase();
             var user = await db.UserForUsernameCredential(usernameCredentials, request.ExistingPassword);
-            usernameCredentials.SetPassword(request.NewPassword);
+            usernameCredentials.CheckAndSetPassword(request.NewPassword);
             if (request.DeleteExistingTokens)
             {
                 await Delete<AuthToken>(token => token.UserId == user.Id);
@@ -74,6 +84,20 @@ namespace MorphicServer
             public string NewPassword { get; set; } = null!;
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
+        }
+
+        public class BadPasswordChangeResponse : BadRequestResponse
+        {
+            public static readonly BadPasswordChangeResponse MissingRequired = new BadPasswordChangeResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> {"new_password"}}
+                });
+
+            public BadPasswordChangeResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
         }
     }
 }

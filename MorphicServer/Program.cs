@@ -62,4 +62,15 @@ namespace MorphicServer
             return builder;
         }
     }
+
+    public class MorphicServerException : Exception
+    {
+        public MorphicServerException(string error) : base(error)
+        {
+        }
+
+        public MorphicServerException()
+        {
+        }
+    }
 }

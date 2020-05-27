@@ -22,8 +22,9 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
-using Serilog;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
@@ -73,7 +74,47 @@ namespace MorphicServer
         {
             return HashedData.FromString(email, User.DefaultUserEmailSalt).ToCombinedString();
         }
-        
+
+        public string FullnameOrEmail()
+        {
+            if (FullName == "")
+            {
+                return GetEmail() ?? "";
+            }
+            else
+            {
+                return FullName;
+            }
+        }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public string FullName
+        {
+            get
+            {
+                string fullName = "";
+
+                if (!string.IsNullOrEmpty(FirstName) || !string.IsNullOrEmpty(LastName))
+                {
+                    if (!string.IsNullOrEmpty(FirstName)) fullName = FirstName!;
+                    if (!string.IsNullOrEmpty(LastName))
+                    {
+                        if (fullName == "")
+                        {
+                            fullName = LastName;
+                        }
+                        else
+                        {
+                            fullName += " " + LastName;
+                        }
+                    }
+                }
+
+                return fullName;
+            }
+        }
+
         public string GetEmail()
         {
             if (String.IsNullOrWhiteSpace(EmailEncrypted))
@@ -87,10 +128,23 @@ namespace MorphicServer
                 // The encryption key used is not the primary key. It's an older one.
                 // This means we need to re-encrypt the data and save it back to the DB
                 // TODO implement key-rollover background task
-                Log.Logger.Error("TODO Need to re-encrypt with primary in background");
             }
 
             return plainText;
+        }
+        
+        public static bool IsValidEmail(string emailAddress)
+        {
+            try
+            {
+                // ReSharper disable once ObjectCreationAsStatement
+                new MailAddress(emailAddress);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
     }
 }

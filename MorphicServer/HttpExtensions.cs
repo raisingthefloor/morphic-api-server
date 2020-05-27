@@ -30,7 +30,6 @@ using System;
 using System.Net;
 using System.Text.Encodings.Web;
 using Serilog;
-using Serilog.Context;
 using Morphic.Json;
 
 namespace MorphicServer
@@ -66,7 +65,6 @@ namespace MorphicServer
 
     public static class HttpRequestExtensions
     {
-
         /// <summary>Deserialize the request JSON body into an object</summary>
         public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
         {
@@ -85,7 +83,6 @@ namespace MorphicServer
                 }
                 catch (NullOrMissingProperties e)
                 {
-                    Log.Logger.Information("Could not deserialize payload, missing required field");
                     var content = new Dictionary<string, object>(){
                         { "error", "missing_required" },
                         { "details", new Dictionary<string, object>() {
@@ -100,14 +97,52 @@ namespace MorphicServer
                 }
                 catch (Exception e)
                 {
-                    using (LogContext.PushProperty("exception", e))
-                    {
-                        Log.Logger.Information("Unknown error during deserialize payload");
-                    }
+                    Log.Logger.Information("Unknown error during deserialize payload {Exception}", e.ToString());
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }
             throw new HttpError(HttpStatusCode.UnsupportedMediaType);
+        }
+        
+        private static bool IsPrivateIp(string ipAddress)
+        {
+            if(ipAddress == "::1") return true;
+            byte[] ip = IPAddress.Parse(ipAddress).GetAddressBytes();
+            switch (ip[0])
+            {
+                case 10:
+                case 127:
+                    return true;
+                case 172:
+                    return ip[1] >= 16 && ip[1] < 32;
+                case 192:
+                    return ip[1] == 168;
+                default:
+                    return false;
+            }
+        }
+        
+        public static string? ClientIp(this HttpRequest request)
+        {
+            string? clientIp = request.Headers["x-forwarded-for"].ToString();
+            if (clientIp == null)
+            {
+                clientIp = request.Headers["x-real-ip"].ToString();
+            }
+
+            if (clientIp == null)
+            {
+                // Last resort. This is almost never correct. It's either the
+                // load-balancer in front of the server, or localhost in development.
+                clientIp = request.Headers["client_address"].ToString();
+                if (clientIp != null && IsPrivateIp(clientIp))
+                {
+                    // ignore private IP addresses
+                    clientIp = null;
+                }
+            }
+
+            return clientIp;
         }
     }
 }

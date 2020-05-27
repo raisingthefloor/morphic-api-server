@@ -36,8 +36,8 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using Prometheus;
-using Serilog;
 using Serilog.Context;
 
 namespace MorphicServer
@@ -80,15 +80,22 @@ namespace MorphicServer
     /// </example>
     public abstract class Endpoint
     {
+        protected readonly ILogger<Endpoint> logger;
 
-        #pragma warning disable CS8618
+        public Endpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger)
+        {
+            Context = contextAccessor.HttpContext;
+            Request = Context.Request;
+            Response = Context.Response;
+            this.logger = logger;
+        }
+
         /// <summary>The http context for the current request</summary>
         public HttpContext Context { get; private set; }
         /// <summary>The current HTTP request</summary>
         public HttpRequest Request { get; private set; }
         /// <summary>The current HTTP Response</summary>
         public HttpResponse Response { get; private set; }
-        #pragma warning restore CS8618
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
@@ -107,15 +114,10 @@ namespace MorphicServer
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
-        public static async Task Run<T>(HttpContext context) where T: Endpoint, new()
+        public static async Task Run<T>(HttpContext context) where T: Endpoint
         {
-            // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
-            // us to construct with a generic.  However, it means we need to populate some fields here instead
-            // of in a constructor.
-            var endpoint = new T();
-            endpoint.Context = context;
-            endpoint.Request = context.Request;
-            endpoint.Response = context.Response;
+            var endpoint = context.RequestServices.GetRequiredService<T>();
+            var logger = endpoint.logger;
             var method = context.Request.Method;
             var statusCode = 500;
             var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
@@ -124,12 +126,18 @@ namespace MorphicServer
 
             if (String.IsNullOrEmpty(path))
             {
-                Log.Logger.Error("Unknown path");
+                logger.LogError("Unknown path");
                 path = "(unknown)";
             }
 
-            using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
-            using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
+            var clientIp = context.Request.ClientIp();
+            if (clientIp == null)
+            {
+                logger.LogWarning("No client IP could be found for request");
+                clientIp = "";
+            }
+
+            using (LogContext.PushProperty("ClientIp", clientIp))
             {
                 var stopWatch = Stopwatch.StartNew();
                 try
@@ -176,12 +184,12 @@ namespace MorphicServer
                 catch (OperationCanceledException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught OperationCanceledException");
+                    logger.LogInformation("caught OperationCanceledException");
                 }
                 catch (BadHttpRequestException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught BadHttpRequestException");
+                    logger.LogInformation("caught BadHttpRequestException");
                 }
                 finally
                 {
@@ -204,24 +212,32 @@ namespace MorphicServer
             var endpointType = typeof(Endpoint);
             if (endpointType.GetMethod("Run") is MethodInfo run)
             {
-                foreach (var type in endpointType.Assembly.GetTypes())
+                foreach (var (type, attr) in SubclassesWithPaths)
                 {
-                    if (type.IsSubclassOf(endpointType))
-                    {
-                        if (type.GetCustomAttribute(typeof(Path)) is Path attr)
-                        {
-                            Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
-                                type.ToString(),
-                                attr.Template
-                            );
-                            var generic = run.MakeGenericMethod(new Type[] {type});
-                            endpoints.Map(attr.Template,
-                                generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                    var generic = run.MakeGenericMethod(new Type[] {type});
+                    endpoints.Map(attr.Template,
+                        generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                }
+            }
+        }
 
-                        }
+        internal static IEnumerable<(Type, Path)> SubclassesWithPaths = FindSubclassesWithPaths();
+
+        private static IEnumerable<(Type, Path)> FindSubclassesWithPaths()
+        {
+            var subclasses = new List<(Type, Path)>();
+            var endpointType = typeof(Endpoint);
+            foreach (var type in endpointType.Assembly.GetTypes())
+            {
+                if (type.IsSubclassOf(endpointType))
+                {
+                    if (type.GetCustomAttribute(typeof(Path)) is Path attr)
+                    {
+                        subclasses.Add((type, attr));
                     }
                 }
             }
+            return subclasses;
         }
 
         /// <summary>Get the method reflection info that matches the given request method name</summary>
@@ -340,6 +356,87 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
         }
+
+        public class EndpointException : MorphicServerException
+        {
+            protected EndpointException(string error) : base(error)
+            {
+            }
+
+            protected EndpointException() : base()
+            {
+            }
+        }
+
+        public class NotValidPathException : EndpointException
+        {
+            public NotValidPathException(string error) : base(error)
+            {
+            }
+        }
+        public class NoServerUrlFoundException : EndpointException
+        {
+            public NoServerUrlFoundException(string error) : base(error)
+            {
+            }
+
+            public NoServerUrlFoundException() : base()
+            {
+            }
+        }
+
+        public static string GetServerUrl(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        {
+            string? serverUrl = morphicSettings.ServerUrlPrefix;
+            if (!string.IsNullOrEmpty(serverUrl))
+            {
+                // validate it really is a URL
+                try
+                {
+                    var url = new Uri(serverUrl);
+                    if (url.Host == "" || url.Scheme == "")
+                    {
+                        throw new NoServerUrlFoundException(serverUrl);
+                    }
+                }
+                catch (UriFormatException e)
+                {
+                    throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
+                }
+            }
+            else 
+            {
+                // try to assemble it from X-Forwarded-For- headers.
+                var host = requestHeaders["x-forwarded-host"].FirstOrDefault();
+                var scheme = requestHeaders["x-forwarded-proto"].FirstOrDefault();
+                if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(scheme))
+                {
+                    throw new NoServerUrlFoundException("Request Headers: " + string.Join(",", requestHeaders.ToArray()));
+                }
+
+                serverUrl = $"{scheme}://{host}";
+                var port = requestHeaders["x-forwarded-port"].FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(port) && ((scheme == "http" && port != "80") || (scheme == "https" && port != "443")))
+                {
+                    serverUrl += $":{port}";
+                }
+            }
+
+            char[] charsToTrim = {'/'}; // in case something added the trailing slash in the settings.
+            return serverUrl.TrimEnd(charsToTrim);
+        }
+        
+        public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        {
+            string pathTemplate = typeof(T).GetRoutePath() ?? throw new NotValidPathException(typeof(T).FullName!.ToString());
+            if (!pathTemplate.StartsWith("/"))
+            {
+                throw new NotValidPathException(pathTemplate);
+            }
+
+            var serverUrl = GetServerUrl(requestHeaders, morphicSettings);
+            return $"{serverUrl}{pathTemplate}";
+        }
     }
 
     /// <summary>
@@ -371,6 +468,16 @@ namespace MorphicServer
             return context.RequestServices.GetRequiredService<Database>();
         }
 
+        public static MorphicSettings GetMorphicSettings(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<MorphicSettings>();
+        }
+
+        public static EmailSettings GetEmailSettings(this HttpContext context)
+        {
+            return context.RequestServices.GetRequiredService<EmailSettings>();
+        }
+
         public static async Task<User?> GetUser(this HttpContext context)
         {
             var db = context.GetDatabase();
@@ -387,6 +494,17 @@ namespace MorphicServer
                 }
             }
             return null;
+        }
+    }
+
+    public static class IServiceCollectionExtensions
+    {
+        public static void AddEndpoints(this IServiceCollection services)
+        {
+            foreach (var (type, attr) in Endpoint.SubclassesWithPaths)
+            {
+                services.AddTransient(type);
+            }
         }
     }
 }

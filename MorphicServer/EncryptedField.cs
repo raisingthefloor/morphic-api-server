@@ -106,7 +106,7 @@ namespace MorphicServer
         /// <returns></returns>
         public static EncryptedField FromPlainText(string plainText)
         {
-            var iv = RandomIv();
+            var iv = Random128BitsBase64();
             var key = KeyStorage.GetPrimary();
             using (EncryptionHistogram.Labels(Aes256CbcString).NewTimer())
             {
@@ -172,6 +172,18 @@ namespace MorphicServer
             }
 
             throw new UnknownCipherModeException(Cipher);
+        }
+
+        public string Decrypt()
+        {
+            bool isPrimary;
+            var result = Decrypt(out isPrimary);
+            if (!isPrimary)
+            {
+                // TODO need to re-encrypt here
+            }
+
+            return result;
         }
 
         // Helper functions
@@ -281,14 +293,20 @@ namespace MorphicServer
         /// Create a random IV of size 16 bytes (suitable for AES-256 encryption).
         /// </summary>
         /// <returns></returns>
-        private static string RandomIv()
+        public static string Random128BitsBase64()
         {
-            var iv = new byte[16];
-            var provider = RandomNumberGenerator.Create();
-            provider.GetBytes(iv);
+            var iv = RandomBytes(16);
             return Convert.ToBase64String(iv);
         }
 
+        public static byte[] RandomBytes(int n)
+        {
+            var bytes = new byte[n];
+            var provider = RandomNumberGenerator.Create();
+            provider.GetBytes(bytes);
+            return bytes;
+        }
+        
         // custom exceptions for this class.
 
         public class EncryptedFieldException : Exception
