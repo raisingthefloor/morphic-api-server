@@ -90,7 +90,6 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            CheckPassword(request.Password);
             await CheckEmail(request.Email);
 
             var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
@@ -101,8 +100,8 @@ namespace MorphicServer
 
             var cred = new UsernameCredential();
             cred.Id = request.Username;
-            cred.SetPassword(request.Password);
-
+            cred.CheckAndSetPassword(request.Password);
+            
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
             user.SetEmail(request.Email);
@@ -112,7 +111,7 @@ namespace MorphicServer
             await Register(cred, user);
             try
             {
-                BackgroundJob.Enqueue<NewVerificationEmail>(x => x.QueueEmail(
+                BackgroundJob.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
                     user.Id,
                     GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
                     Request.ClientIp()
@@ -127,48 +126,10 @@ namespace MorphicServer
             }
 
         }
-
-        private static bool IsValidEmail(string emailaddress)
-        {
-            try
-            {
-                // ReSharper disable once ObjectCreationAsStatement
-                new MailAddress(emailaddress);
-                return true;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-        }
-
-        private const int MinPasswordLength = 6;
-
-        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
-            new[] {
-                "password",
-                "testing"
-            }
-        );
-
-        private void CheckPassword(String password)
-        {   
-            if (password.Length < MinPasswordLength)
-            {
-                logger.LogInformation("SHORT_PASSWORD");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
-            }
-
-            if (BadPasswords.Contains(password))
-            {
-                logger.LogInformation("KNOWN_BAD_PASSWORD");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
-            }
-        }
-
+        
         private async Task CheckEmail(String email)
         {
-            if (!IsValidEmail(email))
+            if (!User.IsValidEmail(email))
             {
                 logger.LogInformation("MALFORMED_EMAIL");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
@@ -200,17 +161,6 @@ namespace MorphicServer
             public static readonly BadRequestResponse ExistingEmail = new BadRequestResponseUser("existing_email");
             public static readonly BadRequestResponse MalformedEmail = new BadRequestResponseUser("malformed_email");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
-            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
-                "short_password",
-                new Dictionary<string, object>
-                {
-                    {"minimum_length", MinPasswordLength}
-                });
-            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
-
-            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
-            {
-            }
 
             private BadRequestResponseUser(string error) : base(error)
             {

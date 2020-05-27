@@ -79,6 +79,27 @@ namespace MorphicServer.Tests
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"new_password"});
 
+            // Missing password
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
+            content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password);
+            content.Add("new_password", "");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
+            assertMissingRequired(error, new List<string> {"new_password"});
+
+            // bad password
+            request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
+            content = new Dictionary<string, object>();
+            content.Add("existing_password", userInfo1.Password);
+            content.Add("new_password", "password");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
+
             // GET, Success
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();

@@ -83,12 +83,16 @@ namespace MorphicServer
             }
         }
 
-        /// <summary>Fetch the user</summary>
+        /// <summary>Reset the password</summary>
         [Method]
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequest>();
-            usernameCredentials.SetPassword(request.NewPassword);
+            if (request.NewPassword == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
+            }
+            usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             if (request.DeleteExistingTokens)
@@ -120,16 +124,24 @@ namespace MorphicServer
 
         public class BadPasswordResetResponse : BadRequestResponse
         {
-            public static readonly BadPasswordResetResponse
-                InvalidToken = new BadPasswordResetResponse("invalid_token");
-
+            public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
+            public static readonly BadPasswordResetResponse MissingRequired = new BadPasswordResetResponse(
+                "missing_required",
+                new Dictionary<string, object>
+                {
+                    {"required", new List<string> { "new_password" } }
+                });
 
             public BadPasswordResetResponse(string error) : base(error)
             {
             }
-
+        
+            public BadPasswordResetResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
         }
+
     }
 
     /// <summary>
@@ -158,6 +170,11 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
             }
+
+            if (!User.IsValidEmail(request.Email))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadEmailAddress);
+            }
             var db = Context.GetDatabase();
             var hash = User.UserEmailHashCombined(request.Email);
             using (LogContext.PushProperty("EmailHash", hash))
@@ -165,26 +182,37 @@ namespace MorphicServer
                 var user = await db.Get<User>(a => a.EmailHash == hash, ActiveSession);
                 if (user != null)
                 {
-                    logger.LogInformation("Password reset requested for userId {userId}", user.Id);
-                    try
+                    if (user.EmailVerified)
                     {
-                        BackgroundJob.Enqueue<NewPasswordResetEmail>(x => x.QueueEmail(user.Id,
-                            GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                                Context.GetMorphicSettings()),
-                            Request.ClientIp()));
+                        logger.LogInformation("Password reset requested for userId {userId}", user.Id);
+                        try
+                        {
+                            BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
+                                GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
+                                    Context.GetMorphicSettings()),
+                                Request.ClientIp()));
+                        }
+                        catch (NoServerUrlFoundException e)
+                        {
+                            logger.LogError("Could not create the URL for the email-link. " +
+                                            "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
+                                e.ToString());
+                            throw new HttpError(HttpStatusCode.InternalServerError);
+                        }
                     }
-                    catch (NoServerUrlFoundException e)
+                    else
                     {
-                        logger.LogError("Could not create the URL for the email-link. " +
-                                        "For a quick fix, set MorphicSettings.ServerUrlPrefix {Exception}",
-                            e.ToString());
-                        throw new HttpError(HttpStatusCode.InternalServerError);
+                        logger.LogInformation(
+                            "Password reset requested for userId {userId}, but email not verified", user.Id);
+                        BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                            request.Email,
+                            Request.ClientIp()));
                     }
                 }
                 else
                 {
                     logger.LogInformation("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<NewNoEmailPasswordResetEmail>(x => x.QueueEmail(
+                    BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }
@@ -202,6 +230,7 @@ namespace MorphicServer
         
         public class BadPasswordRequestResponse : BadRequestResponse
         {
+            public static readonly BadPasswordRequestResponse BadEmailAddress = new BadPasswordRequestResponse("bad_email_address");
             public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
                 "missing_required",
                 new Dictionary<string, object>
@@ -209,6 +238,9 @@ namespace MorphicServer
                     {"required", new List<string> { "email" } }
                 });
             public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+            public BadPasswordRequestResponse(string error) : base(error)
             {
             }
         }

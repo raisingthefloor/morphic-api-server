@@ -96,9 +96,9 @@ namespace MorphicServer
         {
         }
     }
-    public class NewVerificationEmail : EmailTemplates
+    public class EmailVerificationEmail : EmailTemplates
     {
-        public NewVerificationEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public EmailVerificationEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate = @"Dear $UserFullName$,
 
@@ -140,9 +140,9 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
 
-    public class NewPasswordResetEmail : EmailTemplates
+    public class PasswordResetEmail : EmailTemplates
     {
-        public NewPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public PasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -186,9 +186,9 @@ $MorphicUser$ ($MorphicEmail$)";
         }
     }
     
-    public class NewNoEmailPasswordResetEmail : EmailTemplates
+    public class UnknownEmailPasswordResetEmail : EmailTemplates
     {
-        public NewNoEmailPasswordResetEmail(EmailSettings settings, ILogger<NewVerificationEmail> logger, Database db) : base(settings, logger, db)
+        public UnknownEmailPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
         {
             EmailMsgTemplate =
                 @"Dear $UserFullName$,
@@ -199,6 +199,40 @@ If this wasn't requested by you, you may ignore this email or contact Morphic Su
 Regards,
 $MorphicUser$ ($MorphicEmail$)";
             EmailType = PendingEmail.EmailTypeEnum.PasswordResetNoUser;
+            EmailSubject = "Morphic Password Reset Requested";
+        }
+
+        [AutomaticRetry(Attempts = 20)]
+        public async Task QueueEmail(string destinationEmail, string? clientIp)
+        {
+            if (Settings.Type == EmailSettings.EmailTypeDisabled)
+            {
+                logger.LogWarning("EmailSettings.Disable is set");
+                return;
+            }
+
+            // Don't save this. It's just to carry the email
+            var user = new User();
+            user.SetEmail(destinationEmail);
+            var pending = CreatePendingEmail(user, null, clientIp);
+            await new SendPendingEmails(Settings, logger).SendOneEmail(pending);
+        }
+    }
+    
+    public class EmailNotVerifiedPasswordResetEmail : EmailTemplates
+    {
+        public EmailNotVerifiedPasswordResetEmail(EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(settings, logger, db)
+        {
+            EmailMsgTemplate =
+                @"Dear $UserFullName$,
+
+Someone requested a password reset for this email address, however the email address
+has not previously been verified.
+If this wasn't requested by you, you may ignore this email or contact Morphic Support.
+
+Regards,
+$MorphicUser$ ($MorphicEmail$)";
+            EmailType = PendingEmail.EmailTypeEnum.PasswordResetEmailNotVerified;
             EmailSubject = "Morphic Password Reset Requested";
         }
 

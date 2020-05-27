@@ -88,6 +88,7 @@ namespace MorphicServer
             EmailValidation,
             PasswordResetExistingUser,
             PasswordResetNoUser,
+            PasswordResetEmailNotVerified
         }
         
 
