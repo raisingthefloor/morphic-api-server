@@ -30,6 +30,7 @@ using System;
 using System.Net;
 using System.Text.Encodings.Web;
 using Serilog;
+using Morphic.Json;
 
 namespace MorphicServer
 {
@@ -72,15 +73,15 @@ namespace MorphicServer
                 try
                 {
                     var options = new JsonSerializerOptions();
-                    options.Converters.Add(new JsonElementInferredTypeConverter());
-                    options.Converters.Add(new NonNullableExceptionJsonConverter());
+                    options.Converters.Add(new InferredTypeConverter());
+                    options.Converters.Add(new ModelConverterFactory("MorphicServer"));
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {
                         return o;
                     }
                 }
-                catch (NonNullableExceptionJsonConverter.NullOrMissingProperties e)
+                catch (NullOrMissingProperties e)
                 {
                     var content = new Dictionary<string, object>(){
                         { "error", "missing_required" },
