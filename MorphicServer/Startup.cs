@@ -133,6 +133,8 @@ namespace MorphicServer
         public string ServerUrlPrefix { get; set; } = "";
 
         public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
+ 
+        public string ResetServerUrlTemplate { get; set; } = "{self}/password/reset#token={oneTimeToken}";
     }
 
     public class Recaptcha3Settings

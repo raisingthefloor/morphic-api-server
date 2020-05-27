@@ -227,9 +227,28 @@ namespace MorphicServer
                         logger.LogInformation("Password reset requested for userId {userId}", user.Id);
                         try
                         {
+                            var linkTemplate = Context.GetMorphicSettings().ResetServerUrlTemplate;
+                            if (linkTemplate.Contains("{self}"))
+                            {
+                                try
+                                {
+                                    var serverUrl = GetServerUrl(Request.Headers, Context.GetMorphicSettings());
+                                    linkTemplate = linkTemplate.Replace("{self}", serverUrl);
+                                }
+                                catch (NoServerUrlFoundException e)
+                                {
+                                    logger.LogError("No server URL could be found. {Exception}", e.ToString());
+                                    throw new HttpError(HttpStatusCode.InternalServerError);
+                                }
+                                catch (NotValidPathException e)
+                                {
+                                    logger.LogError("No valid path for class could be found. {Exception}", e.ToString());
+                                    throw new HttpError(HttpStatusCode.InternalServerError);
+                                }
+                            }
+
                             jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
-                                GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                                    Context.GetMorphicSettings()),
+                                linkTemplate,
                                 Request.ClientIp()));
                         }
                         catch (NoServerUrlFoundException e)
