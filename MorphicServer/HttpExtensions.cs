@@ -31,6 +31,7 @@ using System.Net;
 using System.Text.Encodings.Web;
 using Serilog;
 using Morphic.Json;
+using System.Linq;
 
 namespace MorphicServer
 {
@@ -143,6 +144,26 @@ namespace MorphicServer
             }
 
             return clientIp;
+        }
+
+        public static Uri? GetServerUri(this HttpRequest request)
+        {
+            // Try to assemble it from X-Forwarded-For- headers.
+            var builder = new UriBuilder();
+            builder.Scheme = request.Headers["x-forwarded-proto"].FirstOrDefault();
+            builder.Host = request.Headers["x-forwarded-host"].FirstOrDefault();
+            if (builder.Scheme != "" && builder.Host != "")
+            {
+                if (int.TryParse(request.Headers["x-forwarded-port"].FirstOrDefault(), out var port))
+                {
+                    if ((builder.Scheme == "http" && port != 80) || (builder.Scheme == "https" && port != 443))
+                    {
+                        builder.Port = port;
+                    }
+                }
+                return builder.Uri;
+            }
+            return null;
         }
     }
 }

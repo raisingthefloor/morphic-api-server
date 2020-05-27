@@ -114,7 +114,6 @@ namespace MorphicServer
             {
                 jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
                     user.Id,
-                    GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
                     Request.ClientIp()
                 ));
             }

@@ -16,19 +16,9 @@ namespace MorphicServer.Tests
         {
             var userInfo1 = await CreateTestUser(verifiedEmail:true);
 
-            // Fail: No headers
+            // Success using x-forwarded headers
             var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/request");
             var content = new Dictionary<string, object>();
-            content.Add("email", userInfo1.Email);
-            content.Add("g_recaptcha_response", "12345");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            MorphicSettings.ServerUrlPrefix = "";
-            var response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-
-            // Success using x-forwarded headers
-            request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/request");
-            content = new Dictionary<string, object>();
             content.Add("email", userInfo1.Email);
             content.Add("g_recaptcha_response", "12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
@@ -36,7 +26,7 @@ namespace MorphicServer.Tests
             request.Headers.Add("X-Forwarded-Host", new List<string> {"foo"});
             request.Headers.Add("X-Forwarded-Port", new List<string> {"443"});
             request.Headers.Add("X-Forwarded-Proto", new List<string> {"https"});
-            response = await Client.SendAsync(request);
+            var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // Success using MorphicSettings.ServerUrlPrefix
