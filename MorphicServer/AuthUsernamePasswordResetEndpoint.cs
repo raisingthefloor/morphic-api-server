@@ -38,14 +38,15 @@ namespace MorphicServer
     /// (trust me, it gets worse in the other endpoint).
     ///
     /// This will reset the password to the given password, if the one-time-token is valid.
-    ///
-    /// TODO: This is an API and not a web-page. We probably should have a web-page for this.
     /// </summary>
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
     {
-        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IRecaptcha recaptcha;
+        
+        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger, IRecaptcha recaptcha): base(contextAccessor, logger)
         {
+            this.recaptcha = recaptcha;
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
@@ -88,9 +89,18 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequest>();
+            if (request.GRecaptchaResponse == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> { "g_captcha_response" }));
+            }
+            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.BadReCaptcha);
+            }
+            
             if (request.NewPassword == "")
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired);
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> {"new_password"}));
             }
             usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
@@ -103,18 +113,25 @@ namespace MorphicServer
             // TODO Need to respond with a nicer webpage than this
             await Respond(new SuccessResponse("password_was_reset"));
         }
-
+        
         public class PasswordResetRequest
         {
-            [JsonPropertyName("new_password")] public string NewPassword { get; set; } = null!;
+            [JsonPropertyName("new_password")]
+            public string NewPassword { get; set; } = null!;
 
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
+
+            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
+            [JsonPropertyName("g_recaptcha_response")]
+            public string GRecaptchaResponse { get; set; } = null!;
         }
 
         public class SuccessResponse
         {
-            [JsonPropertyName("message")] public string Status { get; }
+            [JsonPropertyName("message")]
+            // ReSharper disable once UnusedAutoPropertyAccessor.Global
+            public string Status { get; }
 
             public SuccessResponse(string message)
             {
@@ -126,12 +143,17 @@ namespace MorphicServer
         {
             public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
-            public static readonly BadPasswordResetResponse MissingRequired = new BadPasswordResetResponse(
-                "missing_required",
-                new Dictionary<string, object>
-                {
-                    {"required", new List<string> { "new_password" } }
-                });
+            public static readonly BadPasswordResetResponse BadReCaptcha = new BadPasswordResetResponse("bad_recaptcha");
+
+            public static BadPasswordResetResponse MissingRequired(List<string> missing)
+            {
+                return new BadPasswordResetResponse(
+                    "missing_required",
+                    new Dictionary<string, object>
+                    {
+                        {"required", missing}
+                    });
+            }
 
             public BadPasswordResetResponse(string error) : base(error)
             {
@@ -154,21 +176,39 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/request")]
     public class AuthUsernamePasswordResetRequestEndpoint : Endpoint
     {
-        public AuthUsernamePasswordResetRequestEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IRecaptcha recaptcha;
+        private IBackgroundJobClient jobClient;
+        
+        public AuthUsernamePasswordResetRequestEndpoint(
+            IHttpContextAccessor contextAccessor, 
+            ILogger<AuthUsernameEndpoint> logger,
+            IRecaptcha recaptcha,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
+            this.recaptcha = recaptcha;
+            this.jobClient = jobClient;
         }
 
         /// <summary>
-        /// TODO: Need to rate-limit this and/or use re-captcha
+        /// Process a request to send a password reset link. Requires a captcha result to be sent.
         /// </summary>
         /// <returns></returns>
         [Method]
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequestRequest>();
+            if (request.GRecaptchaResponse == "")
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "g_captcha_response" }));
+            }
+            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadReCaptcha);
+            }
+            
             if (request.Email == "")
             {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired);
+                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "email" }));
             }
 
             if (!User.IsValidEmail(request.Email))
@@ -187,9 +227,28 @@ namespace MorphicServer
                         logger.LogInformation("Password reset requested for userId {userId}", user.Id);
                         try
                         {
-                            BackgroundJob.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
-                                GetControllerPathUrl<AuthUsernamePasswordResetEndpoint>(Request.Headers,
-                                    Context.GetMorphicSettings()),
+                            var linkTemplate = Context.GetMorphicSettings().ResetServerUrlTemplate;
+                            if (linkTemplate.Contains("{self}"))
+                            {
+                                try
+                                {
+                                    var serverUrl = GetServerUrl(Request.Headers, Context.GetMorphicSettings());
+                                    linkTemplate = linkTemplate.Replace("{self}", serverUrl);
+                                }
+                                catch (NoServerUrlFoundException e)
+                                {
+                                    logger.LogError("No server URL could be found. {Exception}", e.ToString());
+                                    throw new HttpError(HttpStatusCode.InternalServerError);
+                                }
+                                catch (NotValidPathException e)
+                                {
+                                    logger.LogError("No valid path for class could be found. {Exception}", e.ToString());
+                                    throw new HttpError(HttpStatusCode.InternalServerError);
+                                }
+                            }
+
+                            jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id,
+                                linkTemplate,
                                 Request.ClientIp()));
                         }
                         catch (NoServerUrlFoundException e)
@@ -204,7 +263,7 @@ namespace MorphicServer
                     {
                         logger.LogInformation(
                             "Password reset requested for userId {userId}, but email not verified", user.Id);
-                        BackgroundJob.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                        jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                             request.Email,
                             Request.ClientIp()));
                     }
@@ -212,10 +271,24 @@ namespace MorphicServer
                 else
                 {
                     logger.LogInformation("Password reset requested but no email matching");
-                    BackgroundJob.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
+                    jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }
+            }
+            // TODO Need to respond with a nicer webpage than this
+            await Respond(new SuccessResponse("password_reset_sent"));
+        }
+
+        public class SuccessResponse
+        {
+            [JsonPropertyName("message")]
+            // ReSharper disable once UnusedAutoPropertyAccessor.Global
+            public string Status { get; }
+
+            public SuccessResponse(string message)
+            {
+                Status = message;
             }
         }
 
@@ -226,17 +299,27 @@ namespace MorphicServer
         {
             [JsonPropertyName("email")]
             public string Email { get; set; } = null!;
+            
+            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
+            [JsonPropertyName("g_recaptcha_response")]
+            public string GRecaptchaResponse { get; set; } = null!;
         }
         
         public class BadPasswordRequestResponse : BadRequestResponse
         {
             public static readonly BadPasswordRequestResponse BadEmailAddress = new BadPasswordRequestResponse("bad_email_address");
-            public static readonly BadPasswordRequestResponse MissingRequired = new BadPasswordRequestResponse(
-                "missing_required",
-                new Dictionary<string, object>
-                {
-                    {"required", new List<string> { "email" } }
-                });
+            public static readonly BadPasswordRequestResponse BadReCaptcha = new BadPasswordRequestResponse("bad_recaptcha");
+
+            public static BadPasswordRequestResponse MissingRequired(List<string> missing)
+            {
+                return new BadPasswordRequestResponse(
+                    "missing_required",
+                    new Dictionary<string, object>
+                    {
+                        {"required", missing}
+                    });
+            }
+
             public BadPasswordRequestResponse(string error, Dictionary<string, object> details) : base(error, details)
             {
             }

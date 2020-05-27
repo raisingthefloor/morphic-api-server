@@ -86,10 +86,10 @@ def testrunner(args):
     for repeatAll in range(1, args.loops + 1):
         for i in range(1, args.nusers + 1):
             try:
-                username = "myusername" + str(i)
+                #username = "jan+morphictest{number}@vilhuber.com".format(number=i)
+                username = "morphicuser{number}@raisingthefloor.org".format(number=i)
                 password = "mypassword" + str(i)
-                email = username + "@raisingthefloor.org"
-                #email = "jan+morphictest{number}@vilhuber.com".format(number=i)
+                email = username
                 try:
                     auth = Register(base_url, logger=logger).registerUser(username, password, email)
                 except (Register.MorphicRegisterUserExists, Register.MorphicRegisterEmailExists):

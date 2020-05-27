@@ -62,6 +62,8 @@ namespace MorphicServer
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddSingleton<IRecaptcha, Recaptcha>();
+            services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
             services.AddRouting();
             services.AddEndpoints();
 
@@ -129,8 +131,18 @@ namespace MorphicServer
     {
         /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
         public string ServerUrlPrefix { get; set; } = "";
+
+        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
+ 
+        public string ResetServerUrlTemplate { get; set; } = "{self}/password/reset#token={oneTimeToken}";
     }
 
+    public class Recaptcha3Settings
+    {
+        public string Key { get; set; } = "";
+        public string Secret { get; set; } = "";
+
+    }
     public class HangfireSettings
     {
         public string ConnectionString { get; set; } = "";

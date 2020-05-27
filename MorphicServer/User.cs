@@ -133,12 +133,12 @@ namespace MorphicServer
             return plainText;
         }
         
-        public static bool IsValidEmail(string emailaddress)
+        public static bool IsValidEmail(string emailAddress)
         {
             try
             {
                 // ReSharper disable once ObjectCreationAsStatement
-                new MailAddress(emailaddress);
+                new MailAddress(emailAddress);
                 return true;
             }
             catch (FormatException)

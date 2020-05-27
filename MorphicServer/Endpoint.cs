@@ -385,15 +385,10 @@ namespace MorphicServer
             }
         }
 
-        public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        public static string GetServerUrl(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
         {
-            string pathTemplate = typeof(T).GetRoutePath() ?? throw new NotValidPathException(typeof(T).FullName!.ToString());
-            if (!pathTemplate.StartsWith("/"))
-            {
-                throw new NotValidPathException(pathTemplate);
-            }
-            string serverUrl = morphicSettings.ServerUrlPrefix ?? "";
-            if (serverUrl != "")
+            string? serverUrl = morphicSettings.ServerUrlPrefix;
+            if (!string.IsNullOrEmpty(serverUrl))
             {
                 // validate it really is a URL
                 try
@@ -408,10 +403,8 @@ namespace MorphicServer
                 {
                     throw new NoServerUrlFoundException($"{serverUrl}: {e.Message}");
                 }
-                char[] charsToTrim = {'/'}; // in case a human added the trailing slash in the settings.
-                serverUrl = serverUrl.TrimEnd(charsToTrim);
             }
-            else
+            else 
             {
                 // try to assemble it from X-Forwarded-For- headers.
                 var host = requestHeaders["x-forwarded-host"].FirstOrDefault();
@@ -429,6 +422,19 @@ namespace MorphicServer
                 }
             }
 
+            char[] charsToTrim = {'/'}; // in case something added the trailing slash in the settings.
+            return serverUrl.TrimEnd(charsToTrim);
+        }
+        
+        public static string GetControllerPathUrl<T>(IHeaderDictionary requestHeaders, MorphicSettings morphicSettings)
+        {
+            string pathTemplate = typeof(T).GetRoutePath() ?? throw new NotValidPathException(typeof(T).FullName!.ToString());
+            if (!pathTemplate.StartsWith("/"))
+            {
+                throw new NotValidPathException(pathTemplate);
+            }
+
+            var serverUrl = GetServerUrl(requestHeaders, morphicSettings);
             return $"{serverUrl}{pathTemplate}";
         }
     }

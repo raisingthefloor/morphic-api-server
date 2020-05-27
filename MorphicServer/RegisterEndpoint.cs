@@ -22,13 +22,10 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using System.Net;
-using System.Net.Mail;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
 using Hangfire;
@@ -38,7 +35,6 @@ namespace MorphicServer
 
     public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
     {
-
         public RegisterEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
         }
@@ -75,9 +71,14 @@ namespace MorphicServer
     [Path("/v1/register/username")]
     public class RegisterUsernameEndpoint: RegisterEndpoint<UsernameCredential>
     {
-
-        public RegisterUsernameEndpoint(IHttpContextAccessor contextAccessor, ILogger<RegisterUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IBackgroundJobClient jobClient;
+        
+        public RegisterUsernameEndpoint(
+            IHttpContextAccessor contextAccessor,
+            ILogger<RegisterUsernameEndpoint> logger,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
+            this.jobClient = jobClient;
         }
 
         [Method]
@@ -111,7 +112,7 @@ namespace MorphicServer
             await Register(cred, user);
             try
             {
-                BackgroundJob.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
+                jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
                     user.Id,
                     GetControllerPathUrl<ValidateEmailEndpoint>(Request.Headers, Context.GetMorphicSettings()),
                     Request.ClientIp()

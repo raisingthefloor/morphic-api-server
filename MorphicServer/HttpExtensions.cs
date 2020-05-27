@@ -27,8 +27,11 @@ using System.Threading;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
 using System;
+using System.IO;
 using System.Net;
+using System.Text;
 using System.Text.Encodings.Web;
+using System.Web;
 using Serilog;
 
 namespace MorphicServer
@@ -60,10 +63,29 @@ namespace MorphicServer
                 await response.WriteJson(content, cancellationToken);
             }
         }
+        
+        public static async Task WriteHtml(this HttpResponse response, string html, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            response.ContentType = "text/html; charset=utf-8";
+            await response.StartAsync(cancellationToken);
+            await response.BodyWriter.WriteAsync(new ReadOnlyMemory<byte>(Encoding.UTF8.GetBytes(html)), cancellationToken);
+            await response.CompleteAsync();
+        }
+
     }
 
     public static class HttpRequestExtensions
     {
+        public static async Task<string> GetHtmlBodyStringAsync(this HttpRequest request, Encoding encoding = null)
+        {
+            if (encoding == null)
+                encoding = Encoding.UTF8;
+
+            using (StreamReader reader = new StreamReader(request.Body, encoding))
+            {
+                return HttpUtility.UrlDecode(await reader.ReadToEndAsync());
+            }
+        }
 
         /// <summary>Deserialize the request JSON body into an object</summary>
         public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
@@ -144,7 +166,5 @@ namespace MorphicServer
 
             return clientIp;
         }
-
-        
     }
 }
