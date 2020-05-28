@@ -285,10 +285,10 @@ namespace MorphicServer.Tests
             var allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             var allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             var vary = context.Response.Headers["Vary"];
-            Assert.Equal(0, allowedOrigin.Count);
-            Assert.Equal(0, allowedMethods.Count);
-            Assert.Equal(0, allowedHeaders.Count);
-            Assert.Equal(0, vary.Count);
+            Assert.Empty(allowedOrigin);
+            Assert.Empty(allowedMethods);
+            Assert.Empty(allowedHeaders);
+            Assert.Empty(vary);
 
             // Sending disallowed origin
             services = new ServiceCollection();
@@ -306,10 +306,10 @@ namespace MorphicServer.Tests
             allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             vary = context.Response.Headers["Vary"];
-            Assert.Equal(0, allowedOrigin.Count);
-            Assert.Equal(0, allowedMethods.Count);
-            Assert.Equal(0, allowedHeaders.Count);
-            Assert.Equal(0, vary.Count);
+            Assert.Empty(allowedOrigin);
+            Assert.Empty(allowedMethods);
+            Assert.Empty(allowedHeaders);
+            Assert.Empty(vary);
 
             // Sending allowed origin
             services = new ServiceCollection();
@@ -327,11 +327,11 @@ namespace MorphicServer.Tests
             allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             vary = context.Response.Headers["Vary"];
-            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Single(allowedOrigin);
             Assert.Equal("https://other.origin", allowedOrigin[0]);
-            Assert.Equal(0, allowedMethods.Count);
-            Assert.Equal(0, allowedHeaders.Count);
-            Assert.Equal(1, vary.Count);
+            Assert.Empty(allowedMethods);
+            Assert.Empty(allowedHeaders);
+            Assert.Single(vary);
             Assert.Equal("Origin", vary[0]);
 
             // Sending allowed origin with method
@@ -351,12 +351,12 @@ namespace MorphicServer.Tests
             allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             vary = context.Response.Headers["Vary"];
-            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Single(allowedOrigin);
             Assert.Equal("https://other.origin", allowedOrigin[0]);
-            Assert.Equal(1, allowedMethods.Count);
+            Assert.Single(allowedMethods);
             Assert.Equal("*", allowedMethods[0]);
-            Assert.Equal(0, allowedHeaders.Count);
-            Assert.Equal(1, vary.Count);
+            Assert.Empty(allowedHeaders);
+            Assert.Single(vary);
             Assert.Equal("Origin", vary[0]);
 
             // Sending allowed origin with method and headers
@@ -377,13 +377,13 @@ namespace MorphicServer.Tests
             allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             vary = context.Response.Headers["Vary"];
-            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Single(allowedOrigin);
             Assert.Equal("https://other.origin", allowedOrigin[0]);
-            Assert.Equal(1, allowedMethods.Count);
+            Assert.Single(allowedMethods);
             Assert.Equal("*", allowedMethods[0]);
-            Assert.Equal(1, allowedHeaders.Count);
+            Assert.Single(allowedHeaders);
             Assert.Equal("Content-Type, Authorization", allowedHeaders[0]);
-            Assert.Equal(1, vary.Count);
+            Assert.Single(vary);
             Assert.Equal("Origin", vary[0]);
 
             // Adding wildcard
@@ -404,13 +404,13 @@ namespace MorphicServer.Tests
             allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
             allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
             vary = context.Response.Headers["Vary"];
-            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Single(allowedOrigin);
             Assert.Equal("https://wildcard.origin", allowedOrigin[0]);
-            Assert.Equal(1, allowedMethods.Count);
+            Assert.Single(allowedMethods);
             Assert.Equal("*", allowedMethods[0]);
-            Assert.Equal(1, allowedHeaders.Count);
+            Assert.Single(allowedHeaders);
             Assert.Equal("Content-Type, Authorization", allowedHeaders[0]);
-            Assert.Equal(0, vary.Count);
+            Assert.Empty(vary);
 
         }
 

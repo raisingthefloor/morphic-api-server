@@ -247,13 +247,16 @@ namespace MorphicServer
         /// <summary>Populate fields registered with <code>[Parameter]</code> attributes with values from the request URL</summary>
         private void PopulateParameterFields()
         {
-            RouteData routeData = null;
+            RouteData routeData = null!;
             try
             {
                 routeData = Context.GetRouteData();
-            }catch{
-
             }
+            catch
+            {
+                // ignored
+            }
+
             if (routeData != null)
             {
                 foreach (var fieldInfo in GetType().GetFields())

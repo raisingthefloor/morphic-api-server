@@ -23,10 +23,8 @@
 
 using System;
 using Xunit;
-using Morphic.Json;
 using System.Collections.Generic;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace Morphic.Json.Tests
 {
@@ -142,7 +140,7 @@ namespace Morphic.Json.Tests
             Assert.True(result.TryGetValue("a", out value));
             Assert.IsType<object[]>(value);
             array = (object[])value;
-            Assert.Equal(0, array.Length);
+            Assert.Empty(array);
             
             json = @"{""a"": [[1,true],{""b"": ""hi""}]}";
             result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);
@@ -185,7 +183,7 @@ namespace Morphic.Json.Tests
             Assert.True(result.TryGetValue("a", out value));
             Assert.IsType<Dictionary<string, object>>(value);
             dictionary = (Dictionary<string, object>)value;
-            Assert.Equal(0, dictionary.Count);
+            Assert.Empty(dictionary);
 
             json = @"{""a"": {""first"": [1, false], ""second"": {""b"": ""hi""}}}";
             result = JsonSerializer.Deserialize<Dictionary<string, object>>(json, options);

@@ -60,7 +60,7 @@ namespace Morphic.Json.Tests
         {
             var json = @"{""Id"": ""Hello""}";
             var instance = JsonSerializer.Deserialize<NullRequiredModel>(json, options);
-            Assert.Equal(instance.Id, "Hello");
+            Assert.Equal("Hello", instance.Id);
             Assert.Null(instance.OtherId);
 
             json = @"{""Id"": ""Hello"", ""OtherId"": ""World""}";
@@ -97,7 +97,7 @@ namespace Morphic.Json.Tests
         {
             var json = @"{""Id"": ""Hello"", ""Flag"": true}";
             var instance = JsonSerializer.Deserialize<JsonRequiredModel>(json, options);
-            Assert.Equal(instance.Id, "Hello");
+            Assert.Equal("Hello", instance.Id);
             Assert.True(instance.Flag);
             Assert.False(instance.OtherFlag);
 
@@ -190,7 +190,7 @@ namespace Morphic.Json.Tests
             }
             catch (NullOrMissingProperties e)
             {
-                Assert.Equal(1, e.PropertyNames.Length);
+                Assert.Single(e.PropertyNames);
                 Assert.Equal("identifier", e.PropertyNames[0]);
             }
 
