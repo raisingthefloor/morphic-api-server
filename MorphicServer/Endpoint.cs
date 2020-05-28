@@ -472,7 +472,7 @@ namespace MorphicServer
 
         public void AddAllowedOrigin(Uri origin)
         {
-            if (!String.IsNullOrEmpty(origin.Scheme) && !String.IsNullOrEmpty(origin.Host))
+            if (origin.IsAbsoluteUri && !String.IsNullOrEmpty(origin.Scheme) && !String.IsNullOrEmpty(origin.Host))
             {
                 var builder = new UriBuilder();
                 builder.Scheme = origin.Scheme;
