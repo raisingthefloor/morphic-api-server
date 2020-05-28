@@ -44,6 +44,7 @@ namespace MorphicServer
     {
         public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
         {
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
@@ -170,7 +171,7 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.MissingRequired(new List<string> { "g_captcha_response" }));
             }
-            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
+            if (!await recaptcha.ReCaptchaPassed("requestpasswordreset", request.GRecaptchaResponse))
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadReCaptcha);
             }

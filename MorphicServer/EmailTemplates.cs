@@ -117,8 +117,9 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
-                logger.LogWarning("EmailSettings.Disable is set");
-                return;
+                // Email shouldn't be disabled, but if it is, we want to
+                // fail this job so it retries
+                throw new Exception("Email is disabled, failing job to it will retry");
             }
 
             var user = await Db.Get<User>(userId);
@@ -167,8 +168,9 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
-                logger.LogWarning("EmailSettings.Disable is set");
-                return;
+                // Email shouldn't be disabled, but if it is, we want to
+                // fail this job so it retries
+                throw new Exception("Email is disabled, failing job to it will retry");
             }
 
             var user = await Db.Get<User>(userId);
@@ -214,8 +216,9 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
-                logger.LogWarning("EmailSettings.Disable is set");
-                return;
+                // Email shouldn't be disabled, but if it is, we want to
+                // fail this job so it retries
+                throw new Exception("Email is disabled, failing job to it will retry");
             }
 
             // Don't save this. It's just to carry the email
@@ -248,8 +251,9 @@ $MorphicUser$ ($MorphicEmail$)";
         {
             if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
-                logger.LogWarning("EmailSettings.Disable is set");
-                return;
+                // Email shouldn't be disabled, but if it is, we want to
+                // fail this job so it retries
+                throw new Exception("Email is disabled, failing job to it will retry");
             }
 
             // Don't save this. It's just to carry the email

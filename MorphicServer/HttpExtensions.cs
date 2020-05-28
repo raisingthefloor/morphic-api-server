@@ -92,13 +92,8 @@ namespace MorphicServer
                     };
                     throw new HttpError(HttpStatusCode.BadRequest, content);
                 }
-                catch (JsonException e)
+                catch
                 {
-                    Log.Logger.Information("Could not deserialize payload: {JsonError}", e.Message);
-                }
-                catch (Exception e)
-                {
-                    Log.Logger.Information("Unknown error during deserialize payload {Exception}", e.ToString());
                 }
                 throw new HttpError(HttpStatusCode.BadRequest);
             }

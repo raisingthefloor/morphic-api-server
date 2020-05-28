@@ -27,6 +27,7 @@ namespace MorphicServer
 
     public class MorphicSettings
     {
+
         /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
         public string ServerUrlPrefix { get; set; } = "";
 
@@ -54,6 +55,16 @@ namespace MorphicServer
         }
 
         public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
+    }
+
+    public class Recaptcha3Settings
+    {
+        public string Key { get; set; } = "";
+
+        public string Secret { get; set; } = "";
+
+        public double MinimumScore { get; set; } = 0.7;
+
     }
 
 }
