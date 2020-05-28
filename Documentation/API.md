@@ -684,7 +684,7 @@ for additional security.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="3"><code>error</code></th>
+      <th rowspan="4"><code>error</code></th>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
