@@ -28,6 +28,8 @@ WORKDIR /app
 # Copy csproj and restore as distinct layers
 COPY ./MorphicServer/*.csproj ./MorphicServer/
 COPY ./MorphicServer.Tests/*.csproj ./MorphicServer.Tests/
+COPY ./Morphic.Json/*.csproj ./Morphic.Json/
+COPY ./Morphic.Json.Tests/*.csproj ./Morphic.Json.Tests/
 COPY ./MorphicServer.sln .
 RUN dotnet restore
 
