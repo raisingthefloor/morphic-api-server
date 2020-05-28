@@ -80,7 +80,8 @@ namespace MorphicServer
     /// </example>
     public abstract class Endpoint
     {
-        protected readonly ILogger<Endpoint> logger;
+
+        #region Creating an Endpoint
 
         public Endpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger)
         {
@@ -89,7 +90,19 @@ namespace MorphicServer
             Response = Context.Response;
             settings = Context.RequestServices.GetRequiredService<MorphicSettings>();
             this.logger = logger;
+            AddAllowedOriginsFromAttributes();
+            Response.OnStarting(() =>
+            {
+                SetCrossOriginHeaders();
+                return Task.CompletedTask;
+            });
         }
+        
+        protected readonly ILogger<Endpoint> logger;
+
+        #endregion
+
+        #region Request & Response Information
 
         /// <summary>The http context for the current request</summary>
         public HttpContext Context { get; private set; }
@@ -98,7 +111,15 @@ namespace MorphicServer
         /// <summary>The current HTTP Response</summary>
         public HttpResponse Response { get; private set; }
 
+        #endregion
+
+        #region Site Configuration
+
         protected MorphicSettings settings;
+
+        #endregion
+
+        #region Metrics
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
@@ -112,6 +133,10 @@ namespace MorphicServer
         private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
             "HTTP Request Duration",
             labelNames);
+
+        #endregion
+
+        #region Invocation
         
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
@@ -123,8 +148,8 @@ namespace MorphicServer
             var logger = endpoint.logger;
             var method = context.Request.Method;
             var statusCode = 500;
-            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
-            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetrics)) as OmitMetrics;
+            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(PathAttribute)) as PathAttribute;
+            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetricsAttribute)) as OmitMetricsAttribute;
             var path = pathAttr?.Template;
 
             if (String.IsNullOrEmpty(path))
@@ -206,6 +231,49 @@ namespace MorphicServer
             }
         }
 
+        /// <summary>Get the method reflection info that matches the given request method name</summary>
+        /// <remarks>
+        /// Will search this instance for a method that has a <code>[Method]</code> attribute matching the request method name
+        /// </remarks>
+        private MethodInfo? MethodInfoForRequestMethod(string requestMethod)
+        {
+            if (GetType().GetMethodForRequestMethod(requestMethod) is MethodInfo methodInfo)
+            {
+                return methodInfo;
+            }
+            return null;
+        }
+
+        /// <summary>Populate fields registered with <code>[Parameter]</code> attributes with values from the request URL</summary>
+        private void PopulateParameterFields()
+        {
+            RouteData routeData = null;
+            try
+            {
+                routeData = Context.GetRouteData();
+            }catch{
+
+            }
+            if (routeData != null)
+            {
+                foreach (var fieldInfo in GetType().GetFields())
+                {
+                    if (fieldInfo.GetParameterName() is string name)
+                    {
+                        object value;
+                        if (routeData.Values.TryGetValue(name, out value))
+                        {
+                            fieldInfo.SetValue(this, value);
+                        }
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region Registration
+
         /// <summary>Find all <code>Endpoint</code> subclasses and register their routes based on their <code>[Path()]</code> attributes</summary>
         /// <remarks>
         /// Maps the subclass's URL path template to <code>Run</code> with the subclass as the call's generic type
@@ -224,17 +292,17 @@ namespace MorphicServer
             }
         }
 
-        internal static IEnumerable<(Type, Path)> SubclassesWithPaths = FindSubclassesWithPaths();
+        internal static IEnumerable<(Type, PathAttribute)> SubclassesWithPaths = FindSubclassesWithPaths();
 
-        private static IEnumerable<(Type, Path)> FindSubclassesWithPaths()
+        private static IEnumerable<(Type, PathAttribute)> FindSubclassesWithPaths()
         {
-            var subclasses = new List<(Type, Path)>();
+            var subclasses = new List<(Type, PathAttribute)>();
             var endpointType = typeof(Endpoint);
             foreach (var type in endpointType.Assembly.GetTypes())
             {
                 if (type.IsSubclassOf(endpointType))
                 {
-                    if (type.GetCustomAttribute(typeof(Path)) is Path attr)
+                    if (type.GetCustomAttribute(typeof(PathAttribute)) is PathAttribute attr)
                     {
                         subclasses.Add((type, attr));
                     }
@@ -243,35 +311,9 @@ namespace MorphicServer
             return subclasses;
         }
 
-        /// <summary>Get the method reflection info that matches the given request method name</summary>
-        /// <remarks>
-        /// Will search this instance for a method that has a <code>[Method]</code> attribute matching the request method name
-        /// </remarks>
-        private MethodInfo? MethodInfoForRequestMethod(string requestMethod)
-        {
-            if (GetType().GetMethodForRequestMethod(requestMethod) is MethodInfo methodInfo)
-            {
-                return methodInfo;
-            }
-            return null;
-        }
+        #endregion
 
-        /// <summary>Populate fields registered with <code>[Parameter]</code> attributes with values from the request URL</summary>
-        private void PopulateParameterFields()
-        {
-            var routeData = Context.GetRouteData();
-            foreach (var fieldInfo in GetType().GetFields())
-            {
-                if (fieldInfo.GetParameterName() is string name)
-                {
-                    object value;
-                    if (routeData.Values.TryGetValue(name, out value))
-                    {
-                        fieldInfo.SetValue(this, value);
-                    }
-                }
-            }
-        }
+        #region Database Operations
 
         /// <summary>
         /// Called after <code>PopulateParameterFields()</code> but before the method handler to give the endpoint a chance
@@ -324,23 +366,6 @@ namespace MorphicServer
             }
         }
 
-        /// <summary>Convenience method for serializing an object to JSON as a response</summary>
-        public async Task Respond<T>(T obj)
-        {
-            await Response.WriteJson(obj, Context.RequestAborted);
-        }
-
-        /// <summary>Return the logged in user or throw an exception</summary>
-        public async Task<User> RequireUser()
-        {
-            var user = await Context.GetUser();
-            if (user == null){
-                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
-                throw new HttpError(HttpStatusCode.Unauthorized);
-            }
-            return user;
-        }
-
         public Database.Session? ActiveSession;
 
         public async Task WithTransaction(Func<Database.Session, Task> operations)
@@ -360,16 +385,152 @@ namespace MorphicServer
             }
         }
 
-        public class EndpointException : MorphicServerException
+        #endregion
+
+        #region Writing Responses
+
+        /// <summary>Convenience method for serializing an object to JSON as a response</summary>
+        public async Task Respond<T>(T obj)
         {
-            protected EndpointException(string error) : base(error)
+            await Response.WriteJson(obj, Context.RequestAborted);
+        }
+
+        #endregion
+
+        #region Authentication
+
+        /// <summary>Return the logged in user or throw an exception</summary>
+        public async Task<User> RequireUser()
+        {
+            var user = await Context.GetUser();
+            if (user == null){
+                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
+                throw new HttpError(HttpStatusCode.Unauthorized);
+            }
+            return user;
+        }
+
+        #endregion
+
+        #region Cross Origin
+
+        public class AllowedOrigin
+        {
+
+            public AllowedOrigin(string origin, string[] methods, string[] headers)
+            {
+                Origin = origin;
+                Methods = methods;
+                Headers = headers;
+            }
+            
+            public AllowedOrigin(string origin): this(origin, AllMethods, DefaultHeaders)
             {
             }
 
-            protected EndpointException() : base()
+            public AllowedOrigin(string origin, string[] methods): this(origin, methods, DefaultHeaders)
             {
             }
+
+            public AllowedOrigin(string origin, AllowedOrigin other): this(origin, other.Methods, other.Headers)
+            {
+                Varies = false;
+            }
+
+            public static string[] AllMethods = { "*" };
+            public static string[] DefaultHeaders = { "Content-Type", "Authorization" };
+
+            public string Origin { get; }
+            public string[] Methods { get; }
+            public string[] Headers { get; }
+            public bool Varies { get; } = true;
         }
+
+        private Dictionary<string, AllowedOrigin> allowedOrigins = new Dictionary<string, AllowedOrigin>();
+
+        public void AddAllowedOriginsFromAttributes()
+        {
+            var type = this.GetType();
+            var allowedOrigins = new List<Endpoint.AllowedOrigin>();
+            if (type.GetCustomAttributes(typeof(AllowedOriginAttribute)) is IEnumerable<Attribute> attrs)
+            {
+                foreach (var attr in attrs)
+                {
+                    if (attr is AllowedOriginAttribute allowedAttr)
+                    {
+                        var allowedOrigin = new AllowedOrigin(allowedAttr.Origin, allowedAttr.Methods, allowedAttr.Headers);
+                        AddAllowedOrigin(allowedOrigin);
+                    }
+                }
+            }
+        }
+
+        public void AddAllowedOrigin(AllowedOrigin allowedOrigin)
+        {
+            allowedOrigins.Add(allowedOrigin.Origin, allowedOrigin);
+        }
+
+        public void AddAllowedOrigin(Uri origin)
+        {
+            if (!String.IsNullOrEmpty(origin.Scheme) && !String.IsNullOrEmpty(origin.Host))
+            {
+                var builder = new UriBuilder();
+                builder.Scheme = origin.Scheme;
+                builder.Host = origin.Host;
+                builder.Port = origin.Port;
+                AddAllowedOrigin(new AllowedOrigin(builder.Uri.ToString().TrimEnd('/')));
+            }
+        }
+
+        protected void SetCrossOriginHeaders()
+        {
+            if (EffectiveAllowedOrigin is AllowedOrigin allowed)
+            {
+                Response.Headers.Add("Access-Control-Allow-Origin", allowed.Origin);
+                if (allowed.Varies){
+                    Response.Headers.Add("Vary", "Origin");
+                }
+                if (Request.Headers["Access-Control-Request-Method"].Count > 0)
+                {
+                    Response.Headers.Add("Access-Control-Allow-Methods", String.Join(", ", allowed.Methods));
+                }
+                if (Request.Headers["Access-Control-Request-Headers"].Count > 0)
+                {
+                    Response.Headers.Add("Access-Control-Allow-Headers", String.Join(", ", allowed.Headers));
+                }
+            }
+        }
+
+        private AllowedOrigin? EffectiveAllowedOrigin
+        {
+            get
+            {
+                if (Request.Headers["Origin"].FirstOrDefault() is string origin)
+                {
+                    if (allowedOrigins.TryGetValue(origin, out var allowed))
+                    {
+                        return allowed;
+                    }
+                    if (allowedOrigins.TryGetValue("*", out var wildcard))
+                    {
+                        return new AllowedOrigin(origin, wildcard);
+                    }
+                }
+                return null;
+            }
+        }
+
+        [Method]
+        public Task Options()
+        {
+            Response.Headers.Add("Access-Control-Max-Age", "360");
+            Response.StatusCode = (int)HttpStatusCode.OK;
+            return Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region Generating URLs to Endpoints
 
         public Uri ServerUri
         {
@@ -398,7 +559,11 @@ namespace MorphicServer
             builder.Path = type.GetRoutePath(pathParameters);
             return builder.Uri;
         }
+
+        #endregion
     }
+
+    #region Error Responses
 
     /// <summary>
     /// Base class for error Responses for Morphic APIs.
@@ -422,21 +587,15 @@ namespace MorphicServer
         }
     }
 
+    #endregion
+
+    #region HttpContext Extensions
+
     public static class HttpContextExtensions
     {
         public static Database GetDatabase(this HttpContext context)
         {
             return context.RequestServices.GetRequiredService<Database>();
-        }
-
-        public static MorphicSettings GetMorphicSettings(this HttpContext context)
-        {
-            return context.RequestServices.GetRequiredService<MorphicSettings>();
-        }
-
-        public static EmailSettings GetEmailSettings(this HttpContext context)
-        {
-            return context.RequestServices.GetRequiredService<EmailSettings>();
         }
 
         public static async Task<User?> GetUser(this HttpContext context)
@@ -458,6 +617,10 @@ namespace MorphicServer
         }
     }
 
+    #endregion
+
+    #region IServiceCollection Extensions
+
     public static class IServiceCollectionExtensions
     {
         public static void AddEndpoints(this IServiceCollection services)
@@ -468,4 +631,6 @@ namespace MorphicServer
             }
         }
     }
+
+    #endregion
 }

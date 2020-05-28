@@ -31,6 +31,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using MorphicServer.Attributes;
 
 namespace MorphicServer.Tests
 {
@@ -44,25 +45,24 @@ namespace MorphicServer.Tests
             public MockHttpRequest(HttpContext context)
             {
                 HttpContext = context;
-                Headers = new HeaderDictionary();
             }
 
             public override HttpContext HttpContext { get; }
-            public override string Protocol { get; set; }
-            public override string Scheme { get; set; }
-            public override HostString Host { get; set; }
-            public override PathString PathBase { get; set; }
-            public override PathString Path { get; set; }
-            public override string Method { get; set; }
+            public override string Protocol { get; set; } = "HTTP/1.1";
+            public override string Scheme { get; set; } = "http";
+            public override HostString Host { get; set; } = new HostString("test.host");
+            public override PathString PathBase { get; set; } = "";
+            public override PathString Path { get; set; } = "";
+            public override string Method { get; set; } = "GET";
             public override QueryString QueryString { get; set; }
             public override IRequestCookieCollection Cookies { get; set; }
-            public override bool IsHttps { get; set; }
-            public override bool HasFormContentType { get; }
+            public override bool IsHttps { get; set; } = false;
+            public override bool HasFormContentType { get; } = false;
             public override Stream Body { get; set; }
             public override IQueryCollection Query { get; set; }
             public override IFormCollection Form { get; set; }
-            public override IHeaderDictionary Headers { get; }
-            public override string ContentType { get; set; }
+            public override IHeaderDictionary Headers { get; } = new HeaderDictionary();
+            public override string ContentType { get; set; } = "";
             public override long? ContentLength { get; set; }
 
             public override Task<IFormCollection>  ReadFormAsync(CancellationToken cancellationToken = default(CancellationToken))
@@ -81,11 +81,12 @@ namespace MorphicServer.Tests
             }
 
             public override HttpContext HttpContext { get; }
-            public override bool HasStarted { get; }
-            public override Stream Body { get; set; }
-            public override int StatusCode { get; set; }
+            private bool hasStarted = false;
+            public override bool HasStarted { get { return hasStarted; } }
+            public override Stream Body { get; set; } = new MemoryStream();
+            public override int StatusCode { get; set; } = 0;
             public override IResponseCookies Cookies { get; }
-            public override IHeaderDictionary Headers { get; }
+            public override IHeaderDictionary Headers { get; } = new HeaderDictionary();
             public override string ContentType { get; set; }
             public override long? ContentLength { get; set; }
 
@@ -93,12 +94,30 @@ namespace MorphicServer.Tests
             {
             }
 
+            private Func<object, Task> startingCallback = null;
+            private object startingCallbackState = null;
+
             public override void OnStarting(Func<object, Task> callback, object state)
             {
+                startingCallback = callback;
+                startingCallbackState = state;
+                hasStarted = true;
             }
 
             public override void Redirect(string location, bool permanent)
             {
+            }
+
+            public override async Task StartAsync(CancellationToken cancellationToken = default(CancellationToken))
+            {
+                if (startingCallback != null){
+                    await startingCallback.Invoke(startingCallbackState);
+                }
+            }
+
+            public override Task CompleteAsync()
+            {
+                return Task.CompletedTask;
             }
         }
 
@@ -115,12 +134,12 @@ namespace MorphicServer.Tests
             public override HttpRequest Request { get; }
             public override HttpResponse Response { get; }
             public override IServiceProvider RequestServices { get; set; }
-            public override CancellationToken RequestAborted { get; set; }
+            public override CancellationToken RequestAborted { get; set; } = new CancellationToken();
             public override ISession Session { get; set; }
-            public override string TraceIdentifier { get; set; }
-            public override IDictionary<object, object> Items { get; set; }
-            public override ClaimsPrincipal User { get; set; }
-            public override IFeatureCollection Features { get; }
+            public override string TraceIdentifier { get; set; } = "TESTING";
+            public override IDictionary<object, object> Items { get; set; } = new Dictionary<object, object>();
+            public override ClaimsPrincipal User { get; set; } = new ClaimsPrincipal();
+            public override IFeatureCollection Features { get; } = new FeatureCollection();
             public override ConnectionInfo Connection { get; }
             public override WebSocketManager WebSockets { get; }
 
@@ -208,6 +227,191 @@ namespace MorphicServer.Tests
             endpoint = provider.GetRequiredService<MockEndpoint>();
             uri = endpoint.ServerUri;
             Assert.Equal("https://settings.host/", uri.ToString());
+        }
+
+        [Attributes.Path("cors")]
+        [AllowedOrigin("https://other.origin")]
+        private class CorsEndpoint: Endpoint
+        {
+
+            public CorsEndpoint(IHttpContextAccessor contextAccessor, ILogger<CorsEndpoint> logger): base(contextAccessor, logger)
+            {
+            }
+
+            [Method]
+            public async Task Get()
+            {
+                await Respond(new Dictionary<string, object>()
+                {
+                    {"test", "hi"}
+                });
+            }
+        }
+
+        [Attributes.Path("cors2")]
+        [AllowedOrigin("*")]
+        private class CorsWildcardEndpoint: Endpoint
+        {
+
+            public CorsWildcardEndpoint(IHttpContextAccessor contextAccessor, ILogger<CorsEndpoint> logger): base(contextAccessor, logger)
+            {
+            }
+
+            [Method]
+            public async Task Get()
+            {
+                await Respond(new Dictionary<string, object>()
+                {
+                    {"test", "hi"}
+                });
+            }
+        }
+
+        [Fact]
+        public async Task TestCrossOrigin()
+        {
+            // Not sending Origin
+            var services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsEndpoint>();
+            var provider = services.BuildServiceProvider();
+            var context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            await Endpoint.Run<CorsEndpoint>(context);
+            var allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            var allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            var allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            var vary = context.Response.Headers["Vary"];
+            Assert.Equal(0, allowedOrigin.Count);
+            Assert.Equal(0, allowedMethods.Count);
+            Assert.Equal(0, allowedHeaders.Count);
+            Assert.Equal(0, vary.Count);
+
+            // Sending disallowed origin
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            context.Request.Headers.Add("Origin", "https://wrong.origin");
+            await Endpoint.Run<CorsEndpoint>(context);
+            allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            vary = context.Response.Headers["Vary"];
+            Assert.Equal(0, allowedOrigin.Count);
+            Assert.Equal(0, allowedMethods.Count);
+            Assert.Equal(0, allowedHeaders.Count);
+            Assert.Equal(0, vary.Count);
+
+            // Sending allowed origin
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            context.Request.Headers.Add("Origin", "https://other.origin");
+            await Endpoint.Run<CorsEndpoint>(context);
+            allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            vary = context.Response.Headers["Vary"];
+            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Equal("https://other.origin", allowedOrigin[0]);
+            Assert.Equal(0, allowedMethods.Count);
+            Assert.Equal(0, allowedHeaders.Count);
+            Assert.Equal(1, vary.Count);
+            Assert.Equal("Origin", vary[0]);
+
+            // Sending allowed origin with method
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            context.Request.Headers.Add("Origin", "https://other.origin");
+            context.Request.Headers.Add("Access-Control-Request-Method", "GET");
+            await Endpoint.Run<CorsEndpoint>(context);
+            allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            vary = context.Response.Headers["Vary"];
+            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Equal("https://other.origin", allowedOrigin[0]);
+            Assert.Equal(1, allowedMethods.Count);
+            Assert.Equal("*", allowedMethods[0]);
+            Assert.Equal(0, allowedHeaders.Count);
+            Assert.Equal(1, vary.Count);
+            Assert.Equal("Origin", vary[0]);
+
+            // Sending allowed origin with method and headers
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            context.Request.Headers.Add("Origin", "https://other.origin");
+            context.Request.Headers.Add("Access-Control-Request-Method", "GET");
+            context.Request.Headers.Add("Access-Control-Request-Headers", "Content-Type");
+            await Endpoint.Run<CorsEndpoint>(context);
+            allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            vary = context.Response.Headers["Vary"];
+            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Equal("https://other.origin", allowedOrigin[0]);
+            Assert.Equal(1, allowedMethods.Count);
+            Assert.Equal("*", allowedMethods[0]);
+            Assert.Equal(1, allowedHeaders.Count);
+            Assert.Equal("Content-Type, Authorization", allowedHeaders[0]);
+            Assert.Equal(1, vary.Count);
+            Assert.Equal("Origin", vary[0]);
+
+            // Adding wildcard
+            services = new ServiceCollection();
+            services.AddLogging();
+            services.AddSingleton<MorphicSettings>(new MorphicSettings());
+            services.AddSingleton<IHttpContextAccessor>(provider => new MockContextAccessor(new MockHttpContext(provider)));
+            services.AddTransient<CorsWildcardEndpoint>();
+            provider = services.BuildServiceProvider();
+            context = provider.GetRequiredService<IHttpContextAccessor>().HttpContext;
+            context.Request.Path = "/cors";
+            context.Request.Method = "GET";
+            context.Request.Headers.Add("Origin", "https://wildcard.origin");
+            context.Request.Headers.Add("Access-Control-Request-Method", "GET");
+            context.Request.Headers.Add("Access-Control-Request-Headers", "Content-Type");
+            await Endpoint.Run<CorsWildcardEndpoint>(context);
+            allowedOrigin = context.Response.Headers["Access-Control-Allow-Origin"];
+            allowedMethods = context.Response.Headers["Access-Control-Allow-Methods"];
+            allowedHeaders = context.Response.Headers["Access-Control-Allow-Headers"];
+            vary = context.Response.Headers["Vary"];
+            Assert.Equal(1, allowedOrigin.Count);
+            Assert.Equal("https://wildcard.origin", allowedOrigin[0]);
+            Assert.Equal(1, allowedMethods.Count);
+            Assert.Equal("*", allowedMethods[0]);
+            Assert.Equal(1, allowedHeaders.Count);
+            Assert.Equal("Content-Type, Authorization", allowedHeaders[0]);
+            Assert.Equal(0, vary.Count);
+
         }
 
     }
