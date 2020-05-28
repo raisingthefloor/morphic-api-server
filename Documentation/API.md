@@ -681,6 +681,9 @@ for additional security.
       <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
@@ -739,6 +742,9 @@ Reset a password
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
     </tr>
     <tr>
       <th colspan="4"><code>400</code> Response Body</th>
@@ -805,6 +811,9 @@ Request a password reset email.
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
     </tr>
     <tr>
       <th colspan="4"><code>400</code> Response Body</th>
