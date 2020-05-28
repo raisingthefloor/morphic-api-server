@@ -84,28 +84,18 @@ namespace MorphicServer.Tests
             var token = new OneTimeToken(userInfo1.Id);
             await Database.Save(token);
             
-            // Fail: missing password and recaptcha
+            // Fail: missing password
             var request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
             var content = new Dictionary<string, object>();
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             var response = await Client.SendAsync(request);
             var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            assertMissingRequired(error, new List<string> {"new_password", "g_recaptcha_response"});
-
-            // Fail: missing password
-            request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
-            content = new Dictionary<string, object>();
-            content.Add("g_recaptcha_response", "12345");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"new_password"});
-
+            
             // Fail: crappy passwords
             request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
             content = new Dictionary<string, object>();
             content.Add("new_password", "password");
-            content.Add("g_recaptcha_response", "12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
@@ -113,7 +103,6 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
             content = new Dictionary<string, object>();
             content.Add("new_password", "");
-            content.Add("g_recaptcha_response", "12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
@@ -123,7 +112,6 @@ namespace MorphicServer.Tests
             request = new HttpRequestMessage(HttpMethod.Post, $"/v1/auth/username/password_reset/{token.GetUnhashedToken()}");
             content = new Dictionary<string, object>();
             content.Add("new_password", "something new");
-            content.Add("g_recaptcha_response", "12345");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);

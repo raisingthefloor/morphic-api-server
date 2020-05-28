@@ -42,11 +42,8 @@ namespace MorphicServer
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
     {
-        private IRecaptcha recaptcha;
-        
-        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger, IRecaptcha recaptcha): base(contextAccessor, logger)
+        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
         {
-            this.recaptcha = recaptcha;
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
@@ -89,15 +86,6 @@ namespace MorphicServer
         public async Task Post()
         {
             var request = await Request.ReadJson<PasswordResetRequest>();
-            if (request.GRecaptchaResponse == "")
-            {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> { "g_captcha_response" }));
-            }
-            if (!await recaptcha.ReCaptchaPassed(request.GRecaptchaResponse))
-            {
-                throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.BadReCaptcha);
-            }
-            
             if (request.NewPassword == "")
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.MissingRequired(new List<string> {"new_password"}));
@@ -118,17 +106,12 @@ namespace MorphicServer
 
             [JsonPropertyName("delete_existing_tokens")]
             public bool DeleteExistingTokens { get; set; } = false;
-
-            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
-            [JsonPropertyName("g_recaptcha_response")]
-            public string GRecaptchaResponse { get; set; } = null!;
         }
 
         public class BadPasswordResetResponse : BadRequestResponse
         {
             public static readonly BadPasswordResetResponse InvalidToken = new BadPasswordResetResponse("invalid_token");
             public static readonly BadPasswordResetResponse UserNotFound = new BadPasswordResetResponse("invalid_user");
-            public static readonly BadPasswordResetResponse BadReCaptcha = new BadPasswordResetResponse("bad_recaptcha");
 
             public static BadPasswordResetResponse MissingRequired(List<string> missing)
             {
