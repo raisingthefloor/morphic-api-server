@@ -744,7 +744,7 @@ Reset a password
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="2"><code>error</code></th>
+      <th rowspan="3"><code>error</code></th>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
@@ -810,7 +810,7 @@ Request a password reset email.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="4"><code>error</code></th>
+      <th rowspan="2"><code>error</code></th>
       <td>Malformed email address</td>
       <td colspan="2"><code>"bad_email_address"</code></td>
     </tr>
