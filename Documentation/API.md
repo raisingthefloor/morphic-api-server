@@ -12,7 +12,7 @@ Endpoints
 * [User Data](#section-user-data)
   * [`/v1/users/{id}`](#endpoint-user)
   * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
-  * [`/v1/users/{id}/changePassword`](#endpoint-changepassword)
+  * [`/v1/users/{id}/password`](#endpoint-password)
 * [Password Reset](#section-password-reset)
   * [`/v1/auth/username/password_reset/{oneTimeToken}`](#endpoint-password-reset)  
   * [`/v1/auth/username/password_reset/request`](#endpoint-password-reset-request)  
@@ -633,7 +633,7 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-changepassword"></a>/v1/user/{userId}/password
+<a name="endpoint-password"></a>/v1/user/{userId}/password
 ------------------
 
 ### POST
