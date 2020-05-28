@@ -29,7 +29,7 @@ namespace MorphicServer.Attributes
 {
     /// <summary>Registers the URL path template that is handled by an <code>Endpoint</code> subclass</summary>
     [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    sealed class Path : System.Attribute
+    public sealed class PathAttribute : System.Attribute
     {
         readonly string template;
         
@@ -39,7 +39,7 @@ namespace MorphicServer.Attributes
         /// <remarks>
         /// The template will be used in a call to <code>IEndpointRouteBuilder.Map()</code>
         /// </remarks>
-        public Path(string template)
+        public PathAttribute(string template)
         {
             this.template = template;
         }
@@ -57,7 +57,7 @@ namespace MorphicServer.Attributes
         /// <summary>Gets the registered URL path template for this class, or <code>null</code> if no <code>[Path()]</code> attribute was specified</summary>
         public static string? GetRoutePath(this Type type)
         {
-            if (type.GetCustomAttribute(typeof(Path)) is Path attr)
+            if (type.GetCustomAttribute(typeof(PathAttribute)) is PathAttribute attr)
             {
                 return attr.Template;
             }

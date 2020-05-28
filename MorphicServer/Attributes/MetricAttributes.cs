@@ -20,40 +20,14 @@
 // * Canadian Foundation for Innovation
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
+
 using System;
 
-namespace MorphicServer
+namespace MorphicServer.Attributes
 {
-
-    public class MorphicSettings
+    /// <summary>Omit Metrics for endpoints marked with this attribute</summary>
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public sealed class OmitMetricsAttribute : Attribute
     {
-        /// <summary>The Server URL prefix. Used to generate URLs for various purposes.</summary>
-        public string ServerUrlPrefix { get; set; } = "";
-
-        public Uri? ServerUri {
-            get{
-                if (ServerUrlPrefix != "")
-                {
-                    return new Uri(ServerUrlPrefix);
-                }
-                return null;
-            }
-        }
-
-        /// <summary>The Server URL prefix for the front-end web server used for things like password reset</summary>
-        public string FrontEndServerUrlPrefix { get; set; } = "";
-
-        public Uri FrontEndServerUri {
-            get{
-                if (FrontEndServerUrlPrefix != "")
-                {
-                    return new Uri(FrontEndServerUrlPrefix);
-                }
-                return new Uri("", UriKind.Relative);
-            }
-        }
-
-        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
     }
-
 }

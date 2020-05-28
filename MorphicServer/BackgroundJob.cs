@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using MorphicServer.Attributes;
+using Microsoft.AspNetCore.Http;
 
 namespace MorphicServer
 {
@@ -58,6 +59,22 @@ namespace MorphicServer
             var type = typeof(T);
             var builder = new UriBuilder(serverUri);
             builder.Path = type.GetRoutePath(pathParameters);
+            return builder.Uri;
+        }
+
+        public Uri GetFrontEndUri(string path, Dictionary<string, string> fragmentParameters = null)
+        {
+            var builder = new UriBuilder(settings.FrontEndServerUri);
+            builder.Path = path;
+            if (fragmentParameters != null)
+            {
+                var query = new QueryString();
+                foreach (var pair in fragmentParameters)
+                {
+                    query.Add(pair.Key, pair.Value);
+                }
+                builder.Fragment = query.ToUriComponent().Substring(1);
+            }
             return builder.Uri;
         }
     }

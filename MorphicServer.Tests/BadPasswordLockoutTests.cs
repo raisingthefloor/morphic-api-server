@@ -27,7 +27,7 @@ using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class BadPasswordLockoutTests : EndpointTests
+    public class BadPasswordLockoutTests : EndpointRequestTests
     {
         [Fact]
         public async Task TestLockout()

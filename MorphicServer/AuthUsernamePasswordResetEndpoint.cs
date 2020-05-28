@@ -172,6 +172,7 @@ namespace MorphicServer
         {
             this.recaptcha = recaptcha;
             this.jobClient = jobClient;
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         /// <summary>
