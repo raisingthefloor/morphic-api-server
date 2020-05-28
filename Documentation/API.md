@@ -732,12 +732,6 @@ Reset a password
       <td>Required</td>
     </tr>
     <tr>
-      <th><code>g_recaptcha_response</code></th>
-      <td>The recaptcha response from the UI</td>
-      <td><code>String</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
       <th><code>delete_existing_tokens</code></th>
       <td>Whether to terminate all existing auth sessions immediately.</td>
       <td><code>Boolean</code></td>
@@ -761,10 +755,6 @@ Reset a password
     <tr>
       <td>User Not found</td>
       <td colspan="2"><code>"invalid_user"</code></td>
-    </tr>
-    <tr>
-      <td>Bad Recaptcha</td>
-      <td colspan="2"><code>"bad_recaptcha"</code></td>
     </tr>
     <tr>
       <th><code>details</code></th>
