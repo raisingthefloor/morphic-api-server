@@ -22,12 +22,40 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Reflection;
+using System.Collections.Generic;
 
 namespace MorphicServer.Attributes
 {
-    /// <summary>Omit Metrics for endpoints marked with this attribute</summary>
-    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    sealed class OmitMetrics : Attribute
+
+    [System.AttributeUsage(System.AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+    public sealed class AllowedOriginAttribute: System.Attribute
     {
+
+        public AllowedOriginAttribute(string origin)
+        {
+            Origin = origin;
+            Methods = Endpoint.AllowedOrigin.AllMethods;
+            Headers = Endpoint.AllowedOrigin.DefaultHeaders;
+        }
+
+        public AllowedOriginAttribute(string origin, string methods)
+        {
+            Origin = origin;
+            Methods = methods.Replace(" ", "").Split(",");
+            Headers = Endpoint.AllowedOrigin.DefaultHeaders;
+        }
+
+        public AllowedOriginAttribute(string origin, string methods, string headers)
+        {
+            Origin = origin;
+            Methods = methods.Replace(" ", "").Split(",");
+            Headers = headers.Replace(" ", "").Split(",");
+        }
+
+        public string Origin { get; }
+        public string[] Methods { get; }
+        public string[] Headers { get; }
+
     }
 }

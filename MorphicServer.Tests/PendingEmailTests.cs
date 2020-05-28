@@ -4,7 +4,7 @@ using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class PendingEmailTests : EndpointTests
+    public class PendingEmailTests : EndpointRequestTests
     {
     }
 }

@@ -32,19 +32,19 @@ namespace MorphicServer.Attributes
     /// code method should be called for which HTTP request method.
     /// </remarks>
     [System.AttributeUsage(System.AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-    sealed class Method : System.Attribute
+    public sealed class MethodAttribute : System.Attribute
     {
         readonly string? name;
         
         /// <summary>Registers a handler for the HTTP method of the given name</summary>
         /// <param name="name">The name of the HTTP request method</param>
-        public Method(string name)
+        public MethodAttribute(string name)
         {
             this.name = name;
         }
 
         /// <summary>Registers a handler for the HTTP method of the same name as the uppercased code method</summary>
-        public Method()
+        public MethodAttribute()
         {
         }
         
@@ -84,7 +84,7 @@ namespace MorphicServer.Attributes
         /// </remarks>
         public static string? GetRequestMethodName(this MethodInfo methodInfo)
         {
-            if (Attribute.GetCustomAttribute(methodInfo, typeof(Method)) is Method attr)
+            if (Attribute.GetCustomAttribute(methodInfo, typeof(MethodAttribute)) is MethodAttribute attr)
             {
                 return attr.Name ?? methodInfo.Name.ToUpper();
             }
@@ -94,7 +94,7 @@ namespace MorphicServer.Attributes
         /// <summary>Get the value of the <code>RunInTransaction</code> property of the <code>[Method]</code> attribute</summary>
         public static bool GetRunInTransaction(this MethodInfo methodInfo)
         {
-            if (Attribute.GetCustomAttribute(methodInfo, typeof(Method)) is Method attr)
+            if (Attribute.GetCustomAttribute(methodInfo, typeof(MethodAttribute)) is MethodAttribute attr)
             {
                 return attr.RunInTransaction;
             }

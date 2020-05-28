@@ -36,6 +36,7 @@ namespace MorphicServer
     {
         public ValidateEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<ValidateEmailEndpoint> logger): base(contextAccessor, logger)
         {
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
