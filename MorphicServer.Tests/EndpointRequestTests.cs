@@ -66,10 +66,6 @@ namespace MorphicServer.Tests
             var config = new ConfigurationBuilder();
             var settingsFile = Environment.GetEnvironmentVariable("APPSETTINGS_FILENAME") ?? "appsettings.Test.json";
             config.AddJsonFile(settingsFile);
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(config.Build())
-                .WriteTo.Console(new CompactJsonFormatter())
-                .CreateLogger();
 
             var builder = new WebHostBuilder();
             builder.UseConfiguration(config.Build());

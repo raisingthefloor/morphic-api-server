@@ -24,16 +24,22 @@
 using System;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Headers;
+using Microsoft.AspNetCore.Http;
 using System.Threading.Tasks;
-using Newtonsoft.Json.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace MorphicServer
 {
     public interface IRecaptcha
     {
-        public string Key { get; }
-        public Task<bool> ReCaptchaPassed(string gRecaptchaResponse);
+        string Key { get; }
+
+        Task<bool> ReCaptchaPassed(string action, string gRecaptchaResponse);
     }
     
     public class Recaptcha : IRecaptcha
@@ -55,27 +61,76 @@ namespace MorphicServer
             }
         }
         
-        public Recaptcha(MorphicSettings settings)
+        public Recaptcha(MorphicSettings settings, ILogger<Recaptcha> logger)
         {
             if (settings.Recaptcha3Settings.Key == "" || settings.Recaptcha3Settings.Secret == "")
             {
                 throw new RecaptchaException("Missing key or secret");
             }
             this.settings = settings.Recaptcha3Settings;
+            this.logger = logger;
         }
 
-        public async Task<bool> ReCaptchaPassed(string gRecaptchaResponse)
+        private readonly ILogger<Recaptcha> logger;
+
+        public async Task<bool> ReCaptchaPassed(string action, string gRecaptchaResponse)
         {
             HttpClient httpClient = new HttpClient();
-            var res = await httpClient.GetAsync($"https://www.google.com/recaptcha/api/siteverify?secret={settings.Secret}&response={gRecaptchaResponse}");
-            if (res.StatusCode != HttpStatusCode.OK)
+            var query = new QueryString();
+            query = query.Add("secret", settings.Secret);
+            query = query.Add("response", gRecaptchaResponse);
+            var content = new StringContent(query.ToUriComponent().Substring(1), Encoding.UTF8);
+            content.Headers.ContentType = new MediaTypeHeaderValue("application/x-www-form-urlencoded");
+            var response = await httpClient.PostAsync($"https://www.google.com/recaptcha/api/siteverify", content);
+            if (response.StatusCode != HttpStatusCode.OK)
             {
-                Log.Logger.Error("Error while sending request to ReCaptcha");
+                logger.LogError("Error while sending request to ReCaptcha");
                 return false;
             }
-    
-            dynamic jsonData = JObject.Parse(res.Content.ReadAsStringAsync().Result);
-            return jsonData.success == "true";
+
+            try
+            {
+                var json = await response.Content.ReadAsStringAsync();
+                // var stream = await response.Content.ReadAsStreamAsync();
+                var result = JsonSerializer.Deserialize<RecaptchaResult>(json);
+                if (!result.Success)
+                {
+                    logger.LogWarning("ReCaptcha result success = false ({0})", result.ErrorCodes);
+                    return false;
+                }
+                if (result.Action != action)
+                {
+                    logger.LogWarning("ReCaptcha result mismatched action");
+                    return false;
+                }
+                if (result.Score < settings.MinimumScore)
+                {
+                    logger.LogWarning("ReCaptcha result score too low ({0} < {1})", result.Score, settings.MinimumScore);
+                    return false;
+                }
+                return true;
+            }
+            catch (JsonException e)
+            {
+                logger.LogError(e, "Failed to parse result from ReCaptcha");
+            }
+
+            return false;
+        }
+
+        private class RecaptchaResult
+        {
+            [JsonPropertyName("success")]
+            public bool Success { get; set; } = false;
+
+            [JsonPropertyName("action")]
+            public string Action { get; set; } = "";
+
+            [JsonPropertyName("score")]
+            public double Score { get; set; } = 0;
+
+            [JsonPropertyName("error-codes")]
+            public string[] ErrorCodes { get; set; } = new string[] { };
         }
     }
 }

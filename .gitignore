@@ -13,3 +13,4 @@ Database/*
 **/.vs
 .idea
 *.iml
+appsettings.Local.json

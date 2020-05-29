@@ -62,7 +62,7 @@ namespace MorphicServer
             return builder.Uri;
         }
 
-        public Uri GetFrontEndUri(string path, Dictionary<string, string> fragmentParameters = null)
+        public Uri GetFrontEndUri(string path, Dictionary<string, string>? fragmentParameters = null)
         {
             var builder = new UriBuilder(settings.FrontEndServerUri);
             builder.Path = path;
@@ -71,7 +71,7 @@ namespace MorphicServer
                 var query = new QueryString();
                 foreach (var pair in fragmentParameters)
                 {
-                    query.Add(pair.Key, pair.Value);
+                    query = query.Add(pair.Key, pair.Value);
                 }
                 builder.Fragment = query.ToUriComponent().Substring(1);
             }

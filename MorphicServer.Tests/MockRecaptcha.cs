@@ -11,11 +11,10 @@ namespace MorphicServer.Tests
                 return "MockRecaptchaKey";
             }
         }
-#pragma warning disable 1998
-        public async Task<bool> ReCaptchaPassed(string gRecaptchaResponse)
-#pragma warning restore 1998
+        
+        public Task<bool> ReCaptchaPassed(string action, string gRecaptchaResponse)
         {
-            return true;
+            return Task.FromResult(true);
         }
     }
 }

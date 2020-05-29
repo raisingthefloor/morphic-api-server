@@ -47,28 +47,6 @@ namespace MorphicServer
         /// </summary>
         public string ApiKey { get; set; } = "";
     }
-    
-    public class EmailSettings
-    {
-        public static readonly string EmailTypeDisabled = "disabled";
-        public static readonly string EmailTypeSendgrid = "sendgrid";
-        public static readonly string EmailTypeLog = "log";
-        
-        /// <summary>
-        /// The type of email sending we want. Supported: "sendgrid", "log", "disabled"
-        /// </summary>
-        public string Type { get; set; } = EmailTypeDisabled;
-        
-        public string EmailFromAddress { get; set; } = "support@morphic.world";
-        /// <summary>
-        /// The default 'name' we use to send emails.
-        /// </summary>
-        public string EmailFromFullname { get; set; } = "Morphic World Support";
-        /// <summary>
-        /// Some SendGrid settings.
-        /// </summary>
-        public SendGridSettings SendGridSettings { get; set; } = null!;
-    }
 
     public class PendingEmail
     {

@@ -35,6 +35,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
@@ -94,8 +95,9 @@ namespace MorphicServer
         public static IDisposable? DotNetRuntimeCollector;
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database, ILogger<Startup> logger)
         {
+            logger.LogInformation("Startup.Configure called");
             if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
             {
                 // https://github.com/djluck/prometheus-net.DotNetRuntime
@@ -125,13 +127,6 @@ namespace MorphicServer
             app.UseHangfireServer();
             app.UseHangfireDashboard();
         }
-    }
-
-    public class Recaptcha3Settings
-    {
-        public string Key { get; set; } = "";
-        public string Secret { get; set; } = "";
-
     }
     public class HangfireSettings
     {
