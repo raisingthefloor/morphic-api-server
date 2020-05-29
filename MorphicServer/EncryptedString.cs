@@ -71,7 +71,7 @@ namespace MorphicServer
 
         public SearchableEncryptedString()
         {
-            SharedSalt = Convert.ToBase64String(KeyStorage.GetPrimaryHashSalt().KeyData);
+            SharedSalt = Convert.ToBase64String(KeyStorage.Shared.GetPrimaryHashSalt().KeyData);
         }
 
         public HashedData? Hash { get; set; }

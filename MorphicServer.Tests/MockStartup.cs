@@ -28,6 +28,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Serilog;
 
 namespace MorphicServer.Tests
@@ -51,6 +52,9 @@ namespace MorphicServer.Tests
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
+            services.Configure<KeyStorageSettings>(Configuration.GetSection("KeyStorageSettings"));
+            services.AddSingleton<KeyStorageSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<KeyStorageSettings>>().Value);
+            services.AddSingleton<KeyStorage>(serviceProvider => KeyStorage.CreateShared(serviceProvider.GetRequiredService<KeyStorageSettings>(), serviceProvider.GetRequiredService<ILogger<KeyStorage>>()));
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, MockRecaptcha>();
@@ -58,13 +62,12 @@ namespace MorphicServer.Tests
 
             services.AddRouting();
             services.AddEndpoints();
-
-            KeyStorage.LoadKeysFromEnvIfNeeded();
         }
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database, KeyStorage keyStorage)
         {
+            keyStorage.LoadKeysFromEnvIfNeeded();
             database.InitializeDatabase();
             app.UseRouting();
             app.UseSerilogRequestLogging();

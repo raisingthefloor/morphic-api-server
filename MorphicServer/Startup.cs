@@ -61,6 +61,9 @@ namespace MorphicServer
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
+            services.Configure<KeyStorageSettings>(Configuration.GetSection("KeyStorageSettings"));
+            services.AddSingleton<KeyStorageSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<KeyStorageSettings>>().Value);
+            services.AddSingleton<KeyStorage>(serviceProvider => KeyStorage.CreateShared(serviceProvider.GetRequiredService<KeyStorageSettings>(), serviceProvider.GetRequiredService<ILogger<KeyStorage>>()));
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, Recaptcha>();
@@ -85,9 +88,6 @@ namespace MorphicServer
                         MigrationOptions = migrationOptions
                     } )
             );
-
-            // load the keys. Fails if they aren't present.
-            KeyStorage.LoadKeysFromEnvIfNeeded();
         }
 
         // this seems to be needed to dispose of the collector during tests.
@@ -95,9 +95,10 @@ namespace MorphicServer
         public static IDisposable? DotNetRuntimeCollector;
         
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database, ILogger<Startup> logger)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database, KeyStorage keyStorage, ILogger<Startup> logger)
         {
             logger.LogInformation("Startup.Configure called");
+            keyStorage.LoadKeysFromEnvIfNeeded();
             if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
             {
                 // https://github.com/djluck/prometheus-net.DotNetRuntime

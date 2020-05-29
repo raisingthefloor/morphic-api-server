@@ -109,7 +109,7 @@ namespace MorphicServer
         public static EncryptedField FromPlainText(string plainText)
         {
             var iv = Random128BitsBase64();
-            var key = KeyStorage.GetPrimary();
+            var key = KeyStorage.Shared.GetPrimary();
             using (EncryptionHistogram.Labels(Aes256CbcString).NewTimer())
             {
                 var encryptedData = new EncryptedField(
@@ -163,7 +163,7 @@ namespace MorphicServer
             {
                 using (DecryptionHistogram.Labels(Aes256CbcString).NewTimer())
                 {
-                    var keyInfo = KeyStorage.GetKey(KeyName);
+                    var keyInfo = KeyStorage.Shared.GetKey(KeyName);
                     if (!keyInfo.IsPrimary)
                     {
                         // do nothing (assume some background job is running?) or trigger some background to migrate old to new 
