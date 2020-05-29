@@ -34,7 +34,7 @@ using System.Text;
 
 namespace MorphicServer.Tests
 {
-    public class PreferencesEndpointTests : EndpointTests
+    public class PreferencesEndpointTests : EndpointRequestTests
     {
 
         [Fact]

@@ -21,13 +21,23 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
+using Hangfire;
+using Hangfire.Common;
+using Hangfire.Logging;
+using Hangfire.Mongo;
+using Hangfire.States;
+using Hangfire.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Prometheus;
+using Prometheus.DotNetRuntime;
 using Serilog;
 
 namespace MorphicServer
@@ -45,17 +55,62 @@ namespace MorphicServer
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.Configure<MorphicSettings>(Configuration.GetSection("MorphicSettings"));
+            services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
+            services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
+            services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
             services.AddSingleton<Database>();
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddSingleton<IRecaptcha, Recaptcha>();
+            services.AddSingleton<IBackgroundJobClient, BackgroundJobClient>();
             services.AddRouting();
+            services.AddEndpoints();
+
+            var migrationOptions = new MongoMigrationOptions
+            {
+                Strategy = MongoMigrationStrategy.Migrate,
+                BackupStrategy = MongoBackupStrategy.Collections
+            };
+            services.AddHangfire(configuration => configuration
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSerilogLogProvider()
+                .UseFilter(new LogFailureAttribute())
+                .UseMongoStorage(Configuration.GetSection("HangfireSettings")["ConnectionString"], // TODO Is there a better way than GetSection[]?
+                    new MongoStorageOptions
+                    {
+                        MigrationOptions = migrationOptions
+                    } )
+            );
 
             // load the keys. Fails if they aren't present.
             KeyStorage.LoadKeysFromEnvIfNeeded();
         }
+
+        // this seems to be needed to dispose of the collector during tests.
+        // otherwise we don't care about disposing them
+        public static IDisposable? DotNetRuntimeCollector;
+        
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, Database database, ILogger<Startup> logger)
         {
+            logger.LogInformation("Startup.Configure called");
+            if (DotNetRuntimeCollector == null && String.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DOTNET_DISABLE_EXTENDED_METRICS")))
+            {
+                // https://github.com/djluck/prometheus-net.DotNetRuntime
+                DotNetRuntimeCollector = DotNetRuntimeStatsBuilder.Customize()
+                    // Only 1 in 10 contention events will be sampled 
+                    .WithContentionStats(sampleRate: SampleEvery.TenEvents)
+                    // Only 1 in 100 JIT events will be sampled
+                    .WithJitStats(sampleRate: SampleEvery.HundredEvents)
+                    // Every event will be sampled (disables sampling)
+                    .WithThreadPoolSchedulingStats(sampleRate: SampleEvery.OneEvent)
+                    .StartCollecting();
+            }
+
             database.InitializeDatabase();
             if (env.IsDevelopment())
             {
@@ -69,6 +124,32 @@ namespace MorphicServer
             {
                 endpoints.MapMetrics();
             });
+            app.UseHangfireServer();
+            app.UseHangfireDashboard();
+        }
+    }
+    public class HangfireSettings
+    {
+        public string ConnectionString { get; set; } = "";
+    }
+    
+    public class LogFailureAttribute : JobFilterAttribute, IApplyStateFilter
+    {
+        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
+
+        public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
+            var failedState = context.NewState as FailedState;
+            if (failedState != null)
+            {
+                Logger.ErrorException(
+                    String.Format("Background job #{0} was failed with an exception.", context.BackgroundJob.Id),
+                    failedState.Exception);
+            }
+        }
+
+        public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
+        {
         }
     }
 }

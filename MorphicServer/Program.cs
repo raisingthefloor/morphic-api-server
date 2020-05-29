@@ -23,9 +23,11 @@
 
 using System;
 using System.IO;
+using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -33,33 +35,55 @@ namespace MorphicServer
 {
     public class Program
     {
-        public static IConfiguration Configuration { get; } = new ConfigurationBuilder()
-            .SetBasePath(Directory.GetCurrentDirectory())
-            .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
-            .AddJsonFile($"appsettings.{Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production"}.json", optional: true, reloadOnChange: false)
-            .AddEnvironmentVariables()
-            .Build();
 
         public static void Main(string[] args)
         {
-            Log.Logger = new LoggerConfiguration()
-                .ReadFrom.Configuration(Configuration)
-                .Enrich.FromLogContext()
-                .WriteTo.Console(new CompactJsonFormatter())
-                .CreateLogger();
-            CreateHostBuilder(args).Build().Run();
+            var hostBuilder = CreateHostBuilder(args);
+            var host = hostBuilder.Build();
+            host.Run();
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args)
         {
-            var builder = Host.CreateDefaultBuilder(args);
-            builder.ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseKestrel(opt => opt.AddServerHeader = false);
-                    webBuilder.UseStartup<Startup>();
-                })
-                .UseSerilog();
+            var builder = new HostBuilder();
+            builder.UseContentRoot(Directory.GetCurrentDirectory());
+            builder.ConfigureHostConfiguration(ConfigureHost);
+            builder.ConfigureAppConfiguration(ConfigureApp);
+            builder.UseSerilog(ConfigureSerilog);
+            builder.ConfigureWebHostDefaults(ConfigureWebHost);
             return builder;
+        }
+
+        public static void ConfigureHost(IConfigurationBuilder configuration)
+        {
+            configuration.AddEnvironmentVariables();
+        }
+
+        public static void ConfigureApp(HostBuilderContext context, IConfigurationBuilder configuration)
+        {
+            var envname = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Production";
+            configuration.SetBasePath(context.HostingEnvironment.ContentRootPath);
+            configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: false);
+            configuration.AddJsonFile($"appsettings.{envname}.json", optional: true, reloadOnChange: false);
+            if (envname == "Development")
+            {
+                configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: false);
+                configuration.AddUserSecrets<Program>();
+            }
+            configuration.AddEnvironmentVariables();
+        }
+
+        public static void ConfigureSerilog(HostBuilderContext context, LoggerConfiguration serilog)
+        {
+            serilog.ReadFrom.Configuration(context.Configuration)
+                .Enrich.FromLogContext()
+                .WriteTo.Console(new CompactJsonFormatter());
+        }
+
+        public static void ConfigureWebHost(IWebHostBuilder webHost)
+        {
+            webHost.UseKestrel(opt => opt.AddServerHeader = false);
+            webHost.UseStartup<Startup>();
         }
     }
 }

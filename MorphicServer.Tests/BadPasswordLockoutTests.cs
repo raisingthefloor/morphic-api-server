@@ -22,14 +22,12 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections.Generic;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Xunit;
 
 namespace MorphicServer.Tests
 {
-    public class BadPasswordLockoutTests : EndpointTests
+    public class BadPasswordLockoutTests : EndpointRequestTests
     {
         [Fact]
         public async Task TestLockout()
@@ -37,10 +35,10 @@ namespace MorphicServer.Tests
             var userInfo1 = await CreateTestUser();
 
             Assert.Null(await Database.Get<BadPasswordLockout>(userInfo1.Id));
-            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            Assert.Null(await Database.UserLockedOut(userInfo1.Id));
             
             var now = DateTime.UtcNow;
-            var lockedOut = await BadPasswordLockout.BadAuthAttempt(Database, userInfo1.Id);
+            var lockedOut = await Database.BadPasswordAuthAttempt(userInfo1.Id);
             Assert.False(lockedOut);
             
             var bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -49,9 +47,9 @@ namespace MorphicServer.Tests
             var expires = bpl.ExpiresAt;
             Assert.True(now < expires);
             Assert.Equal(1, bpl.Count);
-            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            Assert.Null(await Database.UserLockedOut(userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await Database.BadPasswordAuthAttempt(userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -59,9 +57,9 @@ namespace MorphicServer.Tests
             Assert.Equal(userInfo1.Id, bpl.Id);
             Assert.Equal(expires, bpl.ExpiresAt);
             Assert.Equal(2, bpl.Count);
-            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            Assert.Null(await Database.UserLockedOut(userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await Database.BadPasswordAuthAttempt(userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -69,9 +67,9 @@ namespace MorphicServer.Tests
             Assert.Equal(userInfo1.Id, bpl.Id);
             Assert.Equal(expires, bpl.ExpiresAt);
             Assert.Equal(3, bpl.Count);
-            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            Assert.Null(await Database.UserLockedOut(userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await Database.BadPasswordAuthAttempt(userInfo1.Id);
             Assert.False(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -79,9 +77,9 @@ namespace MorphicServer.Tests
             Assert.Equal(userInfo1.Id, bpl.Id);
             Assert.Equal(expires, bpl.ExpiresAt);
             Assert.Equal(4, bpl.Count);
-            Assert.Null(await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id));
+            Assert.Null(await Database.UserLockedOut(userInfo1.Id));
 
-            lockedOut = await BadPasswordLockout.BadAuthAttempt(this.Database, userInfo1.Id);
+            lockedOut = await Database.BadPasswordAuthAttempt(userInfo1.Id);
             Assert.True(lockedOut);
             
             bpl = await Database.Get<BadPasswordLockout>(userInfo1.Id);
@@ -89,7 +87,7 @@ namespace MorphicServer.Tests
             Assert.Equal(userInfo1.Id, bpl.Id);
             Assert.True(expires < bpl.ExpiresAt);
             Assert.Equal(5, bpl.Count);
-            var until = await BadPasswordLockout.UserLockedOut(Database, userInfo1.Id);
+            var until = await Database.UserLockedOut(userInfo1.Id);
             Assert.Equal(bpl.ExpiresAt, until);
         }
     }

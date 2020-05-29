@@ -12,6 +12,10 @@ Endpoints
 * [User Data](#section-user-data)
   * [`/v1/users/{id}`](#endpoint-user)
   * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
+  * [`/v1/users/{id}/password`](#endpoint-password)
+* [Password Reset](#section-password-reset)
+  * [`/v1/auth/username/password_reset/{oneTimeToken}`](#endpoint-password-reset)  
+  * [`/v1/auth/username/password_reset/request`](#endpoint-password-reset-request)  
 
 
 <a name="section-user-registration"></a>User Registration
@@ -89,7 +93,7 @@ Immediately log the user in and return an authentication token.
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <th rowspan="4"><code>error</code></th>
+      <th rowspan="6"><code>error</code></th>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
@@ -496,7 +500,7 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-user"></a>/v1/users/{uid}/preferences/{id}
+<a name="endpoint-preferences"></a>/v1/users/{uid}/preferences/{id}
 ------------------
 
 A preference id can be found in the `preferences_id` property of a user object.
@@ -625,6 +629,215 @@ Save the user object for the given `id`
     </tr>
     <tr>
       <td colspan="4">Empty indicates invalid preferences id</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="endpoint-password"></a>/v1/user/{userId}/password
+------------------
+
+### POST
+
+Change the password of an authenticated user. Providing the old password is required
+for additional security.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <th><code>existing_password</code></th>
+      <td>The existing password</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>new_password</code></th>
+      <td>The new password to set</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>delete_existing_tokens</code></th>
+      <td>Delete any existing Auth Tokens</td>
+      <td><code>Boolean</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="4"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Username already exists</td>
+      <td colspan="2"><code>"existing_username"</code></td>
+    </tr>
+    <tr>
+      <td>Invalid credentials</td>
+      <td colspan="2"><code>"invalid_credentials"</code></td>
+    </tr>
+    <tr>
+      <td>Rate limit exceeded</td>
+      <td colspan="2"><code>"rate_limited"</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="section-password-reset"></a>Password Reset
+=================
+
+<a name="endpoint-password-reset"></a>/v1/auth/username/password_reset/{oneTimeToken}
+------------------
+
+### POST
+
+Reset a password
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <th><code>new_password</code></th>
+      <td>The new password</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>delete_existing_tokens</code></th>
+      <td>Whether to terminate all existing auth sessions immediately.</td>
+      <td><code>Boolean</code></td>
+      <td>Optional (default: false)</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="3"><code>error</code></th>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Invalid One-Time Token</td>
+      <td colspan="2"><code>"invalid_token"</code></td>
+    </tr>
+    <tr>
+      <td>User Not found</td>
+      <td colspan="2"><code>"invalid_user"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.required</code></th>
+      <td><code>missing_required</code> list of missing field names</td>
+      <td><code>string[]</code></td>
+      <td>Required</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="endpoint-password-reset-request"></a>/v1/auth/username/password_reset/request
+------------------
+
+### POST
+
+Request a password reset email.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <th><code>email</code></th>
+      <td>Email to send the password reset email to.</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>g_recaptcha_response</code></th>
+      <td>The recaptcha response from the UI</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <th rowspan="2"><code>error</code></th>
+      <td>Malformed email address</td>
+      <td colspan="2"><code>"bad_email_address"</code></td>
+    </tr>
+    <tr>
+      <td>Bad Recaptcha</td>
+      <td colspan="2"><code>"bad_recaptcha"</code></td>
+    </tr>
+    <tr>
+      <th><code>details</code></th>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <th><code>.required</code></th>
+      <td><code>missing_required</code> list of missing field names</td>
+      <td><code>string[]</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>

@@ -28,19 +28,19 @@ namespace MorphicServer.Attributes
 {
     /// <summary>Registers an instance field to obtain its value from the <code>RouteData</code> extracted from the URL path template</summary>
     [System.AttributeUsage(System.AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-    sealed class Parameter : System.Attribute
+    public sealed class ParameterAttribute : System.Attribute
     {
         readonly string? name;
         
         /// <summary>Registers an instance field to obtain its value from the URL path template parameter of the given name</summary>
         /// <param name="name">The name of the <code>RouteData.Value</code> entry to lookup the fields value.
-        public Parameter(string name)
+        public ParameterAttribute(string name)
         {
             this.name = name;
         }
 
         /// <summary>Registers an instance field to obtain its value from the URL path template parameter of same name as the lowercased field name</summary>
-        public Parameter()
+        public ParameterAttribute()
         {
         }
         
@@ -60,7 +60,7 @@ namespace MorphicServer.Attributes
         /// </remarks>
         public static string? GetParameterName(this FieldInfo fieldInfo)
         {
-            if (Attribute.GetCustomAttribute(fieldInfo, typeof(Parameter)) is Parameter attr)
+            if (Attribute.GetCustomAttribute(fieldInfo, typeof(ParameterAttribute)) is ParameterAttribute attr)
             {
                 return attr.Name ?? fieldInfo.Name.ToLower();
             }

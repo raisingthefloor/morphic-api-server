@@ -32,7 +32,7 @@ using System.Text;
 
 namespace MorphicServer.Tests
 {
-    public class ReadyEndpointTests : EndpointTests
+    public class ReadyEndpointTests : EndpointRequestTests
     {
 
         private readonly String readyPath = "/ready";

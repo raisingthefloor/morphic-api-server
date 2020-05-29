@@ -22,8 +22,9 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Net.Mail;
 using System.Text.Json.Serialization;
-using Serilog;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
@@ -46,6 +47,60 @@ namespace MorphicServer
         public void TouchLastAuth()
         {
             LastAuth = DateTime.UtcNow;
+        }
+
+        public string FullnameOrEmail()
+        {
+            if (FullName == "")
+            {
+                return Email.PlainText ?? "";
+            }
+            else
+            {
+                return FullName;
+            }
+        }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public string FullName
+        {
+            get
+            {
+                string fullName = "";
+
+                if (!string.IsNullOrEmpty(FirstName) || !string.IsNullOrEmpty(LastName))
+                {
+                    if (!string.IsNullOrEmpty(FirstName)) fullName = FirstName!;
+                    if (!string.IsNullOrEmpty(LastName))
+                    {
+                        if (fullName == "")
+                        {
+                            fullName = LastName;
+                        }
+                        else
+                        {
+                            fullName += " " + LastName;
+                        }
+                    }
+                }
+
+                return fullName;
+            }
+        }
+        
+        public static bool IsValidEmail(string emailAddress)
+        {
+            try
+            {
+                // ReSharper disable once ObjectCreationAsStatement
+                new MailAddress(emailAddress);
+                return true;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
         
     }

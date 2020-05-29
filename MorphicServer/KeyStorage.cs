@@ -24,7 +24,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -114,7 +113,6 @@ namespace MorphicServer
                 }
 
                 keyArray = myKeyArray;
-                Log.Logger.Debug($"Loaded {keyArray.Count} keys");
             }
 
             if (hashSaltArray == null)
@@ -132,7 +130,7 @@ namespace MorphicServer
 
                 myHashSaltArray.Add(hash);
                 hashSaltArray = myHashSaltArray;
-                Log.Logger.Debug($"Loaded {hashSaltArray.Count} hash-salts");
+                //Log.Logger.Debug($"Loaded {hashSaltArray.Count} hash-salts");
             }
         }
 

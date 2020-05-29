@@ -33,10 +33,11 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using MorphicServer.Attributes;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 using Prometheus;
-using Serilog;
 using Serilog.Context;
 
 namespace MorphicServer
@@ -80,14 +81,45 @@ namespace MorphicServer
     public abstract class Endpoint
     {
 
-        #pragma warning disable CS8618
+        #region Creating an Endpoint
+
+        public Endpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger)
+        {
+            Context = contextAccessor.HttpContext;
+            Request = Context.Request;
+            Response = Context.Response;
+            settings = Context.RequestServices.GetRequiredService<MorphicSettings>();
+            this.logger = logger;
+            AddAllowedOriginsFromAttributes();
+            Response.OnStarting(() =>
+            {
+                SetCrossOriginHeaders();
+                return Task.CompletedTask;
+            });
+        }
+        
+        protected readonly ILogger<Endpoint> logger;
+
+        #endregion
+
+        #region Request & Response Information
+
         /// <summary>The http context for the current request</summary>
         public HttpContext Context { get; private set; }
         /// <summary>The current HTTP request</summary>
         public HttpRequest Request { get; private set; }
         /// <summary>The current HTTP Response</summary>
         public HttpResponse Response { get; private set; }
-        #pragma warning restore CS8618
+
+        #endregion
+
+        #region Site Configuration
+
+        protected MorphicSettings settings;
+
+        #endregion
+
+        #region Metrics
 
         private static readonly string counter_metric_name = "http_server_requests";
         private static readonly string histo_metric_name = "http_server_requests_duration";
@@ -101,34 +133,39 @@ namespace MorphicServer
         private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
             "HTTP Request Duration",
             labelNames);
+
+        #endregion
+
+        #region Invocation
         
         /// <summary>Used as the <code>RequestDelegate</code> for the route corresponding to each <code>Endpoint</code> subclass</summary>
         /// <remarks>
         /// Creates and populates the endpoint, calls <code>LoadResource()</code>, then invokes the relevant method
         /// </remarks>
-        public static async Task Run<T>(HttpContext context) where T: Endpoint, new()
+        public static async Task Run<T>(HttpContext context) where T: Endpoint
         {
-            // Having the Endpoint subclasses and empty-constructable makes their code simpler and allows
-            // us to construct with a generic.  However, it means we need to populate some fields here instead
-            // of in a constructor.
-            var endpoint = new T();
-            endpoint.Context = context;
-            endpoint.Request = context.Request;
-            endpoint.Response = context.Response;
+            var endpoint = context.RequestServices.GetRequiredService<T>();
+            var logger = endpoint.logger;
             var method = context.Request.Method;
             var statusCode = 500;
-            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(Path)) as Path;
-            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetrics)) as OmitMetrics;
+            var pathAttr = endpoint.GetType().GetCustomAttribute(typeof(PathAttribute)) as PathAttribute;
+            var omitMetrics = endpoint.GetType().GetCustomAttribute(typeof(OmitMetricsAttribute)) as OmitMetricsAttribute;
             var path = pathAttr?.Template;
 
             if (String.IsNullOrEmpty(path))
             {
-                Log.Logger.Error("Unknown path");
+                logger.LogError("Unknown path");
                 path = "(unknown)";
             }
 
-            using (LogContext.PushProperty("MorphicEndpoint", endpoint.ToString()))
-            using (LogContext.PushProperty("SourceContext", typeof(Endpoint).ToString()))
+            var clientIp = context.Request.ClientIp();
+            if (clientIp == null)
+            {
+                logger.LogWarning("No client IP could be found for request");
+                clientIp = "";
+            }
+
+            using (LogContext.PushProperty("ClientIp", clientIp))
             {
                 var stopWatch = Stopwatch.StartNew();
                 try
@@ -175,12 +212,12 @@ namespace MorphicServer
                 catch (OperationCanceledException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught OperationCanceledException");
+                    logger.LogInformation("caught OperationCanceledException");
                 }
                 catch (BadHttpRequestException)
                 {
                     // happens when the remote closes the connection sometimes
-                    Log.Logger.Information("caught BadHttpRequestException");
+                    logger.LogInformation("caught BadHttpRequestException");
                 }
                 finally
                 {
@@ -189,35 +226,6 @@ namespace MorphicServer
                     {
                         histogram.Labels(path, method, statusCode.ToString())
                             .Observe(stopWatch.Elapsed.TotalSeconds);
-                    }
-                }
-            }
-        }
-
-        /// <summary>Find all <code>Endpoint</code> subclasses and register their routes based on their <code>[Path()]</code> attributes</summary>
-        /// <remarks>
-        /// Maps the subclass's URL path template to <code>Run</code> with the subclass as the call's generic type
-        /// </remarks>
-        public static void All(IEndpointRouteBuilder endpoints)
-        {
-            var endpointType = typeof(Endpoint);
-            if (endpointType.GetMethod("Run") is MethodInfo run)
-            {
-                foreach (var type in endpointType.Assembly.GetTypes())
-                {
-                    if (type.IsSubclassOf(endpointType))
-                    {
-                        if (type.GetCustomAttribute(typeof(Path)) is Path attr)
-                        {
-                            Log.Logger.Debug("Mapping MorphicEndpoint {MorphicEndpoint} to {MorphicEndpointPath}",
-                                type.ToString(),
-                                attr.Template
-                            );
-                            var generic = run.MakeGenericMethod(new Type[] {type});
-                            endpoints.Map(attr.Template,
-                                generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
-
-                        }
                     }
                 }
             }
@@ -239,19 +247,76 @@ namespace MorphicServer
         /// <summary>Populate fields registered with <code>[Parameter]</code> attributes with values from the request URL</summary>
         private void PopulateParameterFields()
         {
-            var routeData = Context.GetRouteData();
-            foreach (var fieldInfo in GetType().GetFields())
+            RouteData routeData = null!;
+            try
             {
-                if (fieldInfo.GetParameterName() is string name)
+                routeData = Context.GetRouteData();
+            }
+            catch
+            {
+                // ignored
+            }
+
+            if (routeData != null)
+            {
+                foreach (var fieldInfo in GetType().GetFields())
                 {
-                    object value;
-                    if (routeData.Values.TryGetValue(name, out value))
+                    if (fieldInfo.GetParameterName() is string name)
                     {
-                        fieldInfo.SetValue(this, value);
+                        object value;
+                        if (routeData.Values.TryGetValue(name, out value))
+                        {
+                            fieldInfo.SetValue(this, value);
+                        }
                     }
                 }
             }
         }
+
+        #endregion
+
+        #region Registration
+
+        /// <summary>Find all <code>Endpoint</code> subclasses and register their routes based on their <code>[Path()]</code> attributes</summary>
+        /// <remarks>
+        /// Maps the subclass's URL path template to <code>Run</code> with the subclass as the call's generic type
+        /// </remarks>
+        public static void All(IEndpointRouteBuilder endpoints)
+        {
+            var endpointType = typeof(Endpoint);
+            if (endpointType.GetMethod("Run") is MethodInfo run)
+            {
+                foreach (var (type, attr) in SubclassesWithPaths)
+                {
+                    var generic = run.MakeGenericMethod(new Type[] {type});
+                    endpoints.Map(attr.Template,
+                        generic.CreateDelegate(typeof(RequestDelegate)) as RequestDelegate);
+                }
+            }
+        }
+
+        internal static IEnumerable<(Type, PathAttribute)> SubclassesWithPaths = FindSubclassesWithPaths();
+
+        private static IEnumerable<(Type, PathAttribute)> FindSubclassesWithPaths()
+        {
+            var subclasses = new List<(Type, PathAttribute)>();
+            var endpointType = typeof(Endpoint);
+            foreach (var type in endpointType.Assembly.GetTypes())
+            {
+                if (type.IsSubclassOf(endpointType))
+                {
+                    if (type.GetCustomAttribute(typeof(PathAttribute)) is PathAttribute attr)
+                    {
+                        subclasses.Add((type, attr));
+                    }
+                }
+            }
+            return subclasses;
+        }
+
+        #endregion
+
+        #region Database Operations
 
         /// <summary>
         /// Called after <code>PopulateParameterFields()</code> but before the method handler to give the endpoint a chance
@@ -264,8 +329,13 @@ namespace MorphicServer
 
         public async Task<T> Load<T>(string id) where T: Record
         {
+            return await Load<T>(r => r.Id == id);
+        }
+
+        public async Task<T> Load<T>(Expression<Func<T, bool>> filter) where T : Record
+        {
             var db = Context.GetDatabase();
-            T? record = await db.Get<T>(id, ActiveSession);
+            T? record = await db.Get<T>(filter, ActiveSession);
             if (record == null){
                 throw new HttpError(HttpStatusCode.NotFound);
             }
@@ -290,21 +360,13 @@ namespace MorphicServer
             }
         }
 
-        /// <summary>Convenience method for serializing an object to JSON as a response</summary>
-        public async Task Respond<T>(T obj)
+        public async Task Delete<T>(Expression<Func<T, bool>> filter) where T : Record
         {
-            await Response.WriteJson(obj, Context.RequestAborted);
-        }
-
-        /// <summary>Return the logged in user or throw an exception</summary>
-        public async Task<User> RequireUser()
-        {
-            var user = await Context.GetUser();
-            if (user == null){
-                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
-                throw new HttpError(HttpStatusCode.Unauthorized);
+            var db = Context.GetDatabase();
+            var success = await db.Delete<T>(filter, ActiveSession);
+            if (!success){
+                throw new HttpError(HttpStatusCode.InternalServerError);
             }
-            return user;
         }
 
         public Database.Session? ActiveSession;
@@ -325,7 +387,186 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
         }
+
+        #endregion
+
+        #region Writing Responses
+
+        /// <summary>Convenience method for serializing an object to JSON as a response</summary>
+        public async Task Respond<T>(T obj)
+        {
+            await Response.WriteJson(obj, Context.RequestAborted);
+        }
+
+        #endregion
+
+        #region Authentication
+
+        /// <summary>Return the logged in user or throw an exception</summary>
+        public async Task<User> RequireUser()
+        {
+            var user = await Context.GetUser();
+            if (user == null){
+                Context.Response.Headers.Add("WWW-Authenticate", "Bearer");
+                throw new HttpError(HttpStatusCode.Unauthorized);
+            }
+            return user;
+        }
+
+        #endregion
+
+        #region Cross Origin
+
+        public class AllowedOrigin
+        {
+
+            public AllowedOrigin(string origin, string[] methods, string[] headers)
+            {
+                Origin = origin;
+                Methods = methods;
+                Headers = headers;
+            }
+            
+            public AllowedOrigin(string origin): this(origin, AllMethods, DefaultHeaders)
+            {
+            }
+
+            public AllowedOrigin(string origin, string[] methods): this(origin, methods, DefaultHeaders)
+            {
+            }
+
+            public AllowedOrigin(string origin, AllowedOrigin other): this(origin, other.Methods, other.Headers)
+            {
+                Varies = false;
+            }
+
+            public static string[] AllMethods = { "*" };
+            public static string[] DefaultHeaders = { "Content-Type", "Authorization" };
+
+            public string Origin { get; }
+            public string[] Methods { get; }
+            public string[] Headers { get; }
+            public bool Varies { get; } = true;
+        }
+
+        private Dictionary<string, AllowedOrigin> allowedOrigins = new Dictionary<string, AllowedOrigin>();
+
+        public void AddAllowedOriginsFromAttributes()
+        {
+            var type = this.GetType();
+            var allowedOrigins = new List<Endpoint.AllowedOrigin>();
+            if (type.GetCustomAttributes(typeof(AllowedOriginAttribute)) is IEnumerable<Attribute> attrs)
+            {
+                foreach (var attr in attrs)
+                {
+                    if (attr is AllowedOriginAttribute allowedAttr)
+                    {
+                        var allowedOrigin = new AllowedOrigin(allowedAttr.Origin, allowedAttr.Methods, allowedAttr.Headers);
+                        AddAllowedOrigin(allowedOrigin);
+                    }
+                }
+            }
+        }
+
+        public void AddAllowedOrigin(AllowedOrigin allowedOrigin)
+        {
+            allowedOrigins.Add(allowedOrigin.Origin, allowedOrigin);
+        }
+
+        public void AddAllowedOrigin(Uri origin)
+        {
+            if (origin.IsAbsoluteUri && !String.IsNullOrEmpty(origin.Scheme) && !String.IsNullOrEmpty(origin.Host))
+            {
+                var builder = new UriBuilder();
+                builder.Scheme = origin.Scheme;
+                builder.Host = origin.Host;
+                builder.Port = origin.Port;
+                AddAllowedOrigin(new AllowedOrigin(builder.Uri.ToString().TrimEnd('/')));
+            }
+        }
+
+        protected void SetCrossOriginHeaders()
+        {
+            if (EffectiveAllowedOrigin is AllowedOrigin allowed)
+            {
+                Response.Headers.Add("Access-Control-Allow-Origin", allowed.Origin);
+                if (allowed.Varies){
+                    Response.Headers.Add("Vary", "Origin");
+                }
+                if (Request.Headers["Access-Control-Request-Method"].Count > 0)
+                {
+                    Response.Headers.Add("Access-Control-Allow-Methods", String.Join(", ", allowed.Methods));
+                }
+                if (Request.Headers["Access-Control-Request-Headers"].Count > 0)
+                {
+                    Response.Headers.Add("Access-Control-Allow-Headers", String.Join(", ", allowed.Headers));
+                }
+            }
+        }
+
+        private AllowedOrigin? EffectiveAllowedOrigin
+        {
+            get
+            {
+                if (Request.Headers["Origin"].FirstOrDefault() is string origin)
+                {
+                    if (allowedOrigins.TryGetValue(origin, out var allowed))
+                    {
+                        return allowed;
+                    }
+                    if (allowedOrigins.TryGetValue("*", out var wildcard))
+                    {
+                        return new AllowedOrigin(origin, wildcard);
+                    }
+                }
+                return null;
+            }
+        }
+
+        [Method]
+        public Task Options()
+        {
+            Response.Headers.Add("Access-Control-Max-Age", "360");
+            Response.StatusCode = (int)HttpStatusCode.OK;
+            return Task.CompletedTask;
+        }
+
+        #endregion
+
+        #region Generating URLs to Endpoints
+
+        public Uri ServerUri
+        {
+            get
+            {
+                // First, use the value from MorphicSettings if specified
+                if (settings.ServerUri is Uri settingsUri)
+                {
+                    return settingsUri;
+                }
+
+                /// Next, use the value from the requset
+                if (Request.GetServerUri() is Uri requestUri)
+                {
+                    return requestUri;
+                }
+
+                return new Uri("", UriKind.Relative);
+            }
+        }
+
+        public Uri GetUri<T>(Dictionary<string, string> pathParameters) where T: Endpoint
+        {
+            var type = typeof(T);
+            var builder = new UriBuilder(ServerUri);
+            builder.Path = type.GetRoutePath(pathParameters);
+            return builder.Uri;
+        }
+
+        #endregion
     }
+
+    #region Error Responses
 
     /// <summary>
     /// Base class for error Responses for Morphic APIs.
@@ -348,6 +589,10 @@ namespace MorphicServer
             Details = details;
         }
     }
+
+    #endregion
+
+    #region HttpContext Extensions
 
     public static class HttpContextExtensions
     {
@@ -374,4 +619,21 @@ namespace MorphicServer
             return null;
         }
     }
+
+    #endregion
+
+    #region IServiceCollection Extensions
+
+    public static class IServiceCollectionExtensions
+    {
+        public static void AddEndpoints(this IServiceCollection services)
+        {
+            foreach (var (type, attr) in Endpoint.SubclassesWithPaths)
+            {
+                services.AddTransient(type);
+            }
+        }
+    }
+
+    #endregion
 }

@@ -22,20 +22,22 @@
 // * Consumer Electronics Association Foundation
 
 using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using MorphicServer.Attributes;
 using System.Net;
-using System.Net.Mail;
 using System.Text.Json.Serialization;
-using Serilog;
+using Microsoft.Extensions.Logging;
+using Hangfire;
 
 namespace MorphicServer
 {
 
     public class RegisterEndpoint<CredentialType> : Endpoint where CredentialType: Credential
     {
+        public RegisterEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
+        {
+        }
 
         protected async Task Register(CredentialType credential, User user)
         {
@@ -69,17 +71,26 @@ namespace MorphicServer
     [Path("/v1/register/username")]
     public class RegisterUsernameEndpoint: RegisterEndpoint<UsernameCredential>
     {
+        private IBackgroundJobClient jobClient;
+        
+        public RegisterUsernameEndpoint(
+            IHttpContextAccessor contextAccessor,
+            ILogger<RegisterUsernameEndpoint> logger,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
+        {
+            this.jobClient = jobClient;
+        }
+
         [Method]
         public async Task Post()
         {
             var request = await Request.ReadJson<RegisterUsernameRequest>();
             if (request.Username == "")
             {
-                Log.Logger.Information("MISSING_USERNAME");
+                logger.LogInformation("MISSING_USERNAME");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MissingRequired);
             }
 
-            CheckPassword(request.Password);
             await CheckEmail(request.Email);
 
             var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
@@ -87,62 +98,29 @@ namespace MorphicServer
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
             }
-            
+
             var cred = new UsernameCredential();
             cred.Id = request.Username;
-            cred.SavePassword(request.Password);
+            cred.CheckAndSetPassword(request.Password);
             
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
             user.Email.PlainText = request.Email;
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
+
             await Register(cred, user);
+            jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
+                user.Id,
+                Request.ClientIp()
+            ));
         }
-
-        private static bool IsValidEmail(string emailaddress)
-        {
-            try
-            {
-                // ReSharper disable once ObjectCreationAsStatement
-                new MailAddress(emailaddress);
-                return true;
-            }
-            catch (FormatException)
-            {
-                return false;
-            }
-        }
-
-        private const int MinPasswordLength = 6;
-
-        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
-            new[] {
-                "password",
-                "testing"
-            }
-        );
-
-        private static void CheckPassword(String password)
-        {   
-            if (password.Length < MinPasswordLength)
-            {
-                Log.Logger.Information("SHORT_PASSWORD({username})");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
-            }
-
-            if (BadPasswords.Contains(password))
-            {
-                Log.Logger.Information("KNOWN_BAD_PASSWORD({username})");
-                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
-            }
-        }
-
+        
         private async Task CheckEmail(String email)
         {
-            if (!IsValidEmail(email))
+            if (!User.IsValidEmail(email))
             {
-                Log.Logger.Information("MALFORMED_EMAIL");
+                logger.LogInformation("MALFORMED_EMAIL");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.MalformedEmail);
             }
 
@@ -152,7 +130,7 @@ namespace MorphicServer
             var existingEmail = await Context.GetDatabase().Get<User>(a => a.Email.Hash == hash, ActiveSession);
             if (existingEmail != null)
             {
-                Log.Logger.Information("EMAIL_EXISTS({username})");
+                logger.LogInformation("EMAIL_EXISTS");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingEmail);
             }
         }
@@ -174,17 +152,6 @@ namespace MorphicServer
             public static readonly BadRequestResponse ExistingEmail = new BadRequestResponseUser("existing_email");
             public static readonly BadRequestResponse MalformedEmail = new BadRequestResponseUser("malformed_email");
             public static readonly BadRequestResponse MissingRequired = new BadRequestResponseUser("missing_required");
-            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
-                "short_password",
-                new Dictionary<string, object>
-                {
-                    {"minimum_length", MinPasswordLength}
-                });
-            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
-
-            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
-            {
-            }
 
             private BadRequestResponseUser(string error) : base(error)
             {
@@ -198,6 +165,11 @@ namespace MorphicServer
     // [Path("/v1/register/key")]
     public class RegisterKeyEndpoint: RegisterEndpoint<KeyCredential>
     {
+
+        public RegisterKeyEndpoint(IHttpContextAccessor contextAccessor, ILogger<RegisterKeyEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+
         [Method]
         public async Task Post()
         {

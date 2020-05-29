@@ -24,10 +24,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Net;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Prometheus;
-using Serilog;
 
 namespace MorphicServer
 {
@@ -38,8 +39,10 @@ namespace MorphicServer
         public string PasswordSalt = null!;
         public string PasswordHash = null!;
 
-        public void SavePassword(string password)
+        public void CheckAndSetPassword(string password)
         {
+            CheckPassword(password);
+
             var hashedData = HashedData.FromString(password);
             PasswordFunction = hashedData.HashFunction;
             PasswordSalt = hashedData.Salt;
@@ -52,6 +55,48 @@ namespace MorphicServer
             var hashedData = new HashedData(PasswordIterationCount, PasswordFunction, PasswordSalt, PasswordHash);
             return hashedData.Equals(password);
         }
+        
+        private const int MinPasswordLength = 6;
+
+        private static readonly ReadOnlyCollection<string> BadPasswords = new ReadOnlyCollection<string>(
+            new[] {
+                "password",
+                "testing"
+            }
+        );
+
+        private void CheckPassword(String password)
+        {   
+            if (password.Length < MinPasswordLength)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ShortPassword);
+            }
+
+            if (BadPasswords.Contains(password))
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.BadPassword);
+            }
+        }
+
+        class BadRequestResponseUser : BadRequestResponse
+        {
+            public static readonly BadRequestResponse ShortPassword = new BadRequestResponseUser(
+                "short_password",
+                new Dictionary<string, object>
+                {
+                    {"minimum_length", MinPasswordLength}
+                });
+            public static readonly BadRequestResponse BadPassword = new BadRequestResponseUser("bad_password");
+
+            public BadRequestResponseUser(string error, Dictionary<string, object> details) : base(error, details)
+            {
+            }
+
+            private BadRequestResponseUser(string error) : base(error)
+            {
+            }
+        }
+
     }
 
     public static class UsernameCredentialDatabase
@@ -64,38 +109,31 @@ namespace MorphicServer
             {
                 LabelNames = new[] {"type"}
             });
-        private static async Task SaveOrLog(Database db, User user)
-        {
-            var saved = await db.Save(user);
-            if (!saved)
-            {
-                Log.Logger.Error("could not save {UserId}", user.Id);
-            }
-        }
 
         public static async Task<User> UserForUsername(this Database db, string username, string password)
         {
             var credential = await db.Get<UsernameCredential>(username);
             if (credential == null || credential.UserId == null)
             {
-                Log.Logger.Information("CredentialNotFound");
+                db.logger.LogInformation("CredentialNotFound");
                 BadAuthCounter.Labels("CredentialNotFound").Inc();
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
 
-            DateTime? until = await BadPasswordLockout.UserLockedOut(db, credential.UserId);
+            return await db.UserForUsernameCredential(credential, password);
+        }
+        
+        public static async Task<User> UserForUsernameCredential(this Database db, UsernameCredential credential, string password)
+        {
+            DateTime? until = await db.UserLockedOut(credential.UserId!);
             if (until != null)
             {
-                Log.Logger.Information("{UserId} UserLockedOut due to BadPasswordLockout until {LockedOutUntil}",
-                    credential.UserId,
-                    until?.ToString("yyyy-MM-ddTHH:mm:ssZ"));
-                BadAuthCounter.Labels("UserLockedOut").Inc();
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));
             }
 
             if (!credential.IsValidPassword(password))
             {
-                var lockedOut = await BadPasswordLockout.BadAuthAttempt(db, credential.UserId);
+                var lockedOut = await db.BadPasswordAuthAttempt(credential.UserId!);
                 if (lockedOut)
                 {
                     // no need to log anything. BadPasswordLockout.BadAuthAttempt() already did.
@@ -103,7 +141,7 @@ namespace MorphicServer
                 }
                 else
                 {
-                    Log.Logger.Information("{UserId} InvalidPassword", credential.UserId);
+                    db.logger.LogInformation("{UserId} InvalidPassword", credential.UserId);
                     BadAuthCounter.Labels("InvalidPassword").Inc();
 
                 }
@@ -111,19 +149,15 @@ namespace MorphicServer
             }
 
 
-            var user = await db.Get<User>(credential.UserId);
+            var user = await db.Get<User>(credential.UserId!);
             if (user == null)
             {
                 // Not sure how this could happen: It means we have a credential for the user, but no user!
                 // How did the credential get there if there's no user?
-                Log.Logger.Error("{UserId} UserNotFound from credential", credential.UserId);
+                db.logger.LogError("{UserId} UserNotFound from credential", credential.UserId);
                 BadAuthCounter.Labels("UserNotFound").Inc();
                 throw new HttpError(HttpStatusCode.InternalServerError);
             }
-
-            user.TouchLastAuth();
-            // save it, but don't wait for it.
-            await Task.Run(() => SaveOrLog(db, user));
             return user;
         }
         

@@ -23,7 +23,8 @@
 
 using System.Threading.Tasks;
 using MorphicServer.Attributes;
-using Serilog;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
@@ -32,11 +33,16 @@ namespace MorphicServer
     [OmitMetrics]
     public class AliveEndpoint: Endpoint
     {
+
+        public AliveEndpoint(IHttpContextAccessor contextAccessor, ILogger<AliveEndpoint> logger): base(contextAccessor, logger)
+        {
+        }
+        
         /// <summary>Do nothing. Don't even check dependencies (see ReadyEndpoint). Return 200.</summary>
         [Method]
         public async Task Get()
         {
-            Log.Logger.Debug("Alive");
+            logger.LogDebug("Alive");
             await Response.CompleteAsync();
         }
     }

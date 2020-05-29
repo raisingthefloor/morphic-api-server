@@ -1,3 +1,4 @@
+.DS_Store
 **/bin/*
 **/obj/*
 MorphicServer.Tests/bin/*
@@ -12,3 +13,4 @@ Database/*
 **/.vs
 .idea
 *.iml
+appsettings.Local.json

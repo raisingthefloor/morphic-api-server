@@ -63,6 +63,7 @@ namespace MorphicServer.Tests
             var rolloverKeyData2 = "05A2D69574BE13264E1BAB68453CBCF99A7A5C88243807613C8184BE38115BB9";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", $"{rolloverKeyName1}:{rolloverKeyData1}");
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", $"{rolloverKeyName2}:{rolloverKeyData2}");
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
             // success: make sure we get the primary back
             var key = KeyStorage.GetKey(keyName);
@@ -78,6 +79,7 @@ namespace MorphicServer.Tests
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", null);
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", null);
         }
         
         public EncryptedField AssertProperlyEncrypted(string keyName, string plainText)
@@ -97,6 +99,7 @@ namespace MorphicServer.Tests
         {
             KeyStorage.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
             var keyName = "TEST_KEY";
             var keyData = "8C532F0C2CCE7AF471111285340B6353FCB327DF9AB9F0121731F403E3FFDC7C";
@@ -117,6 +120,7 @@ namespace MorphicServer.Tests
                 () => EncryptedField.FromPlainText(""));
             
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", null);
         }
 
         [Fact]
@@ -124,6 +128,7 @@ namespace MorphicServer.Tests
         {
             KeyStorage.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
             string plainText_1 = "thequickbrownfoxjumpedoverthelazydog_1";
@@ -180,6 +185,7 @@ namespace MorphicServer.Tests
 
             
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", null);
         }
     }
 }
