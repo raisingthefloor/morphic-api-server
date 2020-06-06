@@ -40,7 +40,7 @@ services:
     ports:
       - "5002:80"
     environment:
-      DATABASESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017"
+      DATABASESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017/Morphic"
       DATABASESETTINGS__DATABASENAME:      "Morphic"
       ASPNETCORE_ENVIRONMENT:              "Production"
       SERILOG__MINIMUMLEVEL__DEFAULT:      "Warning"
@@ -49,4 +49,6 @@ services:
       MORPHIC_HASH_SALT_PRIMARY:           "SALT1:9224065cf0a210a08a862d4a99ce843e"
       MORPHICSETTINGS__SERVERURLPREFIX:    "http://localhost:5005"
       EMAILSETTINGS__SENDGRIDSETTINGS__APIKEY: ""
-      EMAILSETTINGS__DISABLE":             "true"
+      EMAILSETTINGS__TYPE:                 "log"
+      HANGFIRESETTINGS__CONNECTIONSTRING:  "mongodb://mongo:27017/Hangfire"
+
