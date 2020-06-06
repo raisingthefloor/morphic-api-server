@@ -190,15 +190,17 @@ namespace MorphicServer
             var user = await db.UserForEmail(request.Email, ActiveSession);
             if (user != null)
             {
+                var hash = user.Email.Hash!.ToCombinedString();
                 if (user.EmailVerified)
                 {
-                    logger.LogInformation("Password reset requested for userId {userId} {EmailHash}", user.Id, user.Email.Hash);
+                    logger.LogInformation("Password reset requested for userId {userId} {EmailHash}",
+                        user.Id, hash);
                     jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id, Request.ClientIp()));
                 }
                 else
                 {
-                    logger.LogInformation(
-                        "Password reset requested for userId {userId}, but email not verified {EmailHash}", user.Id, user.Email.Hash);
+                    logger.LogInformation("Password reset requested for userId {userId}, but email not verified {EmailHash}", 
+                        user.Id, hash);
                     jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
@@ -206,7 +208,7 @@ namespace MorphicServer
             }
             else
             {
-                var hash = new SearchableHashedString(request.Email).ToString();
+                var hash = new SearchableHashedString(request.Email).ToCombinedString();
                 logger.LogInformation("Password reset requested but no email matching {EmailHash}", hash);
                 jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
                     request.Email,
