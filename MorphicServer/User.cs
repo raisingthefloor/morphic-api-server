@@ -24,18 +24,13 @@
 using System;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
 {
     public class User: Record
     {
-        [JsonIgnore]
-        public string? EmailHash { get; set; }
-        [JsonIgnore]
-        public string? EmailEncrypted { get; set; }
-        [JsonIgnore]
-        public bool EmailVerified { get; set; }
         
         [JsonPropertyName("first_name")]
         public string? FirstName { get; set; }
@@ -43,43 +38,28 @@ namespace MorphicServer
         public string? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
+        [JsonPropertyName("email")]
+        public SearchableEncryptedString Email { get; set; } = new SearchableEncryptedString();
+        [JsonIgnore]
+        public bool EmailVerified { get; set; }
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
+
+        public User()
+        {
+            Id = Guid.NewGuid().ToString();
+        }
         
         public void TouchLastAuth()
         {
             LastAuth = DateTime.UtcNow;
-        }
-        
-        /// <summary>
-        /// Default salt for user-email hashing. Why do we need default salt? We need to be able to search
-        /// for the email. If we use random salt for every entry this becomes prohibitively expensive 
-        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
-        /// PII and searchability: It's not perfect, but it's sufficient. 
-        /// </summary>
-        const string DefaultUserEmailSalt = "N9DtOumwMC7A9KJLB3oCbA==";
-        
-        public void SetEmail(string email)
-        {
-            if (!String.IsNullOrWhiteSpace(EmailHash) && HashedData.FromCombinedString(EmailHash).Equals(email))
-            {
-                return;
-            }
-            EmailHash = HashedData.FromString(email, DefaultUserEmailSalt).ToCombinedString();
-            EmailEncrypted = EncryptedField.FromPlainText(email).ToCombinedString();
-            EmailVerified = false;
-        }
-
-        public static string UserEmailHashCombined(string email)
-        {
-            return HashedData.FromString(email, User.DefaultUserEmailSalt).ToCombinedString();
         }
 
         public string FullnameOrEmail()
         {
             if (FullName == "")
             {
-                return GetEmail() ?? "";
+                return Email.PlainText ?? "";
             }
             else
             {
@@ -114,24 +94,6 @@ namespace MorphicServer
                 return fullName;
             }
         }
-
-        public string GetEmail()
-        {
-            if (String.IsNullOrWhiteSpace(EmailEncrypted))
-            {
-                return "";
-            }
-
-            var plainText = EncryptedField.FromCombinedString(EmailEncrypted).Decrypt(out var isPrimary);
-            if (!isPrimary)
-            {
-                // The encryption key used is not the primary key. It's an older one.
-                // This means we need to re-encrypt the data and save it back to the DB
-                // TODO implement key-rollover background task
-            }
-
-            return plainText;
-        }
         
         public static bool IsValidEmail(string emailAddress)
         {
@@ -145,6 +107,15 @@ namespace MorphicServer
             {
                 return false;
             }
+        }
+    }
+
+    public static class UserDatabase
+    {
+        public static async Task<User?> UserForEmail(this Database db, string email, Database.Session? session = null)
+        {
+            string hash = new SearchableHashedString(email).ToCombinedString();
+            return await db.Get<User>(a => a.Email.Hash! == hash, session);
         }
     }
 }

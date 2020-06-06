@@ -23,6 +23,8 @@
 
 using System;
 using System.Security.Cryptography;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace MorphicServer
@@ -35,19 +37,22 @@ namespace MorphicServer
         /// <summary>
         /// Number of iterations for the hash functions
         /// </summary>
-        public int IterationCount { get; }
+        private readonly int iterationCount;
+
         /// <summary>
         /// The hash function to use. Currently supported: see Pbkdf2Sha512
         /// </summary>
-        public string HashFunction { get; }
+        private readonly string hashFunction;
+
         /// <summary>
         /// Salt to add to the hashing (google Rainbow Tables)
         /// </summary>
-        public string Salt { get; }
+        private readonly string salt;
+
         /// <summary>
         /// The hashed data
         /// </summary>
-        public string Hash { get; }
+        private string hash;
 
         private const String Pbkdf2Sha512 = "PBKDF2-SHA512";
         private const int IterationCountPbkdf2 = 10000;
@@ -65,22 +70,23 @@ namespace MorphicServer
         /// <param name="data">the data to hash</param>
         /// <param name="salt">(Optional) If not provided, a random salt will be created</param>
         /// <returns></returns>
-        public static HashedData FromString(string data, string? salt = null)
+        public HashedData(string data, string? salt = null)
         {
-            var s = salt ?? RandomSalt();
-            return new HashedData(IterationCountPbkdf2, Pbkdf2Sha512, s,
-                DoHash(IterationCountPbkdf2, Pbkdf2Sha512, s, data));
+            this.salt = salt ?? RandomSalt();
+            iterationCount = IterationCountPbkdf2;
+            hashFunction = Pbkdf2Sha512;
+            hash = DoHash(data);
         }
 
-        public HashedData(int iterationCount, string hashFunction, string salt, string hash)
+        protected HashedData(int iterationCount, string hashFunction, string salt, string hash)
         {
-            HashFunction = hashFunction;
-            Salt = salt;
-            IterationCount = iterationCount;
-            Hash = hash;
+            this.hashFunction = hashFunction;
+            this.salt = salt;
+            this.iterationCount = iterationCount;
+            this.hash = hash;
         }
 
-        public static HashedData FromCombinedString(String hashedCombinedString)
+        protected static HashedData FromCombinedString(String hashedCombinedString)
         {
             var parts = hashedCombinedString.Split(":");
             if (parts.Length != 4)
@@ -94,16 +100,15 @@ namespace MorphicServer
 
         public string ToCombinedString()
         {
-            return $"{HashFunction}:{IterationCount}:{Salt}:{Hash}";
+            return $"{hashFunction}:{iterationCount}:{salt}:{hash}";
         }
 
         public bool Equals(string data)
         {
-            var hash = DoHash(IterationCount, HashFunction, Salt, data);
-            return hash == Hash;
+            return DoHash(data) == hash;
         }
 
-        private static string DoHash(int iterations, string hashFunction, string salt, string data)
+        private string DoHash(string data)
         {
             KeyDerivationPrf function;
             int keyLength;
@@ -119,7 +124,7 @@ namespace MorphicServer
             }
 
             var s = Convert.FromBase64String(salt);
-            var h = KeyDerivation.Pbkdf2(data, s, function, iterations, keyLength);
+            var h = KeyDerivation.Pbkdf2(data, s, function, iterationCount, keyLength);
             return Convert.ToBase64String(h);
         }
 
@@ -129,6 +134,106 @@ namespace MorphicServer
             var provider = RandomNumberGenerator.Create();
             provider.GetBytes(salt);
             return Convert.ToBase64String(salt);
+        }
+
+        /// <summary>
+        /// Custom Bson Serializer that converts a HashedData to and from its combined string representation
+        /// </summary>
+        public class BsonSerializer: SerializerBase<HashedData>
+        {
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, HashedData value)
+            {
+                context.Writer.WriteString(value.ToCombinedString());
+            }
+
+            public override HashedData Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                return HashedData.FromCombinedString(context.Reader.ReadString());
+            }
+        }
+
+        public static bool operator==(HashedData a, string b)
+        {
+            return a.ToCombinedString() == b;
+        }
+
+        public static bool operator!=(HashedData a, string b)
+        {
+            return a.ToCombinedString() != b;
+        }
+
+        public override bool Equals(object? other)
+        {
+            if (other is HashedData h)
+            {
+                return this.ToCombinedString() == h.ToCombinedString();
+            }
+            if (other is string hashString){
+                return this == hashString;
+            }
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return ToCombinedString().GetHashCode();
+        }
+    }
+
+    /// <summary>
+    /// Represents a string that is stored hashed in the database and only decrypted when needed,
+    /// yet is searchable.
+    /// </summary>
+    public class SearchableHashedString : HashedData
+    {
+        class SearchableHashedStringException : MorphicServerException
+        {
+            public SearchableHashedStringException(String error) : base(error)
+            {
+            }
+        }
+
+        /// <summary>
+        /// We use a statically configured "shared salt".
+        /// Why do we need a shared salt? We need to be able to search
+        /// for the value. If we use random salt for every entry this becomes prohibitively expensive 
+        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
+        /// PII and searchability: It's not perfect, but it's sufficient. 
+        /// </summary>
+
+        public SearchableHashedString(string plaintext) : base(plaintext, Convert.ToBase64String(KeyStorage.Shared.GetPrimaryHashSalt().KeyData))
+        {
+        }
+
+        private SearchableHashedString(int iterationCount, string hashFunction, string salt, string hash) : base(
+            iterationCount, hashFunction, salt, hash)
+        {
+        }
+
+        // TODO Can't figure out how to get the base class to handle this.
+        public new static SearchableHashedString FromCombinedString(String hashedCombinedString)
+        {
+            var parts = hashedCombinedString.Split(":");
+            if (parts.Length != 4)
+            {
+                throw new SearchableHashedStringException("combined string does not have enough parts");
+            }
+
+            int iterations = Int32.Parse(parts[1]);
+            return new SearchableHashedString(iterations, parts[0], parts[2], parts[3]);
+        }
+
+        public new class BsonSerializer : SerializerBase<SearchableHashedString>
+        {
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, SearchableHashedString value)
+            {
+                context.Writer.WriteString(value.ToCombinedString());
+            }
+
+            public override SearchableHashedString Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                return FromCombinedString(context.Reader.ReadString());
+            }
         }
     }
 }

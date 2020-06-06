@@ -24,17 +24,52 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer
 {
+
+    public class KeyStorageSettings
+    {
+        //Create keys with: openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
+        public string EncryptionKeyPrimaryEnvName { get; set; } = "MORPHIC_ENC_KEY_PRIMARY";
+        public string EncryptionKeyRolloverPrefixEnvName { get; set; } = "MORPHIC_ENC_KEY_ROLLOVER_";
+        // Create hash with: openssl rand -hex 16
+        public string HashSaltPrimaryEnvName { get; set; } = "MORPHIC_HASH_SALT_PRIMARY";
+    }
+
     public class KeyStorage
     {
-        private const string EncryptionKeyPrimary = "MORPHIC_ENC_KEY_PRIMARY";
-        private const string EncryptionKeyRolloverPrefix = "MORPHIC_ENC_KEY_ROLLOVER_";
 
-        private static List<KeyInfo>? keyArray;
+        public static KeyStorage CreateShared(KeyStorageSettings options, ILogger<KeyStorage> logger)
+        {
+            Shared = new KeyStorage(options, logger);
+            return Shared;
+        }
+
+        public static KeyStorage Shared { get; set; } = null!;
+
+        public KeyStorage(KeyStorageSettings options, ILogger<KeyStorage> logger)
+        {
+            EncryptionKeyPrimary = options.EncryptionKeyPrimaryEnvName;
+            EncryptionKeyRolloverPrefix = options.EncryptionKeyRolloverPrefixEnvName;
+            HashSaltPrimary = options.HashSaltPrimaryEnvName;
+            this.logger = logger;
+        }
+
+        private readonly ILogger<KeyStorage> logger;
+
+        //Create keys with: openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
+        public string EncryptionKeyPrimary { get; }
+        public string EncryptionKeyRolloverPrefix { get; }
+
+        // Create hash with: openssl rand -hex 16
+        public string HashSaltPrimary { get; }
+
+        private List<KeyInfo>? keyArray;
+        private List<KeyInfo>? hashSaltArray;
         
-        public static KeyInfo GetKey(string keyName)
+        public KeyInfo GetKey(string keyName)
         {
             LoadKeysFromEnvIfNeeded();
             if (keyArray == null) throw new KeysNotInitialized();
@@ -43,7 +78,7 @@ namespace MorphicServer
             return key;
         }
 
-        public static KeyInfo GetPrimary()
+        public KeyInfo GetPrimary()
         {
             LoadKeysFromEnvIfNeeded();
             if (keyArray == null) throw new KeysNotInitialized();
@@ -52,15 +87,25 @@ namespace MorphicServer
             return key;
         }
 
+        public KeyInfo GetPrimaryHashSalt()
+        {
+            LoadKeysFromEnvIfNeeded();
+            if (hashSaltArray == null) throw new KeysNotInitialized();
+            var key = hashSaltArray.FirstOrDefault(k => k.IsPrimary);
+            if (key == null) throw new KeyNotFoundException("PRIMARY_HASH");
+            return key;
+        }
+        
         /// <summary>
         /// Clear the keys and re-read. Mostly useful for testing right now, but may be useful in the future.
         /// </summary>
-        public static void ClearKeys()
+        public void ClearKeys()
         {
-            keyArray = null; // Do I need to dispose this?
+            keyArray = null; // TODO Do I need to dispose this?
+            hashSaltArray = null; // TODO Do I need to dispose this?
         }
         
-        public static void LoadKeysFromEnvIfNeeded()
+        public void LoadKeysFromEnvIfNeeded()
         {
             if (keyArray == null)
             {
@@ -92,13 +137,33 @@ namespace MorphicServer
                     {
                         throw new DuplicateKey(key.KeyName);
                     }
+
                     myKeyArray.Add(key);
                 }
+
                 keyArray = myKeyArray;
+            }
+
+            if (hashSaltArray == null)
+            {
+                var myHashSaltArray = new List<KeyInfo>();
+
+                // Get the hash salt
+                var hashValue = Environment.GetEnvironmentVariable(HashSaltPrimary) ?? "";
+                if (String.IsNullOrWhiteSpace(hashValue))
+                {
+                    throw new EmptyKey(HashSaltPrimary);
+                }
+
+                var hash = KeyInfoFromEnvValue(HashSaltPrimary, hashValue, true);
+
+                myHashSaltArray.Add(hash);
+                hashSaltArray = myHashSaltArray;
+                logger.LogDebug($"Loaded {hashSaltArray.Count} hash-salts");
             }
         }
 
-        private static KeyInfo KeyInfoFromEnvValue(string keySourceName, string keyString, bool isPrimary)
+        private KeyInfo KeyInfoFromEnvValue(string keySourceName, string keyString, bool isPrimary)
         {
             var parts = keyString.Split(":");
             if (parts.Length != 2)

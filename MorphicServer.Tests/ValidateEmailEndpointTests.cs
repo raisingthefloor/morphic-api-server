@@ -39,7 +39,7 @@ namespace MorphicServer.Tests
             // create user
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
-            user.SetEmail("pendingemailuser1@example.com");
+            user.Email.PlainText = "pendingemailuser1@example.com";
             await Database.Save(user);
             Assert.False(user.EmailVerified);
             Assert.Null(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
@@ -50,9 +50,8 @@ namespace MorphicServer.Tests
 
             // check the various fields and hashes
             var token = oneTimeToken.GetUnhashedToken();
-            var hashedToken = OneTimeToken.TokenHashedWithDefault(token);
-            Assert.NotEqual(token, hashedToken);
-            Assert.Equal(hashedToken, oneTimeToken.Id);
+            Assert.NotEqual(token, oneTimeToken.Token.ToCombinedString());
+            Assert.Null(oneTimeToken.UsedAt);
             
             // GET, bad token (we're sending the token hash (the ID))
             var path = $"/v1/users/{user.Id}/verify_email/{oneTimeToken.Id}";
@@ -78,7 +77,7 @@ namespace MorphicServer.Tests
             // try the same request again. Will fail
             request = new HttpRequestMessage(HttpMethod.Get, path);
             response = await Client.SendAsync(request);
-            var error = await assertJsonError(response, HttpStatusCode.NotFound, "invalid_token");
+            await assertJsonError(response, HttpStatusCode.NotFound, "invalid_token");
 
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 

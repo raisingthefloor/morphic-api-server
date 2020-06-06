@@ -74,7 +74,7 @@ namespace MorphicServer
         {
             StringTemplate emailVerificationMsg = new StringTemplate(EmailMsgTemplate);
             emailVerificationMsg.SetAttribute("UserFullName", user.FullnameOrEmail());
-            emailVerificationMsg.SetAttribute("UserEmail", user.GetEmail());
+            emailVerificationMsg.SetAttribute("UserEmail", user.Email.PlainText);
             if (link != null)
             {
                 emailVerificationMsg.SetAttribute("Link", link);
@@ -127,7 +127,7 @@ $MorphicUser$ ($MorphicEmail$)";
             {
                 throw new EmailTemplatesException("No User");
             }
-            if (user.GetEmail() == null)
+            if (user.Email.PlainText == null)
             {
                 logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
@@ -178,7 +178,7 @@ $MorphicUser$ ($MorphicEmail$)";
             {
                 throw new EmailTemplatesException("No User");
             }
-            if (user.GetEmail() == null)
+            if (user.Email.PlainText == null)
             {
                 logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
@@ -223,7 +223,7 @@ $MorphicUser$ ($MorphicEmail$)";
 
             // Don't save this. It's just to carry the email
             var user = new User();
-            user.SetEmail(destinationEmail);
+            user.Email.PlainText = destinationEmail;
             var pending = CreatePendingEmail(user, null, clientIp);
             await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }
@@ -258,7 +258,7 @@ $MorphicUser$ ($MorphicEmail$)";
 
             // Don't save this. It's just to carry the email
             var user = new User();
-            user.SetEmail(destinationEmail);
+            user.Email.PlainText = destinationEmail;
             var pending = CreatePendingEmail(user, null, clientIp);
             await new SendPendingEmails(EmailSettings, logger).SendOneEmail(pending);
         }

@@ -34,26 +34,20 @@ namespace MorphicServer
 {
     public class UsernameCredential : Credential
     {
-        public int PasswordIterationCount;
-        public string PasswordFunction = null!;
-        public string PasswordSalt = null!;
-        public string PasswordHash = null!;
+        public SearchableHashedString Username { get; set; }
+        public HashedData PasswordHash { get; set; }
 
-        public void CheckAndSetPassword(string password)
+        public UsernameCredential(string userId, string username, string password)
         {
-            CheckPassword(password);
-
-            var hashedData = HashedData.FromString(password);
-            PasswordFunction = hashedData.HashFunction;
-            PasswordSalt = hashedData.Salt;
-            PasswordIterationCount = hashedData.IterationCount;
-            PasswordHash = hashedData.Hash;
+            Id = Guid.NewGuid().ToString();
+            UserId = userId;
+            Username = new SearchableHashedString(username);
+            PasswordHash = new HashedData(password);
         }
 
         public bool IsValidPassword(string password)
         {
-            var hashedData = new HashedData(PasswordIterationCount, PasswordFunction, PasswordSalt, PasswordHash);
-            return hashedData.Equals(password);
+            return PasswordHash.Equals(password);
         }
         
         private const int MinPasswordLength = 6;
@@ -65,7 +59,13 @@ namespace MorphicServer
             }
         );
 
-        private void CheckPassword(String password)
+        public void CheckAndSetPassword(string password)
+        {
+            CheckPassword(password);
+            PasswordHash = new HashedData(password);
+        }
+
+        public static void CheckPassword(String password)
         {   
             if (password.Length < MinPasswordLength)
             {
@@ -110,22 +110,33 @@ namespace MorphicServer
                 LabelNames = new[] {"type"}
             });
 
-        public static async Task<User> UserForUsername(this Database db, string username, string password)
+        public static async Task<UsernameCredential?> UsernameCredentialForUsername(this Database db, string username, Database.Session? session = null)
         {
-            var credential = await db.Get<UsernameCredential>(username);
+            var searchString = new SearchableEncryptedString(username).Hash!.ToCombinedString();
+            return await db.Get<UsernameCredential>(uc => uc.Username == searchString, session);
+        }
+
+        public static async Task<User> UserForUsername(this Database db, string username, string password, Database.Session? session = null)
+        {
+            if (string.IsNullOrEmpty(username))
+            {
+                db.logger.LogInformation("EmptyUsername");
+                BadAuthCounter.Labels("EmptyUsername").Inc();
+                throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
+            }
+            var credential = await db.UsernameCredentialForUsername(username, session);
             if (credential == null || credential.UserId == null)
             {
                 db.logger.LogInformation("CredentialNotFound");
                 BadAuthCounter.Labels("CredentialNotFound").Inc();
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.InvalidCredentials);
             }
-
-            return await db.UserForUsernameCredential(credential, password);
+            return await db.UserForUsernameCredential(credential, password, session);
         }
         
-        public static async Task<User> UserForUsernameCredential(this Database db, UsernameCredential credential, string password)
+        public static async Task<User> UserForUsernameCredential(this Database db, UsernameCredential credential, string password, Database.Session? session = null)
         {
-            DateTime? until = await db.UserLockedOut(credential.UserId!);
+            DateTime? until = await db.UserLockedOut(credential.UserId!, session);
             if (until != null)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadUserAuthResponse.Locked(until.GetValueOrDefault()));

@@ -63,6 +63,7 @@ namespace MorphicServer.Tests
         public EndpointRequestTests()
         {
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TESTKEY:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995");
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
             var config = new ConfigurationBuilder();
             var settingsFile = Environment.GetEnvironmentVariable("APPSETTINGS_FILENAME") ?? "appsettings.Test.json";
             config.AddJsonFile(settingsFile);

@@ -23,34 +23,51 @@
 
 using System;
 using Xunit;
+using Microsoft.Extensions.Logging;
 
 namespace MorphicServer.Tests
 {
-    public class EncryptedFieldsTests
+    public class EncryptedFieldsTests: IDisposable
     {
         //Create keys with:
         // $ openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
 
+        public EncryptedFieldsTests()
+        {
+            var settings = new KeyStorageSettings();
+            var logger = new LoggerFactory().CreateLogger<KeyStorage>();
+            KeyStorage.Shared = new KeyStorage(settings, logger);
+        }
+
+        public void Dispose()
+        {
+            KeyStorage.Shared = null;
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", null);
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", null);
+        }
+
         [Fact]
         public void TestKeyLoading()
         {
-            KeyStorage.ClearKeys();
+            KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
             var oddKeyName = "ODD_NUMBER_LETTERS";
             var oddKeyData = "123";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{oddKeyName}:{oddKeyData}");
-            Assert.Throws<KeyStorage.HexStringFormatException>(() => KeyStorage.GetPrimary());
+            Assert.Throws<KeyStorage.HexStringFormatException>(() => KeyStorage.Shared.GetPrimary());
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
             
             var badKeyName = "BAD_KEY";
             var badKeyData = "ThisIsNotAKey/1234";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{badKeyName}:{badKeyData}");
-            Assert.Throws<KeyStorage.HexStringFormatException>(() => KeyStorage.GetKey(badKeyName));
+            Assert.Throws<KeyStorage.HexStringFormatException>(() => KeyStorage.Shared.GetKey(badKeyName));
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
             
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{badKeyData}");
-            Assert.Throws<KeyStorage.BadKeyFormat>(() => KeyStorage.GetKey(badKeyName));
+            Assert.Throws<KeyStorage.BadKeyFormat>(() => KeyStorage.Shared.GetKey(badKeyName));
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
 
             var keyName = "TEST_KEY";
@@ -63,21 +80,19 @@ namespace MorphicServer.Tests
             var rolloverKeyData2 = "05A2D69574BE13264E1BAB68453CBCF99A7A5C88243807613C8184BE38115BB9";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", $"{rolloverKeyName1}:{rolloverKeyData1}");
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", $"{rolloverKeyName2}:{rolloverKeyData2}");
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
             // success: make sure we get the primary back
-            var key = KeyStorage.GetKey(keyName);
+            var key = KeyStorage.Shared.GetKey(keyName);
             Assert.Equal(KeyStorage.HexStringToBytes(keyData), key.KeyData);
             Assert.True(key.IsPrimary);
-            key = KeyStorage.GetKey(rolloverKeyName1);
+            key = KeyStorage.Shared.GetKey(rolloverKeyName1);
             Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData1), key.KeyData);
             Assert.False(key.IsPrimary);
-            key = KeyStorage.GetKey(rolloverKeyName2);
+            key = KeyStorage.Shared.GetKey(rolloverKeyName2);
             Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), key.KeyData);
             Assert.False(key.IsPrimary);
-            Assert.Throws<KeyStorage.KeyNotFoundException>(() => KeyStorage.GetKey("Unknown_key"));
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", null);
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", null);
+            Assert.Throws<KeyStorage.KeyNotFoundException>(() => KeyStorage.Shared.GetKey("Unknown_key"));
         }
         
         public EncryptedField AssertProperlyEncrypted(string keyName, string plainText)
@@ -95,40 +110,36 @@ namespace MorphicServer.Tests
         [Fact]
         public void TestEncryption()
         {
-            KeyStorage.ClearKeys();
+            KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
-            bool isPrimary;
             var keyName = "TEST_KEY";
             var keyData = "8C532F0C2CCE7AF471111285340B6353FCB327DF9AB9F0121731F403E3FFDC7C";
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{keyName}:{keyData}");
-            Assert.Equal(KeyStorage.HexStringToBytes(keyData), KeyStorage.GetPrimary().KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(keyData), KeyStorage.Shared.GetPrimary().KeyData);
     
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
             var encryptedField = AssertProperlyEncrypted(keyName, plainText);
 
-            string decryptedText = encryptedField.Decrypt(out isPrimary);
-            Assert.True(isPrimary);
+            string decryptedText = encryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
 
             var otherEncryptedField = EncryptedField.FromCombinedString(encryptedField.ToCombinedString());
-            decryptedText = otherEncryptedField.Decrypt(out isPrimary);
-            Assert.True(isPrimary);
+            decryptedText = otherEncryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
 
             Assert.Throws<EncryptedField.PlainTextEmptyException>(
                 () => EncryptedField.FromPlainText(""));
-            
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
         }
 
         [Fact]
         public void TestRolloverEncryption()
         {
-            KeyStorage.ClearKeys();
+            KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
 
-            bool isPrimary;
             string plainText = "thequickbrownfoxjumpedoverthelazydog";
             string plainText_1 = "thequickbrownfoxjumpedoverthelazydog_1";
             string plainText_2 = "thequickbrownfoxjumpedoverthelazydog_2";
@@ -141,55 +152,46 @@ namespace MorphicServer.Tests
             
             // First, let's start encrypting with a future rollover key.
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{rolloverKeyName2}:{rolloverKeyData2}");
-            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetPrimary().KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.Shared.GetPrimary().KeyData);
             
             var encryptedFieldRoll2 = AssertProperlyEncrypted(rolloverKeyName2, plainText_2);
-            string decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
+            string decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
-            Assert.True(isPrimary);
 
 
             // we move the previous key to rollover
-            KeyStorage.ClearKeys();
+            KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{rolloverKeyName1}:{rolloverKeyData1}");
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", $"{rolloverKeyName2}:{rolloverKeyData2}");
-            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData1), KeyStorage.GetPrimary().KeyData);
-            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetKey(rolloverKeyName2).KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData1), KeyStorage.Shared.GetPrimary().KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.Shared.GetKey(rolloverKeyName2).KeyData);
             
             var encryptedFieldRoll1 = AssertProperlyEncrypted(rolloverKeyName1, plainText_1);
-            decryptedText = encryptedFieldRoll1.Decrypt(out isPrimary);
+            decryptedText = encryptedFieldRoll1.Decrypt();
             Assert.Equal(plainText_1, decryptedText);
-            Assert.True(isPrimary);
 
             // when decrypting, the key used is no longer the primary.
-            decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
             
             // now we switch to the 'new' primary key, and other rollovers
-            KeyStorage.ClearKeys();
+            KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", $"{rolloverKeyName1}:{rolloverKeyData1}");
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", $"{rolloverKeyName2}:{rolloverKeyData2}");
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", $"{keyName}:{keyData}");
-            Assert.Equal(KeyStorage.HexStringToBytes(keyData), KeyStorage.GetPrimary().KeyData);
-            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData1), KeyStorage.GetKey(rolloverKeyName1).KeyData);
-            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.GetKey(rolloverKeyName2).KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(keyData), KeyStorage.Shared.GetPrimary().KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData1), KeyStorage.Shared.GetKey(rolloverKeyName1).KeyData);
+            Assert.Equal(KeyStorage.HexStringToBytes(rolloverKeyData2), KeyStorage.Shared.GetKey(rolloverKeyName2).KeyData);
 
             var encryptedField = AssertProperlyEncrypted(keyName, plainText);
-            decryptedText = encryptedField.Decrypt(out isPrimary);
+            decryptedText = encryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
-            Assert.True(isPrimary);
 
-            decryptedText = encryptedFieldRoll1.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll1.Decrypt();
             Assert.Equal(plainText_1, decryptedText);
 
-            decryptedText = encryptedFieldRoll2.Decrypt(out isPrimary);
-            Assert.False(isPrimary);
+            decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
-
-            
-            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
         }
     }
 }

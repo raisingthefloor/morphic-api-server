@@ -24,6 +24,8 @@
 using System;
 using System.IO;
 using System.Security.Cryptography;
+using MongoDB.Bson.Serialization.Serializers;
+using MongoDB.Bson.Serialization;
 using Prometheus;
 
 namespace MorphicServer
@@ -107,7 +109,7 @@ namespace MorphicServer
         public static EncryptedField FromPlainText(string plainText)
         {
             var iv = Random128BitsBase64();
-            var key = KeyStorage.GetPrimary();
+            var key = KeyStorage.Shared.GetPrimary();
             using (EncryptionHistogram.Labels(Aes256CbcString).NewTimer())
             {
                 var encryptedData = new EncryptedField(
@@ -155,14 +157,17 @@ namespace MorphicServer
         /// Caller should re-encrypt with the primary key if this is returned false</param>
         /// <returns>the plainText string</returns>
         /// <exception cref="UnknownCipherModeException"></exception>
-        public string Decrypt(out bool isPrimary)
+        public string Decrypt()
         {
             if (Cipher == Aes256CbcString)
             {
                 using (DecryptionHistogram.Labels(Aes256CbcString).NewTimer())
                 {
-                    var keyInfo = KeyStorage.GetKey(KeyName);
-                    isPrimary = keyInfo.IsPrimary;
+                    var keyInfo = KeyStorage.Shared.GetKey(KeyName);
+                    if (!keyInfo.IsPrimary)
+                    {
+                        // do nothing (assume some background job is running?) or trigger some background to migrate old to new 
+                    }
                     var plainText = DecryptStringFromBytes_Aes256CBC(
                         Convert.FromBase64String(CipherText),
                         keyInfo.KeyData,
@@ -172,18 +177,6 @@ namespace MorphicServer
             }
 
             throw new UnknownCipherModeException(Cipher);
-        }
-
-        public string Decrypt()
-        {
-            bool isPrimary;
-            var result = Decrypt(out isPrimary);
-            if (!isPrimary)
-            {
-                // TODO need to re-encrypt here
-            }
-
-            return result;
         }
 
         // Helper functions
@@ -348,6 +341,22 @@ namespace MorphicServer
         {
             public UnknownCipherModeException(string error) : base(error)
             {
+            }
+        }
+
+        /// <summary>
+        /// Custom Bson Serializer that converts an EncryptedField to and from its combined string representation
+        /// </summary>
+        public class BsonSerializer: SerializerBase<EncryptedField>
+        {
+            public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, EncryptedField value)
+            {
+                context.Writer.WriteString(value.ToCombinedString());
+            }
+
+            public override EncryptedField Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+            {
+                return EncryptedField.FromCombinedString(context.Reader.ReadString());
             }
         }
     }

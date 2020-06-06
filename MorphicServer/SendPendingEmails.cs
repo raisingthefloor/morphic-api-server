@@ -76,7 +76,7 @@ namespace MorphicServer
             UserId = user.Id;
 
             ToFullName = user.FullnameOrEmail();
-            ToEmail = user.GetEmail() ?? throw new PendingEmailException("Email can not be null");
+            ToEmail = user.Email.PlainText ?? throw new PendingEmailException("Email can not be null");
             EmailText = msg;
             Subject = subject;
             EmailType = type;
