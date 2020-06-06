@@ -29,7 +29,6 @@ using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using MorphicServer.Attributes;
-using Serilog.Context;
 
 namespace MorphicServer
 {
@@ -48,7 +47,8 @@ namespace MorphicServer
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
-        [Parameter] public string oneTimeToken = "";
+        [Parameter]
+        public string oneTimeToken = "";
 
         /// <summary>The UsernameCredential data populated by <code>LoadResource()</code></summary>
         private UsernameCredential usernameCredentials = null!;
@@ -58,14 +58,15 @@ namespace MorphicServer
 
         public override async Task LoadResource()
         {
-            var hashedToken = OneTimeToken.TokenHashedWithDefault(oneTimeToken);
             try
             {
-                OneTimeToken = await Load<OneTimeToken>(hashedToken);
-                if (OneTimeToken == null || !OneTimeToken.IsValid())
+                var ott = await Context.GetDatabase().TokenForToken(oneTimeToken) ?? null;
+                if (ott == null || !ott.IsValid())
                 {
                     throw new HttpError(HttpStatusCode.NotFound, BadPasswordResetResponse.InvalidToken);
                 }
+
+                OneTimeToken = ott;
             }
             catch (HttpError httpError)
             {
@@ -186,34 +187,30 @@ namespace MorphicServer
                 throw new HttpError(HttpStatusCode.BadRequest, BadPasswordRequestResponse.BadEmailAddress);
             }
             var db = Context.GetDatabase();
-            var hash = HashedData.FromString(request.Email);
-            using (LogContext.PushProperty("EmailHash", hash))
+            var user = await db.UserForEmail(request.Email, ActiveSession);
+            if (user != null)
             {
-                var user = await db.Get<User>(a => a.Email.Hash == hash, ActiveSession);
-                if (user != null)
+                if (user.EmailVerified)
                 {
-                    if (user.EmailVerified)
-                    {
-                        logger.LogInformation("Password reset requested for userId {userId}", user.Id);
-
-                        jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id, Request.ClientIp()));
-                    }
-                    else
-                    {
-                        logger.LogInformation(
-                            "Password reset requested for userId {userId}, but email not verified", user.Id);
-                        jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
-                            request.Email,
-                            Request.ClientIp()));
-                    }
+                    logger.LogInformation("Password reset requested for userId {userId} {EmailHash}", user.Id, user.Email.Hash);
+                    jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id, Request.ClientIp()));
                 }
                 else
                 {
-                    logger.LogInformation("Password reset requested but no email matching");
-                    jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
+                    logger.LogInformation(
+                        "Password reset requested for userId {userId}, but email not verified {EmailHash}", user.Id, user.Email.Hash);
+                    jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
                         request.Email,
                         Request.ClientIp()));
                 }
+            }
+            else
+            {
+                var hash = new SearchableHashedString(request.Email).ToString();
+                logger.LogInformation("Password reset requested but no email matching {EmailHash}", hash);
+                jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
+                    request.Email,
+                    Request.ClientIp()));
             }
         }
         

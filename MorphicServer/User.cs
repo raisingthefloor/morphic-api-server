@@ -24,6 +24,7 @@
 using System;
 using System.Net.Mail;
 using System.Text.Json.Serialization;
+using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MorphicServer
@@ -43,6 +44,11 @@ namespace MorphicServer
         public bool EmailVerified { get; set; }
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
+
+        public User()
+        {
+            Id = Guid.NewGuid().ToString();
+        }
         
         public void TouchLastAuth()
         {
@@ -102,6 +108,14 @@ namespace MorphicServer
                 return false;
             }
         }
-        
+    }
+
+    public static class UserDatabase
+    {
+        public static async Task<User?> UserForEmail(this Database db, string email, Database.Session? session = null)
+        {
+            string hash = new SearchableHashedString(email).ToCombinedString();
+            return await db.Get<User>(a => a.Email.Hash! == hash, session);
+        }
     }
 }

@@ -38,23 +38,23 @@ namespace MorphicServer
     {
         public string UserId { get; set; }
         public DateTime ExpiresAt { get; set; }
-        public DateTime? UsedAt { get; set; } = null;
-
+        public DateTime? UsedAt { get; set; }
+        public SearchableHashedString Token { get; set; }
         private readonly string token;
         
         private const int DefaultExpiresSeconds = 30 * 24 * 60 * 60; // 2592000 seconds in 30 days
-        private const string DefaultTokenHash = "VpMZSDRh2nUiI/y2uARYbw==";
         
         public OneTimeToken(string userId, int expiresInSeconds = DefaultExpiresSeconds)
         {
+            Id = Guid.NewGuid().ToString();
             token = NewToken();
-            Id = TokenHashedWithDefault(token);
+            Token = new SearchableHashedString(token);
             UserId = userId;
             ExpiresAt = DateTime.UtcNow + new TimeSpan(0, 0, expiresInSeconds);
         }
 
         // This method is necessary so that the email-sending functionality can get the original
-        // unhashed token and put it in the email. This will only work when the OneTimeToke is first
+        // unhashed token and put it in the email. This will only work when the OneTimeToken is first
         // initialized and still has the original value.
         public string GetUnhashedToken()
         {
@@ -65,13 +65,6 @@ namespace MorphicServer
                 throw new OneTimeTokenException("uninitialized unhashed token");
             }
             return token;
-        }
-        
-        // This method is used by the Validation endpoint to create the token-hash, which is 
-        // used as the Token ID for the Load<>() call.
-        public static string TokenHashedWithDefault(string token)
-        {
-            return HashedData.FromString(token, DefaultTokenHash).ToCombinedString();
         }
         
         private static string NewToken()
@@ -105,4 +98,14 @@ namespace MorphicServer
             }
         }
     }
+    
+    public static class OneTimeTokenDatabase
+    {
+        public static async Task<OneTimeToken?> TokenForToken(this Database db, string email, Database.Session? session = null)
+        {
+            var hash = new SearchableHashedString(email).ToCombinedString();
+            return await db.Get<OneTimeToken>(t => t.Token == hash, session);
+        }
+    }
+
 }

@@ -93,19 +93,14 @@ namespace MorphicServer
 
         public SearchableEncryptedString()
         {
-            SharedSalt = Convert.ToBase64String(KeyStorage.Shared.GetPrimaryHashSalt().KeyData);
         }
 
-        public HashedData? Hash { get; set; }
-
-        /// <summary>
-        /// Why do we need a shared salt? We need to be able to search
-        /// for the value. If we use random salt for every entry this becomes prohibitively expensive 
-        /// (that being the sole purpose of Salt, after all). This is a trade-off between protecting
-        /// PII and searchability: It's not perfect, but it's sufficient. 
-        /// </summary>
-        [BsonIgnore]
-        public string SharedSalt { get; set; }
+        public SearchableEncryptedString(string plaintext)
+        {
+            PlainText = plaintext;
+        }
+        
+        public SearchableHashedString? Hash { get; set; }
 
         [BsonIgnore]
         public override string? PlainText{
@@ -117,7 +112,7 @@ namespace MorphicServer
                 base.PlainText = value;
                 if (value is string plainText)
                 {
-                    Hash = HashedData.FromString(plainText, SharedSalt);
+                    Hash = new SearchableHashedString(plainText);
                 }
                 else
                 {

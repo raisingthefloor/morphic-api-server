@@ -232,8 +232,12 @@ namespace MorphicServer
             // IndexExplanation: When registering a new user, we need to make sure no other user has signed
             // up with that email. So we need an index to find it. See RegisterEndpoint.
             CreateOrUpdateIndexOrFail(user,
-                new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(t => t.Email.Hash)));
+                new CreateIndexModel<User>(Builders<User>.IndexKeys.Hashed(u => u.Email.Hash)));
             var usernameCredentials = CreateCollectionIfNotExists<UsernameCredential>();
+            // IndexExplanation: When looking up a userCredential, we have the Username in the Username field.
+            // See. db.UserForUsername()
+            CreateOrUpdateIndexOrFail(usernameCredentials,
+                new CreateIndexModel<UsernameCredential>(Builders<UsernameCredential>.IndexKeys.Hashed(uc => uc.Username)));
             // IndexExplanation: When changing a user's password, which lives in the UsernameCredentials collection,
             // we need to look up the UsernameCredentials by that user's ID, so we can change the password.
             // See ChangePasswordEndpoint
@@ -261,6 +265,9 @@ namespace MorphicServer
                     Builders<BadPasswordLockout>.IndexKeys.Ascending(t => t.ExpiresAt), options));
             
             var oneTimeToken = CreateCollectionIfNotExists<OneTimeToken>();
+            // IndexExplanation: When looking up a token, we need to search for it. See db.TokenForToken().
+            CreateOrUpdateIndexOrFail(oneTimeToken,
+                new CreateIndexModel<OneTimeToken>(Builders<OneTimeToken>.IndexKeys.Hashed(t => t.Token)));
             // IndexExplanation: This collection has documents with expiration, which mongo will automatically remove.
             // the ExpiresAt index is needed to allow Mongo to expire the documents.
             options.ExpireAfter = TimeSpan.Zero;
@@ -363,6 +370,10 @@ namespace MorphicServer
                 if (type == typeof(HashedData))
                 {
                     return new HashedData.BsonSerializer();
+                }
+                if (type == typeof(SearchableHashedString))
+                {
+                    return new SearchableHashedString.BsonSerializer();
                 }
                 return null;
             }

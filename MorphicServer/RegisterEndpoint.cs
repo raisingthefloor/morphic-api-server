@@ -93,18 +93,15 @@ namespace MorphicServer
 
             await CheckEmail(request.Email);
 
-            var existing = await Context.GetDatabase().Get<UsernameCredential>(request.Username, ActiveSession);
+            var existing = await Context.GetDatabase().UsernameCredentialForUsername(request.Username, ActiveSession);
             if (existing != null)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingUsername);
             }
-
-            var cred = new UsernameCredential();
-            cred.Id = request.Username;
-            cred.CheckAndSetPassword(request.Password);
             
+            UsernameCredential.CheckPassword(request.Password);
             var user = new User();
-            user.Id = Guid.NewGuid().ToString();
+            var cred = new UsernameCredential(user.Id, request.Username, request.Password);
             user.Email.PlainText = request.Email;
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
@@ -126,9 +123,8 @@ namespace MorphicServer
 
             var user = new User();
             user.Email.PlainText = email;
-            var hash = user.Email.Hash!.ToCombinedString();
-            var existingEmail = await Context.GetDatabase().Get<User>(a => a.Email.Hash == hash, ActiveSession);
-            if (existingEmail != null)
+            var existingUser = await Context.GetDatabase().UserForEmail(email, ActiveSession);
+            if (existingUser != null)
             {
                 logger.LogInformation("EMAIL_EXISTS");
                 throw new HttpError(HttpStatusCode.BadRequest, BadRequestResponseUser.ExistingEmail);
@@ -186,7 +182,6 @@ namespace MorphicServer
             var cred = new KeyCredential();
             cred.Id = request.Key;
             var user = new User();
-            user.Id = Guid.NewGuid().ToString();
             user.EmailVerified = false;
             user.FirstName = request.FirstName;
             user.LastName = request.LastName;
