@@ -64,6 +64,10 @@ namespace MorphicServer
 
         public Uri GetFrontEndUri(string path, Dictionary<string, string>? fragmentParameters = null)
         {
+            if (!settings.FrontEndServerUri.IsAbsoluteUri)
+            {
+                throw new Exception("Can not use non-absolute URI. Probably forgot to set FrontEndServerUrlPrefix");
+            }
             var builder = new UriBuilder(settings.FrontEndServerUri);
             builder.Path = path;
             if (fragmentParameters != null)
