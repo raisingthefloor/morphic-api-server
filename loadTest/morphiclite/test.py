@@ -105,9 +105,8 @@ def testrunner(args):
 
                 try:
                     user = Users(**users_kwargs).get()
-                    print(user)
                 except Exception as e:
-                    print(e)
+                    logger.error(e)
 
                 if args.extra_tests:
                     try:
