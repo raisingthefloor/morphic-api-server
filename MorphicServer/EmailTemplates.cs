@@ -124,6 +124,11 @@ namespace MorphicServer
             {
                 throw new EmailTemplatesException("No User");
             }
+            if (user.Email.PlainText == null)
+            {
+                logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
+                return;
+            }
             var oneTimeToken = new OneTimeToken(user.Id);
             var verifyUri = GetFrontEndUri("/email/verify", new Dictionary<string, string>()
             {
