@@ -22,7 +22,7 @@ $ docker stack deploy -c docker-compose.dev.yaml morphic-server
 
 The server itself can be started from your IDE or from the command line:
 ````
-$ dotnet run --project MorphicServer
+$ dotnet run --project Morphic.Server
 ````
 
 You can get started making requests by registering a new user:

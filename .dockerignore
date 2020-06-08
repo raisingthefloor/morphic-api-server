@@ -2,7 +2,7 @@ Database/
 .git/
 bin/
 obj/
-MorphicServer/bin/
-MorphicServer/obj/
-MorphicServer.Tests/bin/
-MorphicServer.Tests/obj/
+Morphic.Server/bin/
+Morphic.Server/obj/
+Morphic.Server.Tests/bin/
+Morphic.Server.Tests/obj/

@@ -25,7 +25,7 @@
 				"type": "process",
 				"args": [
 					"build",
-					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"${workspaceFolder}/Morphic.Server/Morphic.Server.csproj",
 					"/property:GenerateFullPaths=true",
 					"/consoleloggerparameters:NoSummary"
 				],
@@ -37,7 +37,7 @@
 				"type": "process",
 				"args": [
 					"publish",
-					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"${workspaceFolder}/Morphic.Server/Morphic.Server.csproj",
 					"/property:GenerateFullPaths=true",
 					"/consoleloggerparameters:NoSummary"
 				],
@@ -50,7 +50,7 @@
 				"args": [
 					"watch",
 					"run",
-					"${workspaceFolder}/MorphicServer/MorphicServer.csproj",
+					"${workspaceFolder}/Morphic.Server/Morphic.Server.csproj",
 					"/property:GenerateFullPaths=true",
 					"/consoleloggerparameters:NoSummary"
 				],
@@ -62,14 +62,14 @@
 		"version": "0.2.0",
 		"configurations": [
 			{
-				"name": "Launch MorphicServer",
+				"name": "Launch Morphic.Server",
 				"type": "coreclr",
 				"request": "launch",
 				"preLaunchTask": "build",
 				// If you have changed target frameworks, make sure to update the program path.
-				"program": "${workspaceFolder}/MorphicServer/bin/Debug/netcoreapp3.1/MorphicServer.dll",
+				"program": "${workspaceFolder}/Morphic.Server/bin/Debug/netcoreapp3.1/Morphic.Server.dll",
 				"args": [],
-				"cwd": "${workspaceFolder}/MorphicServer",
+				"cwd": "${workspaceFolder}/Morphic.Server",
 				"stopAtEntry": false,
 				"env": {
 					"ASPNETCORE_ENVIRONMENT": "Development"
