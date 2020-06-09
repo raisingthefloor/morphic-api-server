@@ -12,7 +12,9 @@
 	},
 	"settings": {
 		"files.exclude": {
-			"Database": true
+			"Database": true,
+			"**/bin": true,
+			"**/obj": true,
 		},
 		"csharp.supressBuildAssetsNotification": true
 	},

@@ -34,8 +34,14 @@ using Serilog;
 
 namespace Morphic.Server.Tests
 {
+
+    using Db;
+    using Email;
+    using Http;
+
     public class MockStartup
     {
+
         public MockStartup(IConfiguration configuration)
         {
             Configuration = configuration;

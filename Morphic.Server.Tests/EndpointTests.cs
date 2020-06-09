@@ -31,10 +31,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Morphic.Server.Attributes;
 
 namespace Morphic.Server.Tests
 {
+
+    using Http;
 
     public class EndpointTests
     {
@@ -229,7 +230,7 @@ namespace Morphic.Server.Tests
             Assert.Equal("https://settings.host/", uri.ToString());
         }
 
-        [Attributes.Path("cors")]
+        [Path("cors")]
         [AllowedOrigin("https://other.origin")]
         private class CorsEndpoint: Endpoint
         {
@@ -248,7 +249,7 @@ namespace Morphic.Server.Tests
             }
         }
 
-        [Attributes.Path("cors2")]
+        [Path("cors2")]
         [AllowedOrigin("*")]
         private class CorsWildcardEndpoint: Endpoint
         {

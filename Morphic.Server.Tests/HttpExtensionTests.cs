@@ -30,6 +30,8 @@ using Microsoft.AspNetCore.Http;
 namespace Morphic.Server.Tests
 {
 
+    using Http;
+    
     public class HttpExtensionTests
     {
 

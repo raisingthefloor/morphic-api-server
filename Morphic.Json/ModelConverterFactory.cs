@@ -47,7 +47,7 @@ namespace Morphic.Json
         /// <summary>Returns <code>true</code> for anything in the <code>MorphicServer</code> namespace
         public override bool CanConvert (Type typeToConvert)
         {
-            return typeToConvert.Namespace == NamespaceName;
+            return typeToConvert.Namespace == NamespaceName || (typeToConvert.Namespace?.StartsWith(NamespaceName + ".") ?? false);
         }
 
         public override JsonConverter CreateConverter (Type typeToConvert, JsonSerializerOptions options)

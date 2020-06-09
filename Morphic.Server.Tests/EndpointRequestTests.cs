@@ -39,6 +39,10 @@ using Serilog.Formatting.Compact;
 
 namespace Morphic.Server.Tests
 {
+
+    using Db;
+    using Users;
+
     public class EndpointRequestTests: IDisposable
     {
 

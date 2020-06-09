@@ -43,6 +43,11 @@ using Morphic.Security;
 
 namespace Morphic.Server
 {
+
+    using Db;
+    using Email;
+    using Http;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)

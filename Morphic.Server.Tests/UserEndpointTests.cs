@@ -33,6 +33,9 @@ using System.Text;
 
 namespace Morphic.Server.Tests
 {
+
+    using Users;
+
     public class UserEndpointTests : EndpointRequestTests
     {
 
