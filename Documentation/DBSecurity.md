@@ -2,7 +2,96 @@ Morphic Lite Server Security
 
 Table of Contents:
 
-[Database Field Encryption](#database-field-encryption)
+* [Data Security](#data-security)
+* [PII](#pii)
+* [Searchable Hashed String](#database-hashed-string)
+* [Searchable Encrypted String](#database-encrypted-string)
+* [Database Field Encryption](#database-field-encryption)
+* [Rollover](#rollover)
+* [Key Security](#key-security)
+
+# Data Security
+
+We employ several industry standard data-security techniques to protect customer data. Only industry standard
+algorithms are used, and we use the higest grade available to us, for example AES-256, SHA-256, PBKDF2 with 10000 rounds, etc.
+
+## Full-Database ("at rest" or disk) encryption
+
+This protects you from the case where you decommission and throw away
+a hard-disk (that has your database on it) and someone finds that disk and retrieves the data. In today's cloud
+environments, we generally don't even see the disk, so we rely on our cloud providers to manage the disks for us. We
+don't have any idea what they do with it. Knowing which disk contains your data may be impossible (or at least 
+extremely unlikely) to determine, so we consider this very unlikely.
+
+Despite the belief that this is unlikely, this is enabled by our clould configuration at the amazon EBS level, since 
+it is extremely easy to enable.
+
+Full-Database (at rest) encryption is necessary, but not sufficient.
+
+## Application-level field encryption
+
+The more likely threats to data security are:
+ 1. We have a database backup somewhere, and that backup is, despite our best efforts, compromised. 
+ 2. A database credential is compromised and an unauthorized person makes their own database-dump.
+
+Full-database encryption doesn't help here, since the data is decrypted, read, and send to the requesting party. To 
+guard against this, we employ a second layer of encryption: Selective application-level field encryption.
+
+## Hashing 
+
+Where appropriate, hashing is used for data like passwords, which protects the data even from us. If we
+have no need to know the data, hashing is used to hide it.
+
+# PII
+
+PII, Personally Identifiable Information, is information that can uniquely identify a user.
+
+When it comes to PII, we sometimes have conflicting requirements: On the one hand we need
+to protect the data to the best of our ability, and mostly that means encryption or hashing
+the data. On the other hand we may need to search the database for information that is PII. One
+example is a user's email address: we frequently need to search the database by email address (on login, for example)
+and we also need to retrieve the email address when we send the user an email, such as a password-reset email.
+
+Encryption is meant to hide the information from prying eyes, which of course means we can't search the database
+for hero@example.com: We won't find that string, as we have only the encrypted blob.
+
+Hashing presents a similar conundrum as encryption: Hashing, by definition, turns the data into a non-reversible chunk
+of data. Usually passwords are stored in this manner. Hashed data, like encrypted data, can not be searched.
+
+How do we reconcile these requirements? We make compromises with respect to encryption and hashing
+in such a way that we do our best to still protect the information to the best of our ability, while still
+being able to search. See "Searchable Encrypted String" and "Searchable Hashed String".
+
+# Hashed String
+
+A hashed string is hashed with PBKDF2-SHA512 (10000 rounds) and with a random _salt_.
+Salt is what is added to an input string before hashing to make it resulting hash a little more unpredictable.
+Without salt the same string will always lead to the same hash, so we add salt to mix it up a little
+(see [Rainbow Tables](#https://en.wikipedia.org/wiki/Rainbow_table)).
+
+# Searchable Hashed String
+
+A 'searchable hashed string' uses 'Hashed String', however instead of a random salt, we use
+a "shared salt".
+
+When needing to search fields salt gets in the way (that is, afterall, the whole point of adding salt): 
+It would mean we would need to create as many search queries as there are entries in the database
+(assuming each has a different salt). This would not perform well and would get worse the larger the
+database becomes. 
+
+We could use "no salt" but that makes it too easy on any attacker (again, see "Rainbow tables"): Instead, we use
+a "Shared salt" that is provisioned at runtime. All fields of type 'searchable hashed string' are hashed using
+the same "shared salt". This allows us to hash our search-string once with the "shared salt" and do a single query.
+
+An attacker that got access to our database would need to know this shared salt in order to figure out the hashed 
+values in any reasonable amount of time.
+
+# Searchable Encrypted String
+
+A searchable encrypted string has two components: A strongly encrypted field (so we can decrypt the data and 
+get the original value) based on [Database Field Encryption](#database-field-encryption) and 
+a [Searchable Hashed String](#searchable-hashed-string) as defined in the previous section. 
+This allows us to search for the value in a field in the database, and still maintain good data security.
 
 # Database Field Encryption
 
@@ -26,11 +115,12 @@ ciphertext, so that we can pick the right key for decryption.
 1. ```MORPHIC_ENC_KEY_PRIMARY``` contains the primary key
 2. ```MORPHIC_ENC_KEY_ROLLOVER_<something>``` can be used multiple times, as long as `<something>`
 is different each time.
+3. ```MORPHIC_HASH_SALT_PRIMARY``` used for [Searchable Hashed Strings](#searchable-hashed-string)
 
 #### Format
 The variables have a specific format: `<key-name>:<hexstring format key material>`
 
-The key material can be generated like this:
+The encryption key material can be generated like this:
 
     openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
     
@@ -39,6 +129,10 @@ Example:
     $ openssl enc -aes-256-cbc -k foo12345 -P -md sha1 | grep key
     key=8EF43BBD8D0ED60EFAD0CBC00BBE8DEB2792C2FC55DAB8888129E33EBB1FE4FF
 
+The hashing key is generated like this:
+
+    $ openssl rand -hex 16
+    
 ##### Naming
 
 A good name for the key is the date it was created, though it can be anything that makes
@@ -49,7 +143,8 @@ Examples:
 
     MORPHIC_ENC_KEY_PRIMARY="20200504:5E4FA583FDFFEEE0C89E91307A6AD56EDF2DADACDE5163C1485F3FBCC166B995"
     MORPHIC_ENC_KEY_ROLLOVER_1="20200104:E9F45B9C675409B3980256D128EC90641EADF8D0E89DB8485B65B50B35717A94"
-    
+    MORPHIC_HASH_SALT_PRIMARY="20200601:9224065cf0a210a08a862d4a99ce843e"
+
 
 ## EncryptedField
 EncryptedField handles the encryption and gets its keys from KeyStorage.
@@ -66,8 +161,8 @@ Example:
 
 Format:
 
-| Field             | Type           |        Comments       |
-| -------------     |:------------------------:|:------------|
+| Field             | Type                     |        Comments       |
+| -------------     |:------------------------:|:----------------------|
 | Encryption-type   | String of "AES-256-CBC"  | Using AES 256 in CBC mode. Maybe more types added later                |
 | Key name          | String                   |   Identifies the key used, so we can pick the right one for decryption |
 | IV                | Base64 encoded string    | IV with suitable length for the `Encryption-Type`                      |
