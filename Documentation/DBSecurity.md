@@ -1,21 +1,22 @@
-Morphic Lite Server Security
+# Morphic Lite Server Security
 
 Table of Contents:
 
 * [Data Security](#data-security)
 * [PII](#pii)
-* [Searchable Hashed String](#database-hashed-string)
-* [Searchable Encrypted String](#database-encrypted-string)
+* [Hashed String](#hashed-string)
+* [Searchable Hashed String](#searchable-hashed-string)
+* [Searchable Encrypted String](#searchable-encrypted-string)
 * [Database Field Encryption](#database-field-encryption)
 * [Rollover](#rollover)
 * [Key Security](#key-security)
 
-# Data Security
+## Data Security
 
 We employ several industry standard data-security techniques to protect customer data. Only industry standard
 algorithms are used, and we use the higest grade available to us, for example AES-256, SHA-256, PBKDF2 with 10000 rounds, etc.
 
-## Full-Database ("at rest" or disk) encryption
+### Full-Database ("at rest" or disk) encryption
 
 This protects you from the case where you decommission and throw away
 a hard-disk (that has your database on it) and someone finds that disk and retrieves the data. In today's cloud
@@ -28,7 +29,7 @@ it is extremely easy to enable.
 
 Full-Database (at rest) encryption is necessary, but not sufficient.
 
-## Application-level field encryption
+### Application-level field encryption
 
 The more likely threats to data security are:
  1. We have a database backup somewhere, and that backup is, despite our best efforts, compromised. 
@@ -37,12 +38,12 @@ The more likely threats to data security are:
 Full-database encryption doesn't help here, since the data is decrypted, read, and send to the requesting party. To 
 guard against this, we employ a second layer of encryption: Selective application-level field encryption.
 
-## Hashing 
+### Hashing 
 
 Where appropriate, hashing is used for data like passwords, which protects the data even from us. If we
 have no need to know the data, hashing is used to hide it.
 
-# PII
+## PII
 
 PII, Personally Identifiable Information, is information that can uniquely identify a user.
 
@@ -62,14 +63,14 @@ How do we reconcile these requirements? We make compromises with respect to encr
 in such a way that we do our best to still protect the information to the best of our ability, while still
 being able to search. See "Searchable Encrypted String" and "Searchable Hashed String".
 
-# Hashed String
+## Hashed String
 
 A hashed string is hashed with PBKDF2-SHA512 (10000 rounds) and with a random _salt_.
 Salt is what is added to an input string before hashing to make it resulting hash a little more unpredictable.
 Without salt the same string will always lead to the same hash, so we add salt to mix it up a little
-(see [Rainbow Tables](#https://en.wikipedia.org/wiki/Rainbow_table)).
+(see [Rainbow Tables](https://en.wikipedia.org/wiki/Rainbow_table)).
 
-# Searchable Hashed String
+## Searchable Hashed String
 
 A 'searchable hashed string' uses 'Hashed String', however instead of a random salt, we use
 a "shared salt".
@@ -86,18 +87,18 @@ the same "shared salt". This allows us to hash our search-string once with the "
 An attacker that got access to our database would need to know this shared salt in order to figure out the hashed 
 values in any reasonable amount of time.
 
-# Searchable Encrypted String
+## Searchable Encrypted String
 
 A searchable encrypted string has two components: A strongly encrypted field (so we can decrypt the data and 
 get the original value) based on [Database Field Encryption](#database-field-encryption) and 
 a [Searchable Hashed String](#searchable-hashed-string) as defined in the previous section. 
 This allows us to search for the value in a field in the database, and still maintain good data security.
 
-# Database Field Encryption
+## Database Field Encryption
 
 Database field encryption is comprised of two classes: ```public class KeyStorage``` and ```public class EncryptedField```
 
-## KeyStorage
+### KeyStorage
 KeyStorage handles setting up keys (currently read from [environment variables](#environment-variables), 
 but later perhaps elsewhere) and handing them out to the encryption class by name.
 It supports multiple keys for [key rollover](#rollover).
@@ -108,16 +109,16 @@ All keys are named. A key is mandatory and must not change throughout the lifeti
 (and that can be long; see [Rollover](#rollover)). The name of the key used is stored with the 
 ciphertext, so that we can pick the right key for decryption.
 
-### Environment variables
+#### Environment variables
 
-#### Variable Names
+##### Variable Names
 
 1. ```MORPHIC_ENC_KEY_PRIMARY``` contains the primary key
 2. ```MORPHIC_ENC_KEY_ROLLOVER_<something>``` can be used multiple times, as long as `<something>`
 is different each time.
 3. ```MORPHIC_HASH_SALT_PRIMARY``` used for [Searchable Hashed Strings](#searchable-hashed-string)
 
-#### Format
+##### Format
 The variables have a specific format: `<key-name>:<hexstring format key material>`
 
 The encryption key material can be generated like this:
@@ -133,7 +134,7 @@ The hashing key is generated like this:
 
     $ openssl rand -hex 16
     
-##### Naming
+###### Naming
 
 A good name for the key is the date it was created, though it can be anything that makes
 sense to people managing the system. The name will be saved with the encrypted data, so the name
@@ -146,14 +147,14 @@ Examples:
     MORPHIC_HASH_SALT_PRIMARY="20200601:9224065cf0a210a08a862d4a99ce843e"
 
 
-## EncryptedField
+### EncryptedField
 EncryptedField handles the encryption and gets its keys from KeyStorage.
 
 **Encryption** will always be done with the `Primary` key. **Decryption** must (of course) 
 use the key that was used to encrypt at the time. For this, the key-name used to encrypt data
 is stored with the data. This allows key rollover to happen.
 
-### Format
+#### Format
 
 Example:
 
@@ -168,7 +169,7 @@ Format:
 | IV                | Base64 encoded string    | IV with suitable length for the `Encryption-Type`                      |
 | Ciphertext        | Base64 encoded string    |                                                                        |
 
-# Rollover
+## Rollover
 
 The idea is that the `Primary` key is moved to a rollover key, and a new `Primary` key is provisioned. 
 Any number of rollover keys can be passed to the app (and read into KeyStorage).
@@ -190,7 +191,7 @@ NB: While Rollover is supported by the classes and the format of the keys and fi
 named keys to exist and storing the key name with the ciphertext), the actual reencrypting of the data (the actual
 rolling over of the keys) is not yet implemented.
  
-# Key Security
+## Key Security
 
 There's a few keys in play here:
 1. DB-encryption-keys. I.e. `MORPHIC_ENC_KEY_PRIMARY` etc. (DEK)
@@ -223,7 +224,7 @@ should be able to neither see the encrypted data not get the decryption keys.
 Of course in small companies these roles are frequently shared, so prevention of security exposures relies
 on trust of the employees.
 
-## Problem areas
+### Problem areas
 
 1. Secrets in Kubernetes are not encrypted. Need better access controls (RBAC) for secret files or 
 explore a better secret type (there's supposed to be other 3rd party mechanisms)
