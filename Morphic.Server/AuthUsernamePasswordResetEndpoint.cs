@@ -195,13 +195,13 @@ namespace Morphic.Server
                 {
                     logger.LogInformation("Password reset requested for userId {userId} {EmailHash}",
                         user.Id, hash);
-                    jobClient.Enqueue<PasswordResetEmail>(x => x.QueueEmail(user.Id, Request.ClientIp()));
+                    jobClient.Enqueue<PasswordResetEmail>(x => x.SendEmail(user.Id, Request.ClientIp()));
                 }
                 else
                 {
                     logger.LogInformation("Password reset requested for userId {userId}, but email not verified {EmailHash}", 
                         user.Id, hash);
-                    jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.QueueEmail(
+                    jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.SendEmail(
                         request.Email,
                         Request.ClientIp()));
                 }
@@ -210,7 +210,7 @@ namespace Morphic.Server
             {
                 var hash = new SearchableHashedString(request.Email).ToCombinedString();
                 logger.LogInformation("Password reset requested but no email matching {EmailHash}", hash);
-                jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.QueueEmail(
+                jobClient.Enqueue<UnknownEmailPasswordResetEmail>(x => x.SendEmail(
                     request.Email,
                     Request.ClientIp()));
             }
