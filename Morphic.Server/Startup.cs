@@ -39,6 +39,7 @@ using Microsoft.Extensions.Logging;
 using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

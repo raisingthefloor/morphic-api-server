@@ -28,7 +28,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
 using Prometheus;
 
-namespace Morphic.Server
+namespace Morphic.Security
 {
     /// <summary>
     /// EncryptedField class: Uses AES-256-CBC encryption with an IV and a share secret.

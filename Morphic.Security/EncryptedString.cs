@@ -25,7 +25,7 @@ using System;
 using System.Text.Json;
 using MongoDB.Bson.Serialization.Attributes;
 
-namespace Morphic.Server
+namespace Morphic.Security
 {
     
     /// <summary>

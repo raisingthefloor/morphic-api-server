@@ -26,6 +26,7 @@ using System.Net.Mail;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

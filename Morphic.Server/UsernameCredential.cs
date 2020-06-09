@@ -29,6 +29,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Prometheus;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

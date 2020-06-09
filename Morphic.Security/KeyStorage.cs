@@ -26,7 +26,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Extensions.Logging;
 
-namespace Morphic.Server
+namespace Morphic.Security
 {
 
     public class KeyStorageSettings

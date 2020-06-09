@@ -27,7 +27,7 @@ using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
 using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
-namespace Morphic.Server
+namespace Morphic.Security
 {
     /// <summary>
     /// Class to hash and compare data.
@@ -186,7 +186,7 @@ namespace Morphic.Server
     /// </summary>
     public class SearchableHashedString : HashedData
     {
-        class SearchableHashedStringException : MorphicServerException
+        class SearchableHashedStringException : Exception
         {
             public SearchableHashedStringException(String error) : base(error)
             {

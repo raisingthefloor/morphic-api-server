@@ -29,6 +29,7 @@ using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Morphic.Server.Attributes;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

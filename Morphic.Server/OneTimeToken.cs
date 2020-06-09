@@ -23,6 +23,7 @@
 
 using System;
 using System.Threading.Tasks;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

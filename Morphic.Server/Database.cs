@@ -33,6 +33,7 @@ using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Core.Clusters;
+using Morphic.Security;
 
 namespace Morphic.Server
 {

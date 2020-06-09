@@ -25,7 +25,7 @@ using System;
 using Xunit;
 using Microsoft.Extensions.Logging;
 
-namespace Morphic.Server.Tests
+namespace Morphic.Security.Tests
 {
     public class EncryptedFieldsTests: IDisposable
     {
