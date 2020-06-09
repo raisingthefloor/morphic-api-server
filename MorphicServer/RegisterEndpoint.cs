@@ -107,7 +107,7 @@ namespace MorphicServer
             user.LastName = request.LastName;
 
             await Register(cred, user);
-            jobClient.Enqueue<EmailVerificationEmail>(x => x.QueueEmail(
+            jobClient.Enqueue<EmailVerificationEmail>(x => x.SendEmail(
                 user.Id,
                 Request.ClientIp()
             ));
