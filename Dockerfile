@@ -28,6 +28,8 @@ WORKDIR /app
 # Copy csproj and restore as distinct layers
 COPY ./Morphic.Server/*.csproj ./Morphic.Server/
 COPY ./Morphic.Server.Tests/*.csproj ./Morphic.Server.Tests/
+COPY ./Morphic.Security/*.csproj ./Morphic.Security/
+COPY ./Morphic.Security.Tests/*.csproj ./Morphic.Security.Tests/
 COPY ./Morphic.Json/*.csproj ./Morphic.Json/
 COPY ./Morphic.Json.Tests/*.csproj ./Morphic.Json.Tests/
 COPY ./MorphicServer.sln .
@@ -35,6 +37,8 @@ RUN dotnet restore
 
 COPY ./Morphic.Server/ ./Morphic.Server/
 COPY ./Morphic.Server.Tests/ ./Morphic.Server.Tests/
+COPY ./Morphic.Security/ ./Morphic.Security/
+COPY ./Morphic.Security.Tests/ ./Morphic.Security.Tests/
 COPY ./Morphic.Json/ ./Morphic.Json/
 COPY ./Morphic.Json.Tests/ ./Morphic.Json.Tests/
 RUN dotnet publish -c Release -o Morphic.Server
