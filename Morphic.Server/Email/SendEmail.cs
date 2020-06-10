@@ -23,31 +23,12 @@
 
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Prometheus;
-using SendGrid;
-using SendGrid.Helpers.Mail;
 
 namespace Morphic.Server.Email
 {
-    public class SendGridSettings
-    {
-        /// <summary>
-        /// The Sendgrid API key.
-        /// 
-        /// NOTE: Do not put this into any appsettings file. It's a secret and should be
-        /// configured via environment variables
-        ///
-        /// For production: Put it in repo: deploy-morphiclite, path: environments/*/secrets/all.env
-        /// depending on the environment
-        ///
-        /// For development and others, see launchSettings.json or the docker-compose.morphicserver.yml file.
-        /// </summary>
-        public string ApiKey { get; set; } = "";
-    }
-    
     /// <summary>
     /// </summary>
     public class SendEmail
@@ -68,31 +49,46 @@ namespace Morphic.Server.Email
             "Time it takes to send an email",
             new[] {"type", "destination", "success"});
 
-        public async Task SendOneEmail(string emailTemplateId, Dictionary<string, string> emailAttributes)
+        public async Task SendOneEmail(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
         {
-            if (emailSettings.Type == EmailSettings.EmailTypeDisabled ||
-                (emailSettings.Type == EmailSettings.EmailTypeSendgrid &&
-                 (emailSettings.SendGridSettings == null || emailSettings.SendGridSettings.ApiKey == "")))
-            {
-                logger.LogError("Email sending disabled or misconfigured. Check EmailSettings.Type and " +
-                                "SendGrid Api Key. Note this task can be retried manually from the Hangfire console");
-                return;
+            if (emailSettings.Type == EmailSettings.EmailTypeDisabled) {
+                throw new SendEmailException("Email sending disabled");
             }
 
             logger.LogInformation("SendOneEmail sending email {EmailType} {ClientIp}",
                 emailAttributes["EmailType"], emailAttributes["ClientIp"]);
-            bool sent = false;
-            if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
+            var stopWatch = Stopwatch.StartNew();
+            bool success = false;
+            try
             {
-                sent = await SendViaSendGridDynamicTemplate(emailTemplateId, emailAttributes);
+                SendEmailWorker worker;
+                if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
+                {
+                    worker = new Sendgrid(emailSettings, logger);
+                }
+                else if (emailSettings.Type == EmailSettings.EmailTypeSendInBlue)
+                {
+                    worker = new SendInBlue(emailSettings, logger);
+                }
+                else if (emailSettings.Type == EmailSettings.EmailTypeLog)
+                {
+                    worker = new EmailLogger(emailSettings, logger);
+                }
+                else
+                {
+                    throw new SendEmailException("Unknown email type " + emailSettings.Type);
+                }
+                success = await worker.SendTemplate(emailType, emailAttributes);
             }
-            else if (emailSettings.Type == EmailSettings.EmailTypeLog)
+            finally
             {
-                LogEmailDynamicTemplate(emailTemplateId, emailAttributes);
-                sent = true;
+                stopWatch.Stop();
+                EmailSendingHistogram.Labels(emailAttributes["EmailType"], emailSettings.Type, success.ToString())
+                    .Observe(stopWatch.Elapsed.TotalSeconds);
             }
 
-            if (!sent)
+
+            if (!success)
             {
                 throw new UnableToSendEmailException();
             }
@@ -101,58 +97,46 @@ namespace Morphic.Server.Email
 
         private class SendEmailException : MorphicServerException
         {
+            public SendEmailException()
+            {
+            }
+            public SendEmailException(string error) : base(error)
+            {
+            }
         }
 
         private class UnableToSendEmailException : SendEmailException
         {
-
         }
+    }
+    
+    public abstract class SendEmailWorker
+    {
+        protected readonly ILogger logger;
+        protected readonly EmailSettings emailSettings;
 
-        private async Task<bool> SendViaSendGridDynamicTemplate(string emailTemplateId,
-            Dictionary<string, string> emailAttributes)
+        public SendEmailWorker(EmailSettings emailSettings, ILogger logger)
         {
-            var stopWatch = Stopwatch.StartNew();
-            bool success = false;
-            try
-            {
-                var from = new EmailAddress(emailAttributes["FromEmail"], emailAttributes["FromUserName"]);
-                var to = new EmailAddress(emailAttributes["ToEmail"], emailAttributes["ToUserName"]);
-                var msg = MailHelper.CreateSingleTemplateEmail(from, to, emailTemplateId, emailAttributes);
-                success = await SendViaSendGrid(msg);
-                return success;
-            }
-            finally
-            {
-                stopWatch.Stop();
-                EmailSendingHistogram.Labels(emailAttributes["EmailType"], "sendgrid", success.ToString())
-                    .Observe(stopWatch.Elapsed.TotalSeconds);
-            }
+            this.emailSettings = emailSettings;
+            this.logger = logger;
         }
 
-        private async Task<bool> SendViaSendGrid(SendGridMessage msg)
+        public abstract Task<bool> SendTemplate(EmailConstants.EmailTypes emailType,
+            Dictionary<string, string> emailAttributes);
+
+    }
+
+    public class EmailLogger : SendEmailWorker
+    {
+        public EmailLogger(EmailSettings emailSettings, ILogger logger) : base(emailSettings, logger)
         {
-            var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
-            var response = await client.SendEmailAsync(msg);
-
-            if (response.StatusCode < HttpStatusCode.OK || response.StatusCode >= HttpStatusCode.Ambiguous)
-            {
-                logger.LogError("Email send failed: {StatusCode} {Headers} {Body}", response.StatusCode,
-                    response.Headers, response.Body.ReadAsStringAsync().Result);
-                return false;
-            }
-            else
-            {
-                logger.LogDebug("Email send succeeded: {StatusCode} {Headers} {Body}", response.StatusCode,
-                    response.Headers, response.Body.ReadAsStringAsync().Result);
-                return true;
-            }
         }
-        
-        private void LogEmailDynamicTemplate(string emailTemplateId, Dictionary<string, string> emailAttributes)
+
+        public override async Task<bool> SendTemplate(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
         {
-            logger.LogWarning("Debug Email Logging {EmailTemplateId}, {Attributes}",
-                emailTemplateId, string.Join(" ", emailAttributes));
+            logger.LogWarning("Debug Email Logging {EmailType}, {Attributes}",
+                emailType, string.Join(" ", emailAttributes));
+            return true;
         }
-
     }
 }

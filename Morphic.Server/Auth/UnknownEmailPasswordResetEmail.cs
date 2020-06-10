@@ -38,8 +38,7 @@ namespace Morphic.Server.Auth
     {
         public UnknownEmailPasswordResetEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
-            EmailType = "PasswordResetNoUser";
-            EmailTemplateId = "d-ea0b8cbcb7524f58a385b7dc02cde30a";
+            EmailType = EmailConstants.EmailTypes.PasswordResetUnknownEmail;
         }
 
         [AutomaticRetry(Attempts = 20)]
@@ -56,7 +55,7 @@ namespace Morphic.Server.Auth
             var user = new User();
             user.Email.PlainText = destinationEmail;
             FillAttributes(user, null, clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailTemplateId, Attributes);
+            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailType, Attributes);
         }
     }
 

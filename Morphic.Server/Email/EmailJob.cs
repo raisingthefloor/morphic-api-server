@@ -78,8 +78,7 @@ namespace Morphic.Server.Email
             Attributes = new Dictionary<string, string>();
         }
 
-        protected string EmailTemplateId = "";
-        protected string EmailType = "";
+        protected EmailConstants.EmailTypes EmailType = EmailConstants.EmailTypes.None;
 
         /// <summary>
         /// Caller is expected to make sure user.Email.Plaintext is not null.
@@ -91,7 +90,7 @@ namespace Morphic.Server.Email
         /// <returns></returns>
         protected void FillAttributes(User user, string? link, string? clientIp)
         {
-            Attributes.Add("EmailType", EmailType);
+            Attributes.Add("EmailType", EmailType.ToString());
             Attributes.Add("ToUserName", user.FullnameOrEmail());
             Attributes.Add("ToEmail", user.Email.PlainText!);
             Attributes.Add("FromUserName", EmailSettings.EmailFromFullname);
@@ -105,6 +104,18 @@ namespace Morphic.Server.Email
     {
         public EmailJobException(string error) : base(error)
         {
+        }
+    }
+
+    public static class EmailConstants
+    {
+        public enum EmailTypes
+        {
+            None = 0,
+            WelcomeEmailValidation = 1,
+            PasswordReset = 2,
+            PasswordResetEmailNotValidated = 3,
+            PasswordResetUnknownEmail = 4
         }
     }
 }
