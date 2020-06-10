@@ -83,7 +83,7 @@ stages:
             displayName: Publish
             inputs:
               command: 'publish'
-              outputDir: MorphicServer
+              outputDir: Morphic.Server
   - stage: docker
     jobs:
       - job: build_and_publish_image
