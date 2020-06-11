@@ -21,7 +21,6 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -85,9 +84,16 @@ namespace Morphic.Server.Auth
             }
         }
         
-        /// <summary>Fetch the user</summary>
+        /// <summary>Mark the email verified</summary>
         [Method]
         public async Task Get()
+        {
+            // backwards compatibility for a release or two.
+            await Post();
+        }
+
+        [Method]
+        public async Task Post()
         {
             user.EmailVerified = true;
             await Save(user);
