@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System.Threading.Tasks;
+using Morphic.Server.Auth;
 
 namespace Morphic.Server.Tests
 {

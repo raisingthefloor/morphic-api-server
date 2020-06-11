@@ -40,6 +40,7 @@ using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
 using Morphic.Security;
+using Morphic.Server.Auth;
 
 namespace Morphic.Server
 {
