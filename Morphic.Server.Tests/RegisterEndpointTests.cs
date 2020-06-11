@@ -270,7 +270,7 @@ namespace Morphic.Server.Tests
         }
 
         // Disabled until we re-enable the endpoint
-        // [Fact]
+        [Fact (Skip = "We're not using the Key endpoints today")]
         public async Task TestRegisterKey()
         {
             // GET, not supported

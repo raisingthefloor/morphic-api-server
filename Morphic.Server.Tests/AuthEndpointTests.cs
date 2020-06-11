@@ -132,7 +132,7 @@ namespace Morphic.Server.Tests
         }
 
         // Disabled until we re-enabled the endpoint
-        // [Fact]
+        [Fact (Skip = "We're not using the Key endpoints today")]
         public async Task TestKey()
         {
             var request = new HttpRequestMessage(HttpMethod.Post, "/v1/register/key");
