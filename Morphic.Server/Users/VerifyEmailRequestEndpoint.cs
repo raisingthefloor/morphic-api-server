@@ -32,6 +32,10 @@ namespace Morphic.Server.Users
     using Http;
     using Auth;
 
+    /// <summary>
+    /// Endpoint used to request a new welcome/email validation email, in case the user
+    /// somehow didn't get the one from the registration.
+    /// </summary>
     [Path("/v1/users/{userId}/verify_email")]
     public class VerifyEmailRequestEndpoint : Endpoint
     {
@@ -47,8 +51,7 @@ namespace Morphic.Server.Users
         }
 
         /// <summary>
-        /// The userid to use, populated from the request URL. Unused, since we get it from the token,
-        /// but it makes for a more coherent API.
+        /// The userid to use, populated from the request URL.
         /// </summary>
         [Parameter]
         public string UserId = "";
