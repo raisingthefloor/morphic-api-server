@@ -40,7 +40,6 @@ using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
 using Morphic.Security;
-using Morphic.Server.Auth;
 
 namespace Morphic.Server
 {
@@ -48,7 +47,8 @@ namespace Morphic.Server
     using Db;
     using Email;
     using Http;
-
+    using Auth;
+    
     public class Startup
     {
         public Startup(IConfiguration configuration)
