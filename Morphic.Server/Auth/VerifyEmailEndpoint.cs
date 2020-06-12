@@ -34,9 +34,9 @@ namespace Morphic.Server.Auth
     using Users;
 
     [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
-    public class ValidateEmailEndpoint : Endpoint
+    public class VerifyEmailEndpoint : Endpoint
     {
-        public ValidateEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<ValidateEmailEndpoint> logger): base(contextAccessor, logger)
+        public VerifyEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<VerifyEmailEndpoint> logger): base(contextAccessor, logger)
         {
             AddAllowedOrigin(settings.FrontEndServerUri);
         }

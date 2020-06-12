@@ -28,6 +28,8 @@ namespace Morphic.Server.Tests
 {
     public class MockRecaptcha : IRecaptcha
     {
+        public static string GoodResponseString = "goodResponse";
+        
         public string Key
         {
             get
@@ -38,7 +40,8 @@ namespace Morphic.Server.Tests
         
         public Task<bool> ReCaptchaPassed(string action, string gRecaptchaResponse)
         {
-            return Task.FromResult(true);
+            // if GoodResponseString, return true. Else false.
+            return Task.FromResult(gRecaptchaResponse == GoodResponseString);
         }
     }
 }

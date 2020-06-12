@@ -34,7 +34,7 @@ namespace Morphic.Server.Tests
     using Users;
     using Auth;
 
-    public class ValidateEmailEndpointTests : EndpointRequestTests
+    public class VerifyEmailEndpointTests : EndpointRequestTests
     {
 
         [Fact]
