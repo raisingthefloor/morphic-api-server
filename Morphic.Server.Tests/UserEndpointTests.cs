@@ -93,6 +93,7 @@ namespace Morphic.Server.Tests
             Assert.True(element.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("User", property.GetString());
+            Assert.False(element.TryGetProperty("email", out property));
         }
 
         [Fact]

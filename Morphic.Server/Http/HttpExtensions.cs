@@ -31,6 +31,7 @@ using System.Net;
 using System.Text.Encodings.Web;
 using Serilog;
 using Morphic.Json;
+using Morphic.Security;
 using System.Linq;
 
 namespace Morphic.Server.Http
@@ -49,6 +50,9 @@ namespace Morphic.Server.Http
                 {
                     Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
                 };
+                options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
+                options.Converters.Add(new EncryptedString.JsonConverter());
+                options.Converters.Add(new SearchableEncryptedString.JsonConverter());
                 await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), options, cancellationToken);
             }
             await response.CompleteAsync();
@@ -66,6 +70,7 @@ namespace Morphic.Server.Http
 
     public static class HttpRequestExtensions
     {
+
         /// <summary>Deserialize the request JSON body into an object</summary>
         public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
         {
@@ -75,7 +80,9 @@ namespace Morphic.Server.Http
                 {
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new InferredTypeConverter());
-                    options.Converters.Add(new ModelConverterFactory("Morphic.Server"));
+                    options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
+                    options.Converters.Add(new EncryptedString.JsonConverter());
+                    options.Converters.Add(new SearchableEncryptedString.JsonConverter());
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {

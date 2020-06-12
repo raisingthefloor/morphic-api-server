@@ -37,12 +37,19 @@ namespace Morphic.Json
     public class ModelConverterFactory: JsonConverterFactory
     {
 
-        public ModelConverterFactory(string namespaceName)
+        public ModelConverterFactory(string namespaceName): this(namespaceName, new HashSet<Type>())
+        {
+        }
+
+        public ModelConverterFactory(string namespaceName, HashSet<Type> defaultIgnoredTypes)
         {
             NamespaceName = namespaceName;
+            DefaultIgnoredTypes = defaultIgnoredTypes;
         }
 
         public string NamespaceName { get; private set; }
+
+        public HashSet<Type> DefaultIgnoredTypes { get; private set; }
 
         /// <summary>Returns <code>true</code> for anything in the <code>MorphicServer</code> namespace
         public override bool CanConvert (Type typeToConvert)
@@ -53,13 +60,20 @@ namespace Morphic.Json
         public override JsonConverter CreateConverter (Type typeToConvert, JsonSerializerOptions options)
         {
             var converterGenericType = typeof(ModelConverter<>).MakeGenericType(new Type[] { typeToConvert });
-            return (JsonConverter)Activator.CreateInstance(converterGenericType)!;
+            return (JsonConverter)Activator.CreateInstance(converterGenericType, new object[]{ DefaultIgnoredTypes })!;
         }
 
         /// <summary>
         public class ModelConverter<T>: JsonConverter<T>
         {
-            
+
+            public ModelConverter(HashSet<Type> defaultIgnoredTypes)
+            {
+                this.defaultIgnoredTypes = defaultIgnoredTypes;
+            }
+
+            private readonly HashSet<Type> defaultIgnoredTypes;
+
             public override T Read (ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
             {
                 if (reader.TokenType != JsonTokenType.StartObject)
@@ -182,9 +196,63 @@ namespace Morphic.Json
                 }
             }
 
-            public override void Write (Utf8JsonWriter writer, T value, JsonSerializerOptions options)
+            public override void Write (Utf8JsonWriter writer, T instance, JsonSerializerOptions options)
             {
-                throw new NotImplementedException();
+
+                writer.WriteStartObject();
+
+                var typeToConvert = typeof(T);
+                // Get map of json property names to reflected PropertyInfo objects
+                // - use the [JsonPropertyName] attribute if present
+                // - use the [JsonExtensionData] attribute if present to place unmatched names
+                // - respect the [JsonIgnore] and [JsonInclude] attributes
+                foreach (var propertyInfo in typeToConvert.GetProperties(BindingFlags.Instance | BindingFlags.Public))
+                {
+                    if (propertyInfo.GetCustomAttribute<JsonExtensionDataAttribute>() != null)
+                    {
+                        if (propertyInfo.GetValue(instance) is Dictionary<string, object> unknowns)
+                        {
+                            foreach (var pair in unknowns)
+                            {
+                                writer.WritePropertyName(pair.Key);
+                                if (pair.Value == null)
+                                {
+                                    writer.WriteNullValue();
+                                }
+                                else
+                                {
+                                    JsonSerializer.Serialize(writer, pair.Value, pair.Value.GetType(), options);
+                                }
+                            }
+                        }
+                    }else{
+                        var name = propertyInfo.Name;
+                        object? value = null;
+                        if (propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>() is JsonPropertyNameAttribute attr)
+                        {
+                            name = attr.Name;
+                        }
+                        if (propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>() == null)
+                        {
+                            if (!defaultIgnoredTypes.Contains(propertyInfo.PropertyType) || propertyInfo.GetCustomAttribute<JsonIncludeAttribute>() != null)
+                            {
+                                writer.WritePropertyName(name);
+                                value = propertyInfo.GetValue(instance);
+                                if (value == null)
+                                {
+                                    writer.WriteNullValue();
+                                }
+                                else
+                                {
+                                    JsonSerializer.Serialize(writer, value, value.GetType(), options);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                writer.WriteEndObject();
+
             }
 
         }
