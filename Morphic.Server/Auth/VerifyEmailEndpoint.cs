@@ -98,7 +98,6 @@ namespace Morphic.Server.Auth
             user.EmailVerified = true;
             await Save(user);
             await OneTimeToken.Invalidate(Context.GetDatabase());
-            // TODO Need to respond with a nicer webpage than ""
             await Respond(new SuccessResponse("email_verified"));
         }
 
