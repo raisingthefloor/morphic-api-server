@@ -39,12 +39,13 @@ namespace Morphic.Server.Tests
     public class ChangePasswordEndpointTests : EndpointRequestTests
     {
         [Fact]
-        public async Task TestGet()
+        public async Task TestPost()
         {
             var userInfo1 = await CreateTestUser();
             var userInfo2 = await CreateTestUser();
-            
-            // GET, Unknown user
+            JobClient.Job = null;
+
+            // Post, Unknown user
             var request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}12334/password");
             var content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
@@ -54,7 +55,7 @@ namespace Morphic.Server.Tests
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
-            // GET, Wrong user
+            // Post, Wrong user
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo2.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
@@ -64,7 +65,7 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
 
-            // GET, right user user, missing fields
+            // Post, right user user, missing fields
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("new_password", userInfo1.Password+"12345");
@@ -104,7 +105,8 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
 
-            // GET, Success
+            // POST, Success
+            Assert.Null(JobClient.Job);
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
@@ -113,8 +115,11 @@ namespace Morphic.Server.Tests
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            
-            // GET, Change again with delete-tokens
+            Assert.NotNull(JobClient.Job);
+            Assert.Equal("Morphic.Server.Auth.ChangePasswordEmail", JobClient.Job.Type.FullName);
+
+            // Post, Change again with delete-tokens
+            JobClient.Job = null;
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password+"12345");
@@ -124,8 +129,11 @@ namespace Morphic.Server.Tests
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.NotNull(JobClient.Job);
+            Assert.Equal("Morphic.Server.Auth.ChangePasswordEmail", JobClient.Job.Type.FullName);
 
-            // GET, token was deleted. Get 401
+            // Post, token was deleted. Get 401
+            JobClient.Job = null;
             request = new HttpRequestMessage(HttpMethod.Post, $"v1/users/{userInfo1.Id}/password");
             content = new Dictionary<string, object>();
             content.Add("existing_password", userInfo1.Password);
@@ -135,6 +143,7 @@ namespace Morphic.Server.Tests
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Null(JobClient.Job);
         }
 
         [Fact]
