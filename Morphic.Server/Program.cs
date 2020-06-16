@@ -23,11 +23,9 @@
 
 using System;
 using System.IO;
-using System.Reflection;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Serilog;
 using Serilog.Formatting.Compact;
 
@@ -77,6 +75,7 @@ namespace Morphic.Server
         {
             serilog.ReadFrom.Configuration(context.Configuration)
                 .Enrich.FromLogContext()
+                .Enrich.With(new SerilogMetrics())
                 .WriteTo.Console(new CompactJsonFormatter());
         }
 
