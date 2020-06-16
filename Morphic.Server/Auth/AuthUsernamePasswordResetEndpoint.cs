@@ -28,13 +28,13 @@ using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
-using Morphic.Security;
 
 namespace Morphic.Server.Auth
 {
 
     using Http;
     using Users;
+    using Security;
 
     /// <summary>
     /// API To reset a user's username-auth credential password. hence: AuthUsernamePasswordResetEndpoint
@@ -45,9 +45,15 @@ namespace Morphic.Server.Auth
     [Path("/v1/auth/username/password_reset/{oneTimeToken}")]
     public class AuthUsernamePasswordResetEndpoint : Endpoint
     {
-        public AuthUsernamePasswordResetEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
+        private IBackgroundJobClient jobClient;
+
+        public AuthUsernamePasswordResetEndpoint(
+            IHttpContextAccessor contextAccessor,
+            ILogger<AuthUsernameEndpoint> logger,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
             AddAllowedOrigin(settings.FrontEndServerUri);
+            this.jobClient = jobClient;
         }
 
         /// <summary>The lookup id to use, populated from the request URL</summary>
@@ -103,6 +109,10 @@ namespace Morphic.Server.Auth
             {
                 await Delete<AuthToken>(token => token.UserId == usernameCredentials.UserId);
             }
+            jobClient.Enqueue<ChangePasswordEmail>(x => x.SendEmail(
+                OneTimeToken.UserId,
+                Request.ClientIp()
+            ));
         }
         
         public class PasswordResetRequest

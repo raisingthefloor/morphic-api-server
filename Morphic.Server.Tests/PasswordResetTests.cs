@@ -128,6 +128,7 @@ namespace Morphic.Server.Tests
         public async Task ResetPasswordRequestWithoutUser()
         {
             var path = "/v1/auth/username/password_reset/request";
+            JobClient.Job = null;
 
             // Success
             var request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -147,7 +148,8 @@ namespace Morphic.Server.Tests
             var token = new OneTimeToken(userInfo1.Id);
             await Database.Save(token);
             var pathPrefix = "/v1/auth/username/password_reset";
-            
+            JobClient.Job = null;
+
             // Fail: missing password
             var request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
             var content = new Dictionary<string, object>();
@@ -171,6 +173,7 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"new_password"});
+            Assert.Null(JobClient.Job);
 
             // Success
             request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
@@ -179,6 +182,8 @@ namespace Morphic.Server.Tests
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.NotNull(JobClient.Job);
+            Assert.Equal("Morphic.Server.Auth.ChangePasswordEmail", JobClient.Job.Type.FullName);
         }
     }
 }
