@@ -25,6 +25,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 
@@ -36,8 +37,14 @@ namespace Morphic.Server.Auth
     [Path("/v1/users/{userid}/password")]
     public class ChangePasswordEndpoint : Endpoint
     {
-        public ChangePasswordEndpoint(IHttpContextAccessor contextAccessor, ILogger<ChangePasswordEndpoint> logger) : base(contextAccessor, logger)
+        private IBackgroundJobClient jobClient;
+        
+        public ChangePasswordEndpoint(
+            IHttpContextAccessor contextAccessor,
+            ILogger<ChangePasswordEndpoint> logger,
+            IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
+            this.jobClient = jobClient;
         }
 
         /// <summary>The user id to use, populated from the request URL</summary>
@@ -75,6 +82,11 @@ namespace Morphic.Server.Auth
                 await Delete<AuthToken>(token => token.UserId == user.Id);
             }
             await Save(usernameCredentials);
+            jobClient.Enqueue<ChangePasswordEmail>(x => x.SendEmail(
+                user.Id,
+                Request.ClientIp()
+            ));
+
         }
 
         /// <summary>Model for change password requests</summary>
