@@ -47,7 +47,8 @@ namespace Morphic.Server
     using Db;
     using Email;
     using Http;
-
+    using Auth;
+    
     public class Startup
     {
         public Startup(IConfiguration configuration)

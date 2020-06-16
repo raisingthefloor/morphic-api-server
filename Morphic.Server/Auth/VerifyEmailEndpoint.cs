@@ -21,7 +21,6 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -35,9 +34,9 @@ namespace Morphic.Server.Auth
     using Users;
 
     [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
-    public class ValidateEmailEndpoint : Endpoint
+    public class VerifyEmailEndpoint : Endpoint
     {
-        public ValidateEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<ValidateEmailEndpoint> logger): base(contextAccessor, logger)
+        public VerifyEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<VerifyEmailEndpoint> logger): base(contextAccessor, logger)
         {
             AddAllowedOrigin(settings.FrontEndServerUri);
         }
@@ -85,14 +84,20 @@ namespace Morphic.Server.Auth
             }
         }
         
-        /// <summary>Fetch the user</summary>
+        /// <summary>Mark the email verified</summary>
         [Method]
         public async Task Get()
+        {
+            // backwards compatibility for a release or two.
+            await Post();
+        }
+
+        [Method]
+        public async Task Post()
         {
             user.EmailVerified = true;
             await Save(user);
             await OneTimeToken.Invalidate(Context.GetDatabase());
-            // TODO Need to respond with a nicer webpage than ""
             await Respond(new SuccessResponse("email_verified"));
         }
 

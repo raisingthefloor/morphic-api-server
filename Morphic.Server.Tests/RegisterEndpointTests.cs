@@ -37,6 +37,8 @@ namespace Morphic.Server.Tests
         [Fact]
         public async Task TestRegisterUsername()
         {
+            JobClient.Job = null;
+
             // GET, not supported
             var path = "/v1/register/username";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
@@ -165,6 +167,8 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "malformed_email");
 
+            Assert.Null(JobClient.Job);
+
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
             content = new Dictionary<string, object>();
@@ -196,7 +200,9 @@ namespace Morphic.Server.Tests
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
             Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
-
+            Assert.NotNull(JobClient.Job);
+            Assert.Equal("Morphic.Server.Auth.EmailVerificationEmail", JobClient.Job.Type.FullName);
+            
             // POST, success with first/last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
             content = new Dictionary<string, object>();
@@ -270,7 +276,7 @@ namespace Morphic.Server.Tests
         }
 
         // Disabled until we re-enable the endpoint
-        // [Fact]
+        [Fact (Skip = "We're not using the Key endpoints today")]
         public async Task TestRegisterKey()
         {
             // GET, not supported

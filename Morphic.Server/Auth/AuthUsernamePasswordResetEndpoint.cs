@@ -228,7 +228,6 @@ namespace Morphic.Server.Auth
             [JsonPropertyName("email")]
             public string Email { get; set; } = null!;
             
-            // TODO Not sure if we can use underscores here. Depends on whether the caller reformats the data.
             [JsonPropertyName("g_recaptcha_response")]
             public string GRecaptchaResponse { get; set; } = null!;
         }

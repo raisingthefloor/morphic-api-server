@@ -30,6 +30,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Logging;
 using Morphic.Security;
+using Morphic.Server.Auth;
 using Serilog;
 
 namespace Morphic.Server.Tests

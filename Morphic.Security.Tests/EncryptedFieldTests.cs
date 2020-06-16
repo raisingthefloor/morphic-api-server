@@ -31,7 +31,8 @@ namespace Morphic.Security.Tests
     {
         //Create keys with:
         // $ openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key
-
+        
+        // TODO because of the singleton nature of KeyStorage.Shared, all the tests have to be in this file/class. Need to refactor/rethink KeyStorage.Shared
         public EncryptedFieldsTests()
         {
             var settings = new KeyStorageSettings();
@@ -41,7 +42,7 @@ namespace Morphic.Security.Tests
 
         public void Dispose()
         {
-            KeyStorage.Shared = null;
+            KeyStorage.Shared = null!;
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_1", null);
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_ROLLOVER_2", null);
@@ -108,7 +109,7 @@ namespace Morphic.Security.Tests
         }
         
         [Fact]
-        public void TestEncryption()
+        public void TestEncryptedField()
         {
             KeyStorage.Shared.ClearKeys();
             Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", null);
@@ -192,6 +193,69 @@ namespace Morphic.Security.Tests
 
             decryptedText = encryptedFieldRoll2.Decrypt();
             Assert.Equal(plainText_2, decryptedText);
+        }
+        
+                [Fact]
+        public void TestHashedData()
+        {
+            // set the Salt, but it won't be used in this test. Make sure it doesn't.
+            var testString = "thequickbrownfoxjumpedoverthelazydog";
+            var hash = new HashedData(testString);
+            var hashDbString = hash.ToCombinedString();
+            Assert.NotNull(hashDbString);
+            Assert.DoesNotContain("SALT1", hashDbString);
+            Assert.Equal(4, hashDbString.Split(":").Length);
+            Assert.True(hash.Equals(testString));
+            Assert.False(hash.Equals(testString+"123"));
+            
+            Assert.Equal(hash.ToCombinedString(),
+                HashedData.FromCombinedString(hash.ToCombinedString()).ToCombinedString());
+
+        }
+
+        [Fact]
+        public void TestSearchableHashedString()
+        {
+            // set the Salt. It will be used in this test.
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
+            var saltAsB64 = "Nh5mXvN4qwYDGAZGm3h5vQ==";
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "ENCKEY:CE2BED7EF7A3871AD87EE80116D360A9FA368B6A7790E9D0D4D314ED83B9AB5E");
+            var testString = "thequickbrownfoxjumpedoverthelazydog";
+            var searchHash = new SearchableHashedString(testString);
+            var hashDbString = searchHash.ToCombinedString();
+            Assert.NotNull(hashDbString);
+            Assert.Contains(saltAsB64, hashDbString);
+
+            var testString2 = testString + testString;
+            var searchHash2 = new SearchableHashedString(testString2);
+            var hashDbString2 = searchHash2.ToCombinedString();
+            Assert.NotNull(hashDbString2);
+            Assert.False(searchHash.Equals(testString2));
+            Assert.True(searchHash2.Equals(testString2));
+
+            Assert.Equal(searchHash2.ToCombinedString(),
+                SearchableHashedString.FromCombinedString(searchHash2.ToCombinedString()).ToCombinedString());
+        }
+
+        [Fact]
+        public void TestEncryptedString()
+        {
+            Assert.NotNull(KeyStorage.Shared);
+
+            KeyStorage.Shared.ClearKeys();
+            Environment.SetEnvironmentVariable("MORPHIC_ENC_KEY_PRIMARY", "TEST_KEY:8C532F0C2CCE7AF471111285340B6353FCB327DF9AB9F0121731F403E3FFDC7C");
+            Environment.SetEnvironmentVariable("MORPHIC_HASH_SALT_PRIMARY", "SALT1:361e665ef378ab06031806469b7879bd");
+            Assert.NotNull(KeyStorage.Shared);
+
+            string plainText = "thequickbrownfoxjumpedoverthelazydog";
+            Assert.NotNull(KeyStorage.Shared);
+            var encrypted = new SearchableEncryptedString(plainText);
+            Assert.NotNull(KeyStorage.Shared);
+            Assert.NotNull(encrypted.Hash);
+            Assert.NotNull(KeyStorage.Shared);
+            Assert.NotNull(encrypted.Encrypted);
+            Assert.NotNull(KeyStorage.Shared);
+            Assert.Equal(plainText, encrypted.PlainText);
         }
     }
 }
