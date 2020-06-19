@@ -84,15 +84,16 @@ These are sensitive and need to be protected/encrypted in any deployment repo:
 * MORPHIC_ENC_KEY_PRIMARY
   * Format: `<name>:<value>`
      * name: any descriptive name. MUST NOT CHANGE AFTERWARDS (saved with the encrypted values in the DB)
+     * recommendation: use the date-string as the name: 20200601
      * Generate value: `openssl enc -aes-256-cbc -k <somepassphrase> -P -md sha1 | grep key`
 * MORPHIC_HASH_SALT_PRIMARY
   * Format: `<name>:<value>`
     * name: any descriptive name. MUST NOT CHANGE AFTERWARDS (saved with the encrypted values in the DB)
+    * recommendation: use the date-string as the name: 20200601
     * Generate value: `openssl rand -hex 16`
 * DATABASESETTINGS__CONNECTIONSTRING
   * A MongoDB connectionstring. Example: `mongodb://mongo:27017/Morphic` (but usually longer)
-* DATABASESETTINGS__DATABASENAME
-  * If the database name is not part of the ConnectionString, add it here. Example: `Morphic`
+  * If the connection string does not containt the database name, must also provide `DATABASESETTINGS__DATABASENAME`
 * EMAILSETTINGS__SENDGRIDSETTINGS__APIKEY
   * Sendgrid API KEY. Get it from Sendgrid.
 * HANGFIRESETTINGS__CONNECTIONSTRING
@@ -103,6 +104,8 @@ These are sensitive and need to be protected/encrypted in any deployment repo:
 
 ### Non-sensitive
 
+* DATABASESETTINGS__DATABASENAME
+  * If the database name is not part of the ConnectionString, add it here. Example: `Morphic`
 * SERILOG__MINIMUMLEVEL__DEFAULT
   * Logging level
 * ASPNETCORE_ENVIRONMENT
@@ -122,6 +125,7 @@ These are sensitive and need to be protected/encrypted in any deployment repo:
 
 #### Optional
 
-* MORPHIC_ENC_KEY_ROLLOVER_* for any rollover keys.
-* DOTNET_DISABLE_EXTENDED_METRICS to disable extended metrics, 
-   if they cause slowness in the server.
+* MORPHIC_ENC_KEY_ROLLOVER_* 
+  * Rollover keys. **Must be encrypted!**
+* DOTNET_DISABLE_EXTENDED_METRICS
+  * Disable extended metrics, if they cause slowness in the server.
