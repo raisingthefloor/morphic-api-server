@@ -115,7 +115,8 @@ namespace Morphic.Server.Email
             WelcomeEmailValidation = 1,
             PasswordReset = 2,
             PasswordResetEmailNotValidated = 3,
-            PasswordResetUnknownEmail = 4
+            PasswordResetUnknownEmail = 4,
+            ChangePasswordEmail = 5
         }
     }
 }

@@ -26,6 +26,7 @@ namespace Morphic.Server.Email
         public string PasswordResetId { get; set; } = "d-8dbb4d6c44cb423f8bef356b832246bd";
         public string PasswordResetEmailNotValidatedId { get; set; } = "d-aecd70a619eb49deadbb74451797dd04";
         public string PasswordResetUnknownEmailId { get; set; } = "d-ea0b8cbcb7524f58a385b7dc02cde30a";
+        public string ChangePasswordEmailId { get; set; } = "d-60a9ceb7fe084988939dc8f114095a33";
     }
 
     public class Sendgrid : SendEmailWorker
@@ -55,6 +56,9 @@ namespace Morphic.Server.Email
                     break;
                 case EmailConstants.EmailTypes.PasswordResetEmailNotValidated:
                     emailTemplateId = emailSettings.SendGridSettings.PasswordResetEmailNotValidatedId;
+                    break;
+                case EmailConstants.EmailTypes.ChangePasswordEmail:
+                    emailTemplateId = emailSettings.SendGridSettings.ChangePasswordEmailId;
                     break;
                 case EmailConstants.EmailTypes.None:
                     throw new SendgridException("EmailType None");

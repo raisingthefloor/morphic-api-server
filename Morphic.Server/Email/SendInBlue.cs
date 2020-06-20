@@ -15,6 +15,7 @@ namespace Morphic.Server.Email
         public string PasswordResetId { get; set; } = "";
         public string PasswordResetEmailNotValidatedId { get; set; } = "";
         public string PasswordResetUnknownEmailId { get; set; } = "";
+        public string ChangePasswordEmailId { get; set; } = "";
     }
 
     public class SendInBlue : SendEmailWorker
@@ -44,6 +45,9 @@ namespace Morphic.Server.Email
                     break;
                 case EmailConstants.EmailTypes.PasswordResetEmailNotValidated:
                     emailTemplateId = emailSettings.SendInBlueSettings.PasswordResetEmailNotValidatedId;
+                    break;
+                case EmailConstants.EmailTypes.ChangePasswordEmail:
+                    emailTemplateId = emailSettings.SendInBlueSettings.ChangePasswordEmailId;
                     break;
                 case EmailConstants.EmailTypes.None:
                     throw new SendInBlueException("EmailType None");
