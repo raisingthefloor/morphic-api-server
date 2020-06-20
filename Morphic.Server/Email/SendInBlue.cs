@@ -94,12 +94,15 @@ namespace Morphic.Server.Email
             }
             catch (Exception e)
             {
-                throw new SendInBlueException("Exception when calling SMTPApi.SendTransacEmail: " + e.Message );
+                throw new SendInBlueException("Exception when calling SMTPApi.SendTransacEmailAsync: ", e);
             }
         }
         
         class SendInBlueException : MorphicServerException
         {
+            public SendInBlueException(string error, Exception exception) : base(error, exception)
+            {
+            }
             public SendInBlueException(string error) : base(error)
             {
             }

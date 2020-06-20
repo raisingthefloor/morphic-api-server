@@ -27,6 +27,10 @@ namespace Morphic.Server
 {
     public class MorphicServerException : Exception
     {
+        public MorphicServerException(string error, Exception exception) : base(error, exception)
+        {
+        }
+
         public MorphicServerException(string error) : base(error)
         {
         }
