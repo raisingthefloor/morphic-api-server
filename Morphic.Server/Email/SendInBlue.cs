@@ -12,11 +12,11 @@ namespace Morphic.Server.Email
     {
         public string ApiKey { get; set; } = "";
         
-        public string WelcomeEmailValidationId { get; set; } = "1";
-        public string PasswordResetId { get; set; } = "5";
-        public string PasswordResetEmailNotValidatedId { get; set; } = "3";
-        public string PasswordResetUnknownEmailId { get; set; } = "4";
-        public string ChangePasswordEmailId { get; set; } = "6";
+        public string WelcomeEmailValidationId { get; set; } = "";
+        public string PasswordResetId { get; set; } = "";
+        public string PasswordResetEmailNotValidatedId { get; set; } = "";
+        public string PasswordResetUnknownEmailId { get; set; } = "";
+        public string ChangePasswordEmailId { get; set; } = "";
     }
 
     public class SendInBlue : SendEmailWorker

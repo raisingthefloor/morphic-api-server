@@ -22,11 +22,11 @@ namespace Morphic.Server.Email
         /// </summary>
         public string ApiKey { get; set; } = "";
 
-        public string WelcomeEmailValidationId { get; set; } = "d-1d54234ca083487c8a14e3fba27c9e6a";
-        public string PasswordResetId { get; set; } = "d-8dbb4d6c44cb423f8bef356b832246bd";
-        public string PasswordResetEmailNotValidatedId { get; set; } = "d-aecd70a619eb49deadbb74451797dd04";
-        public string PasswordResetUnknownEmailId { get; set; } = "d-ea0b8cbcb7524f58a385b7dc02cde30a";
-        public string ChangePasswordEmailId { get; set; } = "d-60a9ceb7fe084988939dc8f114095a33";
+        public string WelcomeEmailValidationId { get; set; } = "";
+        public string PasswordResetId { get; set; } = "";
+        public string PasswordResetEmailNotValidatedId { get; set; } = "";
+        public string PasswordResetUnknownEmailId { get; set; } = "";
+        public string ChangePasswordEmailId { get; set; } = "";
     }
 
     public class Sendgrid : SendEmailWorker
