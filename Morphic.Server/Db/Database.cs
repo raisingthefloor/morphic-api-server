@@ -297,7 +297,7 @@ namespace Morphic.Server.Db
             {
                 if (e.CodeName != "NamespaceExists")
                     throw;
-                logger.LogDebug("Collection {Database}.{Collection} existed already (no error)", morphic.DatabaseNamespace,collName);
+                logger.LogDebug("Collection {Database}.{Collection} existed already", morphic.DatabaseNamespace,collName);
             }
 
             return morphic.GetCollection<T>(collName);

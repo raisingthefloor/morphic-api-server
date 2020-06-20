@@ -49,6 +49,25 @@ namespace Morphic.Json.Tests
             Assert.Equal("", instance.OtherId);
         }
 
+        [Fact]
+        public void TestSerializePropertiesOnly()
+        {
+            var instance = new PropertiesOnlyModel()
+            {
+                Id = "Hello",
+                OtherId = "World"
+            };
+            var json = JsonSerializer.Serialize<PropertiesOnlyModel>(instance, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Hello", value.GetString());
+            Assert.False(element.TryGetProperty("OtherId", out value));
+        }
+
         class PropertiesOnlyModel
         {
             public string Id { get; set; } = "";
@@ -80,6 +99,25 @@ namespace Morphic.Json.Tests
             {
                 var instance = JsonSerializer.Deserialize<NullRequiredModel>(json, options);
             });
+        }
+
+        [Fact]
+        public void TestSerializeNullRequired()
+        {
+            var instance = new NullRequiredModel()
+            {
+                OtherId = "World"
+            };
+            var json = JsonSerializer.Serialize<NullRequiredModel>(instance, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.Null, value.ValueKind);
+            Assert.True(element.TryGetProperty("OtherId", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("World", value.GetString());
         }
 
         #nullable enable
@@ -158,6 +196,25 @@ namespace Morphic.Json.Tests
             Assert.Null(instance.OtherId);
         }
 
+        [Fact]
+        public void TestSerializeJsonIgnore()
+        {
+            var instance = new JsonIgnoreModel()
+            {
+                Id = "Hello",
+                OtherId = "World"
+            };
+            var json = JsonSerializer.Serialize<JsonIgnoreModel>(instance, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Hello", value.GetString());
+            Assert.False(element.TryGetProperty("OtherId", out value));
+        }
+
         #nullable enable
 
         class JsonIgnoreModel
@@ -196,6 +253,29 @@ namespace Morphic.Json.Tests
 
         }
 
+        [Fact]
+        public void TestSerializeJsonPropertyName()
+        {
+            var instance = new PropertyNameModel()
+            {
+                Id = "Hello",
+                OtherId = "World"
+            };
+            var json = JsonSerializer.Serialize<PropertyNameModel>(instance, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.False(element.TryGetProperty("Id", out value));
+            Assert.False(element.TryGetProperty("OtherId", out value));
+            Assert.True(element.TryGetProperty("identifier", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Hello", value.GetString());
+            Assert.True(element.TryGetProperty("other_id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("World", value.GetString());
+        }
+
         #nullable enable
 
         class PropertyNameModel
@@ -230,6 +310,37 @@ namespace Morphic.Json.Tests
             Assert.Equal("World", element.GetString());
         }
 
+        [Fact]
+        public void TestSerializeJsonExtensionData()
+        {
+            var instance = new JsonExtensionDataModel()
+            {
+                Id = "Hello",
+                Extras = new Dictionary<string, object>(){
+                    {"one", 1},
+                    {"two", "second"},
+                    {"three", null}
+                }
+            };
+            var json = JsonSerializer.Serialize<JsonExtensionDataModel>(instance, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Hello", value.GetString());
+            Assert.False(element.TryGetProperty("Extras", out value));
+            Assert.True(element.TryGetProperty("one", out value));
+            Assert.Equal(JsonValueKind.Number, value.ValueKind);
+            Assert.Equal(1, value.GetInt32());
+            Assert.True(element.TryGetProperty("two", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("second", value.GetString());
+            Assert.True(element.TryGetProperty("three", out value));
+            Assert.Equal(JsonValueKind.Null, value.ValueKind);
+        }
+
         #nullable enable
 
         class JsonExtensionDataModel
@@ -239,6 +350,56 @@ namespace Morphic.Json.Tests
 
             [JsonExtensionData]
             public Dictionary<string, object> Extras { get; set; } = null!;
+        }
+
+        #nullable disable
+
+        [Fact]
+        public void TestDeserializeIgnoredTypes()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new ModelConverterFactory("Morphic.Json.Tests", new HashSet<Type>{ typeof(int) }));
+            var json = @"{""Id"": ""Hello"", ""One"": 11, ""Two"": 12}";
+            var instance = JsonSerializer.Deserialize<JsonIgnoredTypesModel>(json, options);
+            Assert.Equal("Hello", instance.Id);
+            Assert.Equal(11, instance.One);
+            Assert.Equal(12, instance.Two);
+        }
+
+        [Fact]
+        public void TestSerializeIgnoredTypes()
+        {
+            var options = new JsonSerializerOptions();
+            options.Converters.Add(new ModelConverterFactory("Morphic.Json.Tests", new HashSet<Type>{ typeof(int) }));
+            var obj = new JsonIgnoredTypesModel()
+            {
+                Id = "Hello"
+            };
+            var json = JsonSerializer.Serialize<JsonIgnoredTypesModel>(obj, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Hello", value.GetString());
+            Assert.False(element.TryGetProperty("One", out value));
+            Assert.True(element.TryGetProperty("Two", out value));
+            Assert.Equal(JsonValueKind.Number, value.ValueKind);
+            Assert.Equal(2, value.GetInt32());
+        }
+
+        #nullable enable
+
+        class JsonIgnoredTypesModel
+        {
+
+            public string Id { get; set; } = null!;
+
+            public int One { get; set; } = 1;
+
+            [JsonInclude]
+            public int Two { get; set; } = 2;
         }
 
         #nullable disable

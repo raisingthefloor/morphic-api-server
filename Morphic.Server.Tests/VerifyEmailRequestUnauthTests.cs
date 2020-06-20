@@ -27,23 +27,18 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
-using Morphic.Server.Users;
 using Xunit;
 
 namespace Morphic.Server.Tests
 {
-
-    using Auth;
-
-    public class PasswordResetTests : EndpointRequestTests
+    public class VerifyEmailRequestUnauthTests : EndpointRequestTests
     {
-        
         [Fact]
-        public async Task ResetPasswordRequestWithUser()
+        public async Task VerifyEmailRequestUnauth()
         {
             var userInfo1 = await CreateTestUser();
             MorphicSettings.FrontEndServerUrlPrefix = "http://foo:1234";
-            var path = "/v1/auth/username/password_reset/request";
+            var path = "/v1/user/verify_email_request";
             JobClient.Job = null;
 
             // Fail: missing email and recaptcha
@@ -53,7 +48,8 @@ namespace Morphic.Server.Tests
             var response = await Client.SendAsync(request);
             var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"email", "g_recaptcha_response"});
-
+            Assert.Null(JobClient.Job);
+            
             // Fail: missing email
             request = new HttpRequestMessage(HttpMethod.Post, path);
             content = new Dictionary<string, object>();
@@ -62,6 +58,7 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"email"});
+            Assert.Null(JobClient.Job);
 
             // Fail: blank email
             request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -72,6 +69,7 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
             assertMissingRequired(error, new List<string> {"email"});
+            Assert.Null(JobClient.Job);
 
             // Fail: bad email
             request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -81,6 +79,7 @@ namespace Morphic.Server.Tests
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "bad_email_address");
+            Assert.Null(JobClient.Job);
 
             // bad captcha response
             request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -90,12 +89,9 @@ namespace Morphic.Server.Tests
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.BadRequest, "bad_recaptcha");
-            
-            // no emails sent so far!
             Assert.Null(JobClient.Job);
 
             // Success
-            JobClient.Job = null;
             request = new HttpRequestMessage(HttpMethod.Post, path);
             content = new Dictionary<string, object>();
             content.Add("email", userInfo1.Email);
@@ -104,86 +100,7 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Auth.EmailNotVerifiedPasswordResetEmail", JobClient.Job.Type.FullName);
-            
-            // success with verified email
-            var user = await Database.Get<User>(userInfo1.Id);
-            user.EmailVerified = true;
-            await Database.Save(user);
-            
-            // Success
-            JobClient.Job = null;
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            content = new Dictionary<string, object>();
-            content.Add("email", userInfo1.Email);
-            content.Add("g_recaptcha_response", MockRecaptcha.GoodResponseString);
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Auth.PasswordResetEmail", JobClient.Job.Type.FullName);
-        }
-
-        [Fact]
-        public async Task ResetPasswordRequestWithoutUser()
-        {
-            var path = "/v1/auth/username/password_reset/request";
-            JobClient.Job = null;
-
-            // Success
-            var request = new HttpRequestMessage(HttpMethod.Post, path);
-            var content = new Dictionary<string, object>();
-            content.Add("email", "Somerandomemail@example.com");
-            content.Add("g_recaptcha_response", MockRecaptcha.GoodResponseString);
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            var response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.Equal("Morphic.Server.Auth.UnknownEmailPasswordResetEmail", JobClient.Job.Type.FullName);
-        }
-        
-        [Fact]
-        public async Task ResetPassword()
-        {
-            var userInfo1 = await CreateTestUser();
-            var token = new OneTimeToken(userInfo1.Id);
-            await Database.Save(token);
-            var pathPrefix = "/v1/auth/username/password_reset";
-            JobClient.Job = null;
-
-            // Fail: missing password
-            var request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
-            var content = new Dictionary<string, object>();
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            var response = await Client.SendAsync(request);
-            var error = await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            assertMissingRequired(error, new List<string> {"new_password"});
-            
-            // Fail: crappy passwords
-            request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
-            content = new Dictionary<string, object>();
-            content.Add("new_password", "password");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            await assertJsonError(response, HttpStatusCode.BadRequest, "bad_password");
-
-            request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
-            content = new Dictionary<string, object>();
-            content.Add("new_password", "");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            await assertJsonError(response, HttpStatusCode.BadRequest, "missing_required");
-            assertMissingRequired(error, new List<string> {"new_password"});
-            Assert.Null(JobClient.Job);
-
-            // Success
-            request = new HttpRequestMessage(HttpMethod.Post, $"{pathPrefix}/{token.GetUnhashedToken()}");
-            content = new Dictionary<string, object>();
-            content.Add("new_password", "something new");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Auth.ChangePasswordEmail", JobClient.Job.Type.FullName);
+            Assert.Equal("Morphic.Server.Auth.EmailVerificationEmail", JobClient.Job.Type.FullName);
         }
     }
 }

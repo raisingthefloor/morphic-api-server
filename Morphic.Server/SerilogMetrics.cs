@@ -21,27 +21,26 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System.Threading.Tasks;
-using Morphic.Server.Auth;
+using Prometheus;
+using Serilog.Core;
+using Serilog.Events;
 
-namespace Morphic.Server.Tests
+namespace Morphic.Server
 {
-    public class MockRecaptcha : IRecaptcha
+    class SerilogMetrics : ILogEventEnricher
     {
-        public static string GoodResponseString = "goodResponse";
-        
-        public string Key
-        {
-            get
+        private static readonly string counter_metric_name = "logs_log_level_count";
+        private static readonly Counter SerilogLevelCounter = Metrics.CreateCounter(counter_metric_name,
+            "Count of logging levels",
+            new CounterConfiguration
             {
-                return "MockRecaptchaKey";
-            }
-        }
-        
-        public Task<bool> ReCaptchaPassed(string action, string gRecaptchaResponse)
+                LabelNames = new[] {"level"}
+            });
+
+
+        public void Enrich(LogEvent logEvent, ILogEventPropertyFactory propertyFactory)
         {
-            // if GoodResponseString, return true. Else false.
-            return Task.FromResult(gRecaptchaResponse == GoodResponseString);
+            SerilogLevelCounter.Labels(logEvent.Level.ToString()).Inc();
         }
     }
 }

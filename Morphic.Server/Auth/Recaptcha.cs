@@ -31,9 +31,8 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.Logging;
-using Serilog;
 
-namespace Morphic.Server
+namespace Morphic.Server.Auth
 {
     public interface IRecaptcha
     {
@@ -95,7 +94,7 @@ namespace Morphic.Server
                 var result = JsonSerializer.Deserialize<RecaptchaResult>(json);
                 if (!result.Success)
                 {
-                    logger.LogWarning("ReCaptcha result success = false ({0})", result.ErrorCodes);
+                    logger.LogWarning("ReCaptcha result success = false ({0})", result.ErrorCodes.ToString());
                     return false;
                 }
                 if (result.Action != action)

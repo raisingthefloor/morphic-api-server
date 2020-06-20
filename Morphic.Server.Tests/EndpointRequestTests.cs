@@ -30,12 +30,12 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Hangfire;
 using Xunit;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Serilog;
-using Serilog.Formatting.Compact;
 
 namespace Morphic.Server.Tests
 {
@@ -62,6 +62,8 @@ namespace Morphic.Server.Tests
         protected Database Database;
 
         protected MorphicSettings MorphicSettings;
+
+        protected MockBackgroundJobClient JobClient;
         
         /// <summary>Create a test database, test http server, and client connection to the test server</summary>
         public EndpointRequestTests()
@@ -81,6 +83,8 @@ namespace Morphic.Server.Tests
             Database = Server.Services.GetService(typeof(Database)) as Database;
             MorphicSettings = Server.Services.GetService(typeof(MorphicSettings)) as MorphicSettings;
             Debug.Assert(MorphicSettings != null, nameof(MorphicSettings) + " != null");
+            JobClient = Server.Services.GetService((typeof(IBackgroundJobClient))) as MockBackgroundJobClient;
+            Debug.Assert(JobClient != null, nameof(JobClient) + " != null");
         }
 
         /// <summary>Delete the test database after every test case so each test can start fresh</summary>
@@ -88,6 +92,7 @@ namespace Morphic.Server.Tests
         {
             Database.DeleteDatabase();
             if (Startup.DotNetRuntimeCollector != null) Startup.DotNetRuntimeCollector.Dispose();
+            JobClient.Job = null;
         }
 
         /// <summary>Create a test user and return an auth token</summary>

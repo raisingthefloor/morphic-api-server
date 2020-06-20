@@ -86,7 +86,7 @@ namespace Morphic.Security
             this.hash = hash;
         }
 
-        protected static HashedData FromCombinedString(String hashedCombinedString)
+        public static HashedData FromCombinedString(String hashedCombinedString)
         {
             var parts = hashedCombinedString.Split(":");
             if (parts.Length != 4)
