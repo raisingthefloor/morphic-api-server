@@ -23,11 +23,7 @@
 
 using System;
 using Hangfire;
-using Hangfire.Common;
-using Hangfire.Logging;
 using Hangfire.Mongo;
-using Hangfire.States;
-using Hangfire.Storage;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -88,7 +84,7 @@ namespace Morphic.Server
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
                 .UseSerilogLogProvider()
-                .UseFilter(new LogFailureAttribute())
+                .UseFilter(new HangfireJobMetrics())
                 .UseMongoStorage(Configuration.GetSection("HangfireSettings")["ConnectionString"], // TODO Is there a better way than GetSection[]?
                     new MongoStorageOptions
                     {
@@ -139,25 +135,5 @@ namespace Morphic.Server
     public class HangfireSettings
     {
         public string ConnectionString { get; set; } = "";
-    }
-    
-    public class LogFailureAttribute : JobFilterAttribute, IApplyStateFilter
-    {
-        private static readonly ILog Logger = LogProvider.GetCurrentClassLogger();
-
-        public void OnStateApplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-        {
-            var failedState = context.NewState as FailedState;
-            if (failedState != null)
-            {
-                Logger.ErrorException(
-                    String.Format("Background job #{0} was failed with an exception.", context.BackgroundJob.Id),
-                    failedState.Exception);
-            }
-        }
-
-        public void OnStateUnapplied(ApplyStateContext context, IWriteOnlyTransaction transaction)
-        {
-        }
     }
 }
