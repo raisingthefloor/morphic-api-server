@@ -30,6 +30,20 @@ using Prometheus;
 
 namespace Morphic.Server
 {
+    /// <summary>
+    /// Exposes the following metrics:
+    ///
+    /// <list type="bullet">
+    /// <item>
+    ///   <term>hangfire_job_duration</term>
+    ///   <description>Job Duration in seconds (as hangfire_job_duration_buckets, hangfire_job_duration_sum, hangfire_job_duration_count). Labels: jobName, status</description>
+    /// </item>
+    /// <item>
+    ///   <term>hangfire_job_retry_count</term>
+    ///   <description>Number of retries. Labels: jobName</description>
+    /// </item>
+    /// </list>
+    /// </summary>
     public class HangfireJobMetrics : JobFilterAttribute, IApplyStateFilter
     {
         private const string HangfireJobMetricHistogramName = "hangfire_job_duration";
