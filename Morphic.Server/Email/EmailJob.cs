@@ -21,11 +21,11 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
-using Hangfire;
 using Microsoft.Extensions.Logging;
+using Prometheus;
 
 namespace Morphic.Server.Email
 {
@@ -35,14 +35,19 @@ namespace Morphic.Server.Email
     using Users;
 
     /// <summary>
-    /// Class for Pending Emails.
+    /// Class defining an email-background job. Each type of email subclasses this in its own way,
+    /// because not ever email takes the same arguments.
+    ///
+    /// In essence, the email-type implements some class to take simple serializable arguments (no complex
+    /// objects; see best-practices for Hangfire) it can use to build the Attributes needed for actual email
+    /// sending. When done, it is expected to call <see cref="Morphic.Server.Email.EmailJob.SendOneEmail">
+    /// to do the actual sending of the email.
     /// </summary>
 
     public abstract class EmailJob: BackgroundJob
     {
         // https://github.com/sendgrid/sendgrid-csharp/blob/master/USE_CASES.md#transactional-templates
         // TODO i18n? localization?
-        // TODO Should the templates themselves live in the DB for easier updating (and easier localization)?
 
         // TODO For tracking and user inquiries, we should have an audit log.
         // Things we might need to know (i.e. things customers may call about):
@@ -97,6 +102,73 @@ namespace Morphic.Server.Email
             Attributes.Add("FromEmail", EmailSettings.EmailFromAddress);
             Attributes.Add("ClientIp", clientIp ?? UnknownClientIp);
             Attributes.Add("Link", link ?? "");
+        }
+
+        private const string EmailSendingMetricHistogramName = "email_send_duration";
+
+        private static readonly Histogram EmailSendingHistogram = Metrics.CreateHistogram(
+            EmailSendingMetricHistogramName,
+            "Time it takes to send an email",
+            new[] {"type", "destination", "success"});
+
+        public async Task SendOneEmail(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
+        {
+            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled) {
+                throw new SendEmailException("Email sending disabled");
+            }
+
+            logger.LogInformation("SendOneEmail sending email {EmailType} {ClientIp}",
+                emailAttributes["EmailType"], emailAttributes["ClientIp"]);
+            var stopWatch = Stopwatch.StartNew();
+            bool success = false;
+            try
+            {
+                SendEmailWorker worker;
+                if (EmailSettings.Type == EmailSettings.EmailTypeSendgrid)
+                {
+                    worker = new Sendgrid(EmailSettings, logger);
+                }
+                else if (EmailSettings.Type == EmailSettings.EmailTypeSendInBlue)
+                {
+                    worker = new SendInBlue(EmailSettings, logger);
+                }
+                else if (EmailSettings.Type == EmailSettings.EmailTypeLog)
+                {
+                    worker = new EmailLogger(EmailSettings, logger);
+                }
+                else
+                {
+                    throw new SendEmailException("Unknown email type " + EmailSettings.Type);
+                }
+                success = await worker.SendTemplate(emailType, emailAttributes);
+            }
+            finally
+            {
+                stopWatch.Stop();
+                EmailSendingHistogram.Labels(emailAttributes["EmailType"], EmailSettings.Type, success.ToString())
+                    .Observe(stopWatch.Elapsed.TotalSeconds);
+            }
+
+
+            if (!success)
+            {
+                throw new UnableToSendEmailException();
+            }
+
+        }
+
+        private class SendEmailException : MorphicServerException
+        {
+            public SendEmailException()
+            {
+            }
+            public SendEmailException(string error) : base(error)
+            {
+            }
+        }
+
+        private class UnableToSendEmailException : SendEmailException
+        {
         }
     }
 

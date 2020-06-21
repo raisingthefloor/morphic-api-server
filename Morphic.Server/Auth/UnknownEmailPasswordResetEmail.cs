@@ -55,7 +55,7 @@ namespace Morphic.Server.Auth
             var user = new User();
             user.Email.PlainText = destinationEmail;
             FillAttributes(user, null, clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailType, Attributes);
+            await SendOneEmail(EmailType, Attributes);
         }
     }
 

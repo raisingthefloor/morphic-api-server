@@ -69,7 +69,7 @@ namespace Morphic.Server.Auth
             });
             await Db.Save(oneTimeToken);
             FillAttributes(user, uri.ToString(), clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailType, Attributes);
+            await SendOneEmail(EmailType, Attributes);
         }
     }
 
