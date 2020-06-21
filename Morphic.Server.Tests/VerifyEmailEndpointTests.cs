@@ -59,7 +59,7 @@ namespace Morphic.Server.Tests
             
             // GET, bad token (we're sending the token hash (the ID))
             var path = $"/v1/users/{user.Id}/verify_email/{oneTimeToken.Id}";
-            var request = new HttpRequestMessage(HttpMethod.Get, path);
+            var request = new HttpRequestMessage(HttpMethod.Post, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
             Assert.NotNull(await Database.Get<OneTimeToken>(t => t.UserId == user.Id));
@@ -72,14 +72,14 @@ namespace Morphic.Server.Tests
             Assert.NotNull(sameUser);
             Assert.False(sameUser.EmailVerified);
             path = $"/v1/users/{user.Id}/verify_email/{token}";
-            request = new HttpRequestMessage(HttpMethod.Get, path);
+            request = new HttpRequestMessage(HttpMethod.Post, path);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             oneTimeToken = await Database.Get<OneTimeToken>(t => t.UserId == user.Id);
             Assert.NotNull(oneTimeToken);
             Assert.NotNull(oneTimeToken.UsedAt);
             // try the same request again. Will fail
-            request = new HttpRequestMessage(HttpMethod.Get, path);
+            request = new HttpRequestMessage(HttpMethod.Post, path);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.NotFound, "invalid_token");
 

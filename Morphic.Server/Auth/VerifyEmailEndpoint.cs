@@ -33,6 +33,11 @@ namespace Morphic.Server.Auth
     using Http;
     using Users;
 
+    /// <summary>
+    /// API Endpoint to validate an email: User received an email with a link. The link containts
+    /// a one-time-token. This link actually goes to the MorphicWeb front-end for a prettier UI,
+    /// but the One-time-token is passed to this endpoint via that Web-froentend, and is validated here.
+    /// </summary>
     [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
     public class VerifyEmailEndpoint : Endpoint
     {
@@ -85,13 +90,6 @@ namespace Morphic.Server.Auth
         }
         
         /// <summary>Mark the email verified</summary>
-        [Method]
-        public async Task Get()
-        {
-            // backwards compatibility for a release or two.
-            await Post();
-        }
-
         [Method]
         public async Task Post()
         {
