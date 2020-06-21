@@ -19,4 +19,24 @@ namespace Morphic.Server.Email
             Dictionary<string, string> emailAttributes);
 
     }
+
+    public static class SendEmailWorkerFactory
+    {
+        public static SendEmailWorker? Get(EmailSettings emailSettings, ILogger logger)
+        {
+            if (emailSettings.Type == EmailSettings.EmailTypeSendgrid)
+            {
+                return new Sendgrid(emailSettings, logger);
+            }
+            if (emailSettings.Type == EmailSettings.EmailTypeSendInBlue)
+            {
+                return new SendInBlue(emailSettings, logger);
+            }
+            if (emailSettings.Type == EmailSettings.EmailTypeLog)
+            {
+                return new EmailLogger(emailSettings, logger);
+            }
+            return null;
+        }
+    }
 }

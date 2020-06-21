@@ -123,20 +123,8 @@ namespace Morphic.Server.Email
             bool success = false;
             try
             {
-                SendEmailWorker worker;
-                if (EmailSettings.Type == EmailSettings.EmailTypeSendgrid)
-                {
-                    worker = new Sendgrid(EmailSettings, logger);
-                }
-                else if (EmailSettings.Type == EmailSettings.EmailTypeSendInBlue)
-                {
-                    worker = new SendInBlue(EmailSettings, logger);
-                }
-                else if (EmailSettings.Type == EmailSettings.EmailTypeLog)
-                {
-                    worker = new EmailLogger(EmailSettings, logger);
-                }
-                else
+                var worker = SendEmailWorkerFactory.Get(EmailSettings, logger);
+                if (worker == null)
                 {
                     throw new SendEmailException("Unknown email type " + EmailSettings.Type);
                 }
