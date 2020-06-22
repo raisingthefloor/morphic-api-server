@@ -38,8 +38,7 @@ namespace Morphic.Server.Auth
     {
         public PasswordResetEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
-            EmailType = "PasswordResetExistingUser";
-            EmailTemplateId = "d-8dbb4d6c44cb423f8bef356b832246bd";
+            EmailType = EmailConstants.EmailTypes.PasswordReset;
         }
 
         [AutomaticRetry(Attempts = 20)]
@@ -70,7 +69,7 @@ namespace Morphic.Server.Auth
             });
             await Db.Save(oneTimeToken);
             FillAttributes(user, uri.ToString(), clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailTemplateId, Attributes);
+            await SendOneEmail(EmailType, Attributes);
         }
     }
 

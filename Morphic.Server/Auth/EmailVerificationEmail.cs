@@ -38,8 +38,7 @@ namespace Morphic.Server.Auth
     {
         public EmailVerificationEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
-            EmailType = "EmailValidation";
-            EmailTemplateId = "d-aecd70a619eb49deadbb74451797dd04";
+            EmailType = EmailConstants.EmailTypes.WelcomeEmailValidation;
         }
 
         [AutomaticRetry(Attempts = 20)]
@@ -70,7 +69,7 @@ namespace Morphic.Server.Auth
             await Db.Save(oneTimeToken);
 
             FillAttributes(user, verifyUri.ToString(), clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailTemplateId, Attributes);
+            await SendOneEmail(EmailType, Attributes);
         }
     }
 }

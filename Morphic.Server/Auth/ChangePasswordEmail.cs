@@ -36,8 +36,7 @@ namespace Morphic.Server.Auth
     {
         public ChangePasswordEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailJob> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
-            EmailType = "ChangePassword";
-            EmailTemplateId = "d-60a9ceb7fe084988939dc8f114095a33";
+            EmailType = EmailConstants.EmailTypes.ChangePasswordEmail;
         }
         
         [AutomaticRetry(Attempts = 20)]
@@ -62,7 +61,7 @@ namespace Morphic.Server.Auth
             }
 
             FillAttributes(user, null, clientIp);
-            await new SendEmail(EmailSettings, logger).SendOneEmail(EmailTemplateId, Attributes);
+            await SendOneEmail(EmailType, Attributes);
         }
     }
 }

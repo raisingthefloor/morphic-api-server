@@ -27,6 +27,7 @@ namespace Morphic.Server.Email
     {
         public static readonly string EmailTypeDisabled = "disabled";
         public static readonly string EmailTypeSendgrid = "sendgrid";
+        public static readonly string EmailTypeSendInBlue = "sendinblue";
         public static readonly string EmailTypeLog = "log";
         
         /// <summary>
@@ -43,5 +44,7 @@ namespace Morphic.Server.Email
         /// Some SendGrid settings.
         /// </summary>
         public SendGridSettings SendGridSettings { get; set; } = null!;
+
+        public SendInBlueSettings SendInBlueSettings { get; set; } = null!;
     }
 }
