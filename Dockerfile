@@ -25,16 +25,8 @@ ARG VERSION=3.1-alpine
 FROM mcr.microsoft.com/dotnet/core/sdk:${VERSION} AS build-env
 WORKDIR /app
 
-# Copy csproj and restore as distinct layers
-COPY ./Morphic.Server/*.csproj ./Morphic.Server/
-COPY ./Morphic.Server.Tests/*.csproj ./Morphic.Server.Tests/
-COPY ./Morphic.Security/*.csproj ./Morphic.Security/
-COPY ./Morphic.Security.Tests/*.csproj ./Morphic.Security.Tests/
-COPY ./Morphic.Json/*.csproj ./Morphic.Json/
-COPY ./Morphic.Json.Tests/*.csproj ./Morphic.Json.Tests/
+# copy and build
 COPY ./MorphicServer.sln .
-RUN dotnet restore
-
 COPY ./Morphic.Server/ ./Morphic.Server/
 COPY ./Morphic.Server.Tests/ ./Morphic.Server.Tests/
 COPY ./Morphic.Security/ ./Morphic.Security/
