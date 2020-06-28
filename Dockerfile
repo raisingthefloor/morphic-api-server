@@ -21,7 +21,7 @@
 # * Adobe Foundation
 # * Consumer Electronics Association Foundation
 
-ARG VERSION=3.1
+ARG VERSION=3.1-alpine
 FROM mcr.microsoft.com/dotnet/core/sdk:${VERSION} AS build-env
 WORKDIR /app
 
@@ -45,6 +45,7 @@ RUN dotnet publish -c Release -o Morphic.Server
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/core/aspnet:${VERSION} as runtime
+RUN apk update && apk upgrade 
 WORKDIR /app
 COPY --from=build-env /app/Morphic.Server/ ./
 COPY Morphic.Server/appsettings.* ./
