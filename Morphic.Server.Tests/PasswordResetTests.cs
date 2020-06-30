@@ -104,14 +104,14 @@ namespace Morphic.Server.Tests
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Auth.EmailNotVerifiedPasswordResetEmail", JobClient.Job.Type.FullName);
-            
-            // success with verified email
+            // we no longer care about verified. It's a datapoint we save, but people can still request a reset without it.
+            Assert.Equal("Morphic.Server.Auth.PasswordResetEmail", JobClient.Job.Type.FullName);
+
+            // success with verified email (shouldn't make a difference)
             var user = await Database.Get<User>(userInfo1.Id);
+            Assert.NotNull(user);
             user.EmailVerified = true;
             await Database.Save(user);
-            
-            // Success
             JobClient.Job = null;
             request = new HttpRequestMessage(HttpMethod.Post, path);
             content = new Dictionary<string, object>();

@@ -66,6 +66,8 @@ namespace Morphic.Server.Auth
         /// <summary>The limited-use token data populated by <code>LoadResource()</code></summary>
         public OneTimeToken OneTimeToken = null!;
 
+        private User User;
+        
         public override async Task LoadResource()
         {
             try
@@ -82,6 +84,10 @@ namespace Morphic.Server.Auth
             {
                 throw new HttpError(httpError.Status, BadPasswordResetResponse.InvalidToken);
             }
+
+                            
+            User = await Load<User>(OneTimeToken.UserId) ??
+                        throw new HttpError(HttpStatusCode.BadRequest, BadPasswordResetResponse.UserNotFound);
 
             try
             {
@@ -104,6 +110,8 @@ namespace Morphic.Server.Auth
             }
             usernameCredentials.CheckAndSetPassword(request.NewPassword);
             await Save(usernameCredentials);
+            User.EmailVerified = true;
+            await Save(User);
             await OneTimeToken.Invalidate(Context.GetDatabase());
             if (request.DeleteExistingTokens)
             {
@@ -205,20 +213,9 @@ namespace Morphic.Server.Auth
             if (user != null)
             {
                 var hash = user.Email.Hash!.ToCombinedString();
-                if (user.EmailVerified)
-                {
-                    logger.LogInformation("Password reset requested for userId {userId} {EmailHash}",
-                        user.Id, hash);
-                    jobClient.Enqueue<PasswordResetEmail>(x => x.SendEmail(user.Id, Request.ClientIp()));
-                }
-                else
-                {
-                    logger.LogInformation("Password reset requested for userId {userId}, but email not verified {EmailHash}", 
-                        user.Id, hash);
-                    jobClient.Enqueue<EmailNotVerifiedPasswordResetEmail>(x => x.SendEmail(
-                        request.Email,
-                        Request.ClientIp()));
-                }
+                logger.LogInformation("Password reset requested for userId {userId} {EmailHash}",
+                    user.Id, hash);
+                jobClient.Enqueue<PasswordResetEmail>(x => x.SendEmail(user.Id, Request.ClientIp()));
             }
             else
             {
