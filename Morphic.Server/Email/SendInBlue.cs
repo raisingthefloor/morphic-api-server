@@ -19,6 +19,11 @@ namespace Morphic.Server.Email
         public string ChangePasswordEmailId { get; set; } = "";
     }
 
+    /// <summary>
+    /// Send emails via SendInBlue Transactional templates.
+    ///
+    /// For customizing templates, see https://help.sendinblue.com/hc/en-us/articles/360000946299-Create-customize-transactional-email-templates
+    /// </summary>
     public class SendInBlue : SendEmailWorker
     {
         public SendInBlue(EmailSettings emailSettings, ILogger logger) : base(emailSettings, logger)
