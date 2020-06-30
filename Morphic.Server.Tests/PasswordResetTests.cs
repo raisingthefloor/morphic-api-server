@@ -109,6 +109,7 @@ namespace Morphic.Server.Tests
 
             // success with verified email (shouldn't make a difference)
             var user = await Database.Get<User>(userInfo1.Id);
+            Assert.NotNull(user);
             user.EmailVerified = true;
             await Database.Save(user);
             JobClient.Job = null;
