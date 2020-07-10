@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System;
 using System.Net;
 using System.Text.Encodings.Web;
@@ -53,6 +54,7 @@ namespace Morphic.Server.Http
                 options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
                 options.Converters.Add(new EncryptedString.JsonConverter());
                 options.Converters.Add(new SearchableEncryptedString.JsonConverter());
+                options.Converters.Add(new JsonStringEnumConverter(new UnderscoreNamingPolicy()));
                 await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), options, cancellationToken);
             }
             await response.CompleteAsync();
@@ -83,6 +85,7 @@ namespace Morphic.Server.Http
                     options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
                     options.Converters.Add(new EncryptedString.JsonConverter());
                     options.Converters.Add(new SearchableEncryptedString.JsonConverter());
+                    options.Converters.Add(new JsonStringEnumConverter(new UnderscoreNamingPolicy()));
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {

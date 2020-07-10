@@ -40,6 +40,7 @@ namespace Morphic.Server.Db
 
     using Auth;
     using Users;
+    using Community;
 
     /// <summary>Database settings</summary>
     /// <remarks>
@@ -89,6 +90,8 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(BadPasswordLockout)] =
                 morphic.GetCollection<BadPasswordLockout>("BadPasswordLockout");
             CollectionByType[typeof(OneTimeToken)] = morphic.GetCollection<OneTimeToken>("OneTimeToken");
+            CollectionByType[typeof(Community)] = morphic.GetCollection<Community>("Communities");
+            CollectionByType[typeof(Member)] = morphic.GetCollection<Member>("CommunityMembers");
         }
 
         public void DeleteDatabase()
@@ -279,7 +282,17 @@ namespace Morphic.Server.Db
             CreateOrUpdateIndexOrFail(oneTimeToken,
                 new CreateIndexModel<OneTimeToken>(
                     Builders<OneTimeToken>.IndexKeys.Ascending(t => t.ExpiresAt), options));
-            
+
+            CreateCollectionIfNotExists<Community>();
+
+            // IndexExplanation: Lookup community members by community id, user id, or both combined
+            var communityMembers = CreateCollectionIfNotExists<Member>();
+            CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Combine(new IndexKeysDefinition<Member>[]{
+                Builders<Member>.IndexKeys.Hashed(m => m.CommunityId),
+                Builders<Member>.IndexKeys.Hashed(m => m.UserId)
+            })));
+            CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Hashed(m => m.UserId)));
+
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);
