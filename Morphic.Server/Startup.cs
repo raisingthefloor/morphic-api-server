@@ -132,8 +132,4 @@ namespace Morphic.Server
             app.UseHangfireDashboard();
         }
     }
-    public class HangfireSettings
-    {
-        public string ConnectionString { get; set; } = "";
-    }
 }
