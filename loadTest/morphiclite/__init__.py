@@ -118,26 +118,14 @@ class Register(MorphicLite):
         return register_response
 
 
-class Unregister(MorphicLite):
-    DefaultUnregisterUrl = "/v1/unregister/username"
+class Unregister(AuthedMorphicRequest):
+    DefaultUnregisterUrl = "/v1/users/{userId}/unregister"
 
-    class MorphicUnregisterUserDoesNotExist(MorphicLite.MorphicLiteError):
-        pass
+    def unregisterUser(self):
+        path = self.DefaultUnregisterUrl.format(userId=self.userId)
+        unregister_response = self.json_request('POST', path)
+        return unregister_response
 
-    def unregisterUser(self, username, password):
-        path = self.DefaultUnregisterUrl
-        data = {'username': username,
-                'password': password
-                }
-        try:
-            unregister_response = self.json_request('POST', path, data)
-            return unregister_response
-        except MorphicLite.MorphicLiteError as e:
-            error = e.args[0]['error']
-            if error == 'username_not_found':
-                raise self.MorphicUnregisterUserDoesNotExist(username)
-            else:
-                raise
 
 class UserAuth(MorphicLite):
     DefaultAuthUrl = "/v1/auth/username"
