@@ -1,10 +1,12 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 using Morphic.Server.Auth;
 using Morphic.Server.Db;
+using Prometheus;
 
 namespace Morphic.Server.Users
 {
@@ -24,9 +26,17 @@ namespace Morphic.Server.Users
             this.settings = settings;
         }
         
+        private static readonly string histo_metric_name = "morphic_unregister_seconds";
+        private static readonly string[] labelNames = new[] {"source"};
+
+        private static readonly Histogram histogram = Metrics.CreateHistogram(histo_metric_name,
+            "User Unregistration Duration",
+            labelNames);
+        
         [AutomaticRetry(Attempts = 5)]
-        public async Task UnregisterUser(string userId)
+        public async Task UnregisterUser(string userId, string source)
         {
+            var stopWatch = Stopwatch.StartNew();
             var user = await db.Get<User>(userId);
             if (user == null)
             {
@@ -53,6 +63,7 @@ namespace Morphic.Server.Users
             logger.LogDebug("Deleted {deleted} UsernameCredentials for user {userId}", deleted, userId);
             deleted = await db.DeleteMany<KeyCredential>(u => u.UserId == userId);
             logger.LogDebug("Deleted {deleted} KeyCredentials for user {userId}", deleted, userId);
+            histogram.Labels(source).Observe(stopWatch.Elapsed.TotalSeconds);
         }
 
         [DisableConcurrentExecution(60)]
@@ -66,16 +77,11 @@ namespace Morphic.Server.Users
             var cutoff = DateTime.UtcNow - new TimeSpan(settings.StaleUserAfterDays, 0, 0, 0);
             using (var cursor = await db.Find<User>(u => u.LastAuth < cutoff))
             {
-                int deleted = 0;
-                var startedAt = DateTime.UtcNow;
                 await cursor.ForEachAsync(user =>
                 {
                     logger.LogInformation("Removing stale user {UserId}", user.Id);
-                    UnregisterUser(user.Id).Wait();
-                    deleted++;
+                    UnregisterUser(user.Id, "stale-user-job").Wait();
                 });
-                var elapsed = DateTime.UtcNow - startedAt;
-                logger.LogInformation("Deleted {deleted} users in {seconds} seconds", deleted, elapsed.TotalSeconds);
             }
         }
 

@@ -64,7 +64,7 @@ namespace Morphic.Server.Auth
         [Method]
         public async Task Post()
         {
-            await Task.Run(() => { jobClient.Enqueue<UserCleanupJob>(x => x.UnregisterUser(UserId)); });
+            await Task.Run(() => { jobClient.Enqueue<UserCleanupJob>(x => x.UnregisterUser(UserId, "user-request")); });
         }
     }
 }
