@@ -132,6 +132,27 @@ namespace Morphic.Server.Db
             return null;
         }
 
+        /// <summary>
+        /// Get a list of items. Returns a cursor.
+        /// </summary>
+        /// <param name="filter">Linq filter</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
+        public async Task<IAsyncCursor<T>> Find<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                if (session != null)
+                {
+                    return (await collection.FindAsync(session.Handle, filter));
+                }
+
+                return (await collection.FindAsync(filter));
+            }
+            throw new MorphicServerException($"unknown collection type {typeof(T)}");
+        }
+
         /// <summary>Create or update a record in the database</summary>
         /// <remarks>
         /// The destination collection is chosen based on the record's type
