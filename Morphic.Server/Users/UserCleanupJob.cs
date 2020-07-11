@@ -81,6 +81,8 @@ namespace Morphic.Server.Users
             }
         }
 
+        static public string JobId = "UserCleanupJob.DeleteStaleUsers";
+
         /// <summary>
         /// Static method to start the recurring job.
         /// </summary>
@@ -93,6 +95,10 @@ namespace Morphic.Server.Users
             }
             switch (cronPeriod.ToLower())
             {
+                case "disabled":
+                    // don't run the job. Delete if exists.
+                    RecurringJob.RemoveIfExists(JobId);
+                    return;
                 case "daily":
                     cronPeriod = Cron.Daily();
                     break;
@@ -107,7 +113,8 @@ namespace Morphic.Server.Users
                     cronPeriod = Cron.Minutely();
                     break;
             }
-            RecurringJob.AddOrUpdate<UserCleanupJob>(userCleanup => userCleanup.DeleteStaleUsers(), cronPeriod);
+            RecurringJob.AddOrUpdate<UserCleanupJob>(JobId,
+                userCleanup => userCleanup.DeleteStaleUsers(), cronPeriod);
         }
     }
 }
