@@ -44,6 +44,11 @@ namespace Morphic.Server
         /// <summary>The Server URL prefix for the front-end web server used for things like password reset</summary>
         public string FrontEndServerUrlPrefix { get; set; } = "";
 
+        /// <summary>
+        /// Declare users stale after this many days. Default: 3 years.
+        /// </summary>
+        public int StaleUserAfterDays { get; set; } = 3*365;
+        
         public Uri FrontEndServerUri {
             get{
                 if (FrontEndServerUrlPrefix != "")

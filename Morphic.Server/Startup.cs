@@ -35,11 +35,11 @@ using Microsoft.Extensions.Logging;
 using Prometheus;
 using Prometheus.DotNetRuntime;
 using Serilog;
-using Morphic.Security;
 
 namespace Morphic.Server
 {
-
+    using Security;
+    using Users;
     using Db;
     using Email;
     using Http;
@@ -130,6 +130,8 @@ namespace Morphic.Server
             });
             app.UseHangfireServer();
             app.UseHangfireDashboard();
+
+            UserCleanupJob.StartRecurringJob();
         }
     }
 }
