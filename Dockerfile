@@ -21,23 +21,24 @@
 # * Adobe Foundation
 # * Consumer Electronics Association Foundation
 
-ARG VERSION=3.1
+ARG VERSION=3.1-alpine
 FROM mcr.microsoft.com/dotnet/core/sdk:${VERSION} AS build-env
 WORKDIR /app
 
-# Copy csproj and restore as distinct layers
-COPY ./MorphicServer/*.csproj ./MorphicServer/
-COPY ./MorphicServer.Tests/*.csproj ./MorphicServer.Tests/
+# copy and build
 COPY ./MorphicServer.sln .
-RUN dotnet restore
-
-COPY ./MorphicServer/ ./MorphicServer/
-COPY ./MorphicServer.Tests/ ./MorphicServer.Tests/
-RUN dotnet publish -c Release -o MorphicServer
+COPY ./Morphic.Server/ ./Morphic.Server/
+COPY ./Morphic.Server.Tests/ ./Morphic.Server.Tests/
+COPY ./Morphic.Security/ ./Morphic.Security/
+COPY ./Morphic.Security.Tests/ ./Morphic.Security.Tests/
+COPY ./Morphic.Json/ ./Morphic.Json/
+COPY ./Morphic.Json.Tests/ ./Morphic.Json.Tests/
+RUN dotnet publish -c Release -o Morphic.Server
 
 # Build runtime image
 FROM mcr.microsoft.com/dotnet/core/aspnet:${VERSION} as runtime
+RUN apk update && apk upgrade 
 WORKDIR /app
-COPY --from=build-env /app/MorphicServer/ ./
-COPY MorphicServer/appsettings.* ./
-ENTRYPOINT ["dotnet", "MorphicServer.dll"]
+COPY --from=build-env /app/Morphic.Server/ ./
+COPY Morphic.Server/appsettings.* ./
+ENTRYPOINT ["dotnet", "Morphic.Server.dll"]
