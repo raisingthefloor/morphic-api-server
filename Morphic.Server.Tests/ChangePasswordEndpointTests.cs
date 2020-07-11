@@ -33,7 +33,6 @@ using Xunit;
 namespace Morphic.Server.Tests
 {
 
-    using Db;
     using Auth;
 
     public class ChangePasswordEndpointTests : EndpointRequestTests
