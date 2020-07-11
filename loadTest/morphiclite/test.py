@@ -12,7 +12,7 @@ try:
 except ImportError:
     has_lorem = False
 
-from morphiclite import MorphicLite, Register, UserAuth, Preferences, Users
+from morphiclite import MorphicLite, Register, UserAuth, Preferences, Users, Unregister
 
 
 def dict_compare(d1, d2):
@@ -175,8 +175,15 @@ def testrunner(args):
 
                 if args.unregister:
                     try:
-                        unregister = Unregister(base_url, logger=logger).unregisterUser(username, password)
-                    except Unregister.MorphicUnregisterUserDoesNotExist as e:
+                        users_kwargs = {
+                            'url': base_url,
+                            'userId': auth['user']['id'],
+                            'authToken': auth['token'],
+                            'logger': logger
+                        }
+                        unregister = Unregister(**users_kwargs).unregisterUser()
+                        print(unregister)
+                    except Exception as e:
                         logger.error(e)
 
             except MorphicLite.MorphicLiteError as e:
