@@ -87,6 +87,8 @@ namespace Morphic.Server.Users
         }
 
         static public string JobId = "UserCleanupJob.DeleteStaleUsers";
+        static private string DefaultCronPeriod = "monthly";
+        
 
         /// <summary>
         /// Static method to start the recurring job.
@@ -96,7 +98,7 @@ namespace Morphic.Server.Users
             var cronPeriod = Environment.GetEnvironmentVariable("MORPHIC_CHECK_STALE_USERS_CRON_PERIOD");
             if (string.IsNullOrWhiteSpace(cronPeriod))
             {
-                cronPeriod = "weekly";
+                cronPeriod = DefaultCronPeriod;
             }
             switch (cronPeriod.ToLower())
             {
