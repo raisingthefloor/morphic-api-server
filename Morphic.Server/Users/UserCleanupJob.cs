@@ -66,11 +66,16 @@ namespace Morphic.Server.Users
             var cutoff = DateTime.UtcNow - new TimeSpan(settings.StaleUserAfterDays, 0, 0, 0);
             using (var cursor = await db.Find<User>(u => u.LastAuth < cutoff))
             {
+                int deleted = 0;
+                var startedAt = DateTime.UtcNow;
                 await cursor.ForEachAsync(user =>
                 {
                     logger.LogInformation("Removing stale user {UserId}", user.Id);
                     UnregisterUser(user.Id).Wait();
+                    deleted++;
                 });
+                var elapsed = DateTime.UtcNow - startedAt;
+                logger.LogInformation("Deleted {deleted} users in {seconds} seconds", deleted, elapsed.TotalSeconds);
             }
         }
 
