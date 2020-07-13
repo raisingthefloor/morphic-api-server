@@ -1069,6 +1069,12 @@ Get a community's details
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td><code>default_bar_id</code></td>
+      <td>The default bar for this community</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -1096,6 +1102,12 @@ Update a community
       <td>Required</td>
     </tr>
     <tr>
+      <td><code>default_bar_id</code></td>
+      <td>The new default bar id for this community</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
@@ -1105,9 +1117,13 @@ Update a community
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td><code>error</code></td>
+      <td rowspan="2"><code>error</code></td>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>The Bar ID given could not be found</td>
+      <td colspan="2"><code>"bad_bar_id"</code></td>
     </tr>
     <tr>
       <td><code>details</code></td>
@@ -1166,21 +1182,6 @@ Get a list of community members
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Request Parameters</th>
-    </tr>
-    <tr>
-      <td><code>start</code></td>
-      <td>The starting point</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
-      <td><code>count</code></td>
-      <td>The number of members to return</td>
-      <td><code>Number</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
@@ -1232,19 +1233,13 @@ Create a new community member
       <td><code>first_name</code></td>
       <td>The member's first name</td>
       <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <td><code>last_name</code></td>
       <td>The member's last name</td>
       <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
-      <td><code>email</code></td>
-      <td>The member's email address</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
@@ -1259,13 +1254,9 @@ Create a new community member
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td rowspan="2"><code>error</code></td>
+      <td><code>error</code></td>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
-    </tr>
-    <tr>
-      <td>Invalid Email Address</td>
-      <td colspan="2"><code>"malformed_email"</code></td>
     </tr>
     <tr>
       <td><code>details</code></td>
@@ -1397,6 +1388,34 @@ Update a community member's details
     <tr>
       <td colspan="4">Empty indicates success</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td rowspan="3"><code>error</code></td>
+      <td>Missing required fields</td>
+      <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Bar could not be found</td>
+      <td colspan="2"><code>"bad_bar_id"</code></td>
+    </tr>
+    <tr>
+      <td>Cannot demote self from manager role</td>
+      <td colspan="2"><code>"cannot_demote_self"</code></td>
+    </tr>
+    <tr>
+      <td><code>details</code></td>
+      <td>Specific error details</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.required</code></td>
+      <td><code>missing_required</code> list of missing field names</td>
+      <td><code>string[]</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -1419,6 +1438,14 @@ Delete a member from a community
     </tr>
     <tr>
       <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td ><code>error</code></td>
+      <td>Cannot delete self</td>
+      <td colspan="2"><code>"cannot_delete_self"</code></td>
     </tr>
   </tbody>
 </table>
@@ -1449,13 +1476,13 @@ Send a new invitation for a community member
       <td><code>member_id</code></td>
       <td>The member's unique identifier</td>
       <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <td><code>email</code></td>
       <td>The member's email address, if not already added</td>
       <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>

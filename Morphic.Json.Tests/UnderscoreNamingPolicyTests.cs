@@ -25,6 +25,7 @@ using System;
 using Xunit;
 using System.Collections.Generic;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Morphic.Json.Tests
 {

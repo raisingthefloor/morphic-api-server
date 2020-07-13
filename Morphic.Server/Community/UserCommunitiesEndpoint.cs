@@ -50,12 +50,22 @@ namespace Morphic.Server.Community{
             if (authenticatedUser.Id != User.Id){
                 throw new HttpError(HttpStatusCode.NotFound);
             }
-            // TODO: load communities
+            var db = Context.GetDatabase();
+            var members = await db.GetEnumerable<Member>(m => m.UserId == authenticatedUser.Id && m.State == MemberState.Active, ActiveSession);
+            var communities = new List<Community>();
+            foreach (var member in members)
+            {
+                var community = await db.Get<Community>(member.CommunityId, ActiveSession);
+                if (community is Community community_)
+                {
+                    communities.Add(community_);
+                }
+            }
+            Communities = communities.ToArray();
         }
 
         public User User = null!;
         public Community[] Communities = null!;
-        public Member Member = null!;
 
         [Method]
         public async Task Get(){

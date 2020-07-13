@@ -31,6 +31,7 @@ namespace Morphic.Server.Community
     public class Bar: Record
     {
 
+        public string CommunityId { get; set; } = null!;
         public string Name { get; set; } = null!;
         public BarItem[] Items { get; set; } = { };
 

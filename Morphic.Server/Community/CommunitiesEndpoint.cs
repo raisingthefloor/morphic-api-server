@@ -24,11 +24,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System;
+using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Community
 {
 
     using Http;
+    using Users;
 
     [Path("/v1/communities")]
     public class CommunitiesEndpoint: Endpoint
@@ -38,29 +40,63 @@ namespace Morphic.Server.Community
         {
         }
 
+        public override async Task LoadResource()
+        {
+            User = await RequireUser();
+        }
+
+        private User User = null!;
+
         [Method]
         public async Task Post()
         {
             var db = Context.GetDatabase();
-            var authenticatedUser = await RequireUser();
             var input = await Request.ReadJson<CommunityPutRequest>();
-            var community = new Community();
-            community.Id = Guid.NewGuid().ToString();
-            community.Name = input.Name;
+            var communityId = Guid.NewGuid().ToString();
+
+            var bar = new Bar()
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommunityId = communityId
+            };
+            await db.Save(bar);
+
+            var community = new Community()
+            {
+                Id = communityId,
+                Name = input.Name,
+                DefaultBarId = bar.Id,
+                CreatedAt = DateTime.Now
+            };
             await db.Save(community);
-            var member = new Member();
-            member.Id = Guid.NewGuid().ToString();
-            member.CommunityId = community.Id;
-            member.UserId = authenticatedUser.Id;
-            member.Role = MemberRole.Manager;
-            member.State = MemberState.Active;
+
+            var member = new Member()
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommunityId = community.Id,
+                UserId = User.Id,
+                Role = MemberRole.Manager,
+                State = MemberState.Active,
+                CreatedAt = DateTime.Now
+            };
             await db.Save(member);
-            // TODO: default bar
+
+            await Respond(new CommunityPutResponse()
+            {
+                Community = community
+            });
         }
 
         class CommunityPutRequest
         {
+            [JsonPropertyName("name")]
             public string Name { get; set; } = null!;
+        }
+
+        class CommunityPutResponse
+        {
+            [JsonPropertyName("community")]
+            public Community Community { get; set; } = null!;
         }
     }
 

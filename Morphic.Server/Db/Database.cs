@@ -92,6 +92,7 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(OneTimeToken)] = morphic.GetCollection<OneTimeToken>("OneTimeToken");
             CollectionByType[typeof(Community)] = morphic.GetCollection<Community>("Communities");
             CollectionByType[typeof(Member)] = morphic.GetCollection<Member>("CommunityMembers");
+            CollectionByType[typeof(Bar)] = morphic.GetCollection<Bar>("CommunityBars");
         }
 
         public void DeleteDatabase()
@@ -133,6 +134,19 @@ namespace Morphic.Server.Db
             }
 
             return null;
+        }
+
+        public async Task<IEnumerable<T>> GetEnumerable<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                if (session != null)
+                {
+                    return (await collection.FindAsync(session.Handle, filter)).ToEnumerable();
+                }
+                return (await collection.FindAsync(filter)).ToEnumerable();
+            }
+            return new T[] { };
         }
 
         /// <summary>Create or update a record in the database</summary>
@@ -188,6 +202,22 @@ namespace Morphic.Server.Db
                 }
 
                 return (await collection.DeleteOneAsync(filter)).IsAcknowledged;
+            }
+
+            return false;
+        }
+
+        public async Task<bool> DeleteAll<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                if (session != null)
+                {
+                    return (await collection.DeleteManyAsync(session.Handle, filter))
+                        .IsAcknowledged;
+                }
+
+                return (await collection.DeleteManyAsync(filter)).IsAcknowledged;
             }
 
             return false;
@@ -287,11 +317,16 @@ namespace Morphic.Server.Db
 
             // IndexExplanation: Lookup community members by community id, user id, or both combined
             var communityMembers = CreateCollectionIfNotExists<Member>();
-            CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Combine(new IndexKeysDefinition<Member>[]{
-                Builders<Member>.IndexKeys.Hashed(m => m.CommunityId),
-                Builders<Member>.IndexKeys.Hashed(m => m.UserId)
-            })));
+            // CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Combine(new IndexKeysDefinition<Member>[]{
+            //     Builders<Member>.IndexKeys.Hashed(m => m.CommunityId),
+            //     Builders<Member>.IndexKeys.Hashed(m => m.UserId)
+            // })));
+            CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Hashed(m => m.CommunityId)));
             CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Hashed(m => m.UserId)));
+
+            // IndexExplanation: Lookup community bars by community id
+            var communityBars = CreateCollectionIfNotExists<Bar>();
+            CreateOrUpdateIndexOrFail(communityBars, new CreateIndexModel<Bar>(Builders<Bar>.IndexKeys.Hashed(b => b.CommunityId)));
 
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",

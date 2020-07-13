@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System.Net;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Community
 {
@@ -46,9 +47,9 @@ namespace Morphic.Server.Community
         {
             var authenticatedUser = await RequireUser();
             Community = await Load<Community>(Id);
-            Member = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == authenticatedUser.Id);
-            if (Member.Role != Role.Manager){
-                throw new HttpError(HttpStatusCode.Unauthorized);
+            Member = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == authenticatedUser.Id && m.State == MemberState.Active);
+            if (Member.Role != MemberRole.Manager){
+                throw new HttpError(HttpStatusCode.Forbidden);
             }
         }
 
@@ -64,8 +65,15 @@ namespace Morphic.Server.Community
         [Method]
         public async Task Put()
         {
+            var db = Context.GetDatabase();
             var input = await Request.ReadJson<CommunityPutRequest>();
             Community.Name = input.Name;
+            var bar = await db.Get<Bar>(input.DefaultBarId);
+            if (bar == null || bar.CommunityId != Community.Id)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, CommunityPutError.BadBarId);
+            }
+            Community.DefaultBarId = input.DefaultBarId;
             await Context.GetDatabase().Save(Community);
         }
 
@@ -73,13 +81,25 @@ namespace Morphic.Server.Community
         public async Task Delete(){
             var db = Context.GetDatabase();
             await db.Delete(Community);
-            await db.Delete<Member>(m => m.CommunityId == Community.Id);
-            // TODO: delete bars
+            await db.DeleteAll<Member>(m => m.CommunityId == Community.Id);
+            await db.DeleteAll<Bar>(b => b.CommunityId == Community.Id);
         }
 
         class CommunityPutRequest
         {
+            [JsonPropertyName("name")]
             public string Name { get; set; } = null!;
+
+            [JsonPropertyName("default_bar_id")]
+            public string DefaultBarId { get; set; } = null!;
+        }
+
+        class CommunityPutError
+        {
+            [JsonPropertyName("error")]
+            public string Error { get; set; } = null!;
+
+            public static CommunityPutError BadBarId = new CommunityPutError() { Error = "bad_bar_id" };
         }
     }
 

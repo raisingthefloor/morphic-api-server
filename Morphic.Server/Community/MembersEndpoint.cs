@@ -33,10 +33,10 @@ namespace Morphic.Server.Community{
     using Http;
 
     [Path("/v1/communities/{id}/members")]
-    public class CommunityMembersEndpoint: Endpoint
+    public class MembersEndpoint: Endpoint
     {
 
-        public CommunityMembersEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
+        public MembersEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
         }
 
@@ -47,9 +47,9 @@ namespace Morphic.Server.Community{
         {
             var authenticatedUser = await RequireUser();
             Community = await Load<Community>(Id);
-            var member = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == authenticatedUser.Id);
-            if (member.Role != Role.Manager){
-                throw new HttpError(HttpStatusCode.Unauthorized);
+            var member = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == authenticatedUser.Id && m.State == MemberState.Active);
+            if (member.Role != MemberRole.Manager){
+                throw new HttpError(HttpStatusCode.Forbidden);
             }
         }
 
@@ -58,39 +58,25 @@ namespace Morphic.Server.Community{
         [Method]
         public async Task Get()
         {
-
-        }
-
-        [Method]
-        public async Task Post()
-        {
             var db = Context.GetDatabase();
-            var authenticatedUser = await RequireUser();
-            var input = await Request.ReadJson<CommunityPutRequest>();
-            var community = new Community();
-            community.Id = Guid.NewGuid().ToString();
-            community.Name = input.Name;
-            await db.Save(community);
-            var member = new Member();
-            member.Id = Guid.NewGuid().ToString();
-            member.CommunityId = community.Id;
-            member.UserId = authenticatedUser.Id;
-            await db.Save(member);
-            // TODO: default bar
-        }
-
-        class CommunityPutRequest
-        {
-            public string Name { get; set; } = null!;
+            var page = new CommunityMembersPage();
+            var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id);
+            foreach (var member in members)
+            {
+                page.Members.Add(new CommunityMembersItem()
+                {
+                    Id = member.Id,
+                    FirstName = member.FirstName.PlainText,
+                    LastName = member.LastName.PlainText
+                });
+            }
+            await Respond(page);
         }
 
         class CommunityMembersPage
         {
             [JsonPropertyName("members")]
             public List<CommunityMembersItem> Members { get; set; } = new List<CommunityMembersItem>();
-
-            [JsonPropertyName("total")]
-            public int Total { get; set; }
         }
 
         class CommunityMembersItem
@@ -103,6 +89,42 @@ namespace Morphic.Server.Community{
 
             [JsonPropertyName("last_name")]
             public string? LastName { get; set; }
+        }
+
+        [Method]
+        public async Task Post()
+        {
+            var input = await Request.ReadJson<MemberPostRequest>();
+            var member = new Member()
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommunityId = Community.Id,
+                State = MemberState.Uninvited,
+                Role = MemberRole.Member,
+                CreatedAt = DateTime.Now
+            };
+            member.FirstName.PlainText = input.FirstName;
+            member.LastName.PlainText = input.LastName;
+            await Save(member);
+            await Respond(new MemberPostResponse()
+            {
+                Member = member
+            });
+        }
+
+        class MemberPostRequest
+        {
+            [JsonPropertyName("first_name")]
+            public string FirstName { get; set; } = null!;
+
+            [JsonPropertyName("last_name")]
+            public string LastName { get; set; } = null!;
+        }
+
+        class MemberPostResponse
+        {
+            [JsonPropertyName("member")]
+            public Member Member { get; set; } = null!;
         }
     }
 

@@ -41,6 +41,19 @@ namespace Morphic.Json.Tests
         private JsonSerializerOptions options;
 
         [Fact]
+        public void TestExcludeEnum()
+        {
+            var factory = new ModelConverterFactory("Morphic.Json.Tests");
+            Assert.False(factory.CanConvert(typeof(TestEnum)));
+        }
+
+        public enum TestEnum
+        {
+            One,
+            Two
+        };
+
+        [Fact]
         public void TestDeserializePropertiesOnly()
         {
             var json = @"{""Id"": ""Hello"", ""OtherId"": ""World""}";

@@ -24,22 +24,31 @@
 using System;
 using System.Text.Json.Serialization;
 
-
 namespace Morphic.Server.Community{
 
     using Db;
+    using Security;
+    using Json;
 
     public class Member: Record
     {
 
-        [JsonPropertyName("community_id")]
+        [JsonIgnore]
         public string CommunityId { get; set; } = null!;
 
-        [JsonPropertyName("user_id")]
-        public string UserId { get; set; } = null!;
+        [JsonIgnore]
+        public string? UserId { get; set; }
+
+        [JsonPropertyName("first_name")]
+        [JsonInclude]
+        public EncryptedString FirstName { get; set; } = new EncryptedString();
+
+        [JsonPropertyName("last_name")]
+        [JsonInclude]
+        public EncryptedString LastName { get; set; } = new EncryptedString();
 
         [JsonPropertyName("bar_id")]
-        public string BarId { get; set; } = null!;
+        public string? BarId { get; set; }
 
         [JsonPropertyName("role")]
         public MemberRole Role { get; set; } = MemberRole.Member;
@@ -54,8 +63,8 @@ namespace Morphic.Server.Community{
 
     public enum MemberRole
     {
-        Manager,
-        Member
+        Member,
+        Manager
     };
 
     public enum MemberState
