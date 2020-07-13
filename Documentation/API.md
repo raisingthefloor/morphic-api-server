@@ -1362,13 +1362,13 @@ Update a community member's details
       <td><code>first_name</code></td>
       <td>The member's first name</td>
       <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <td><code>last_name</code></td>
       <td>The member's last name</td>
       <td><code>String</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <td><code>bar_id</code></td>
@@ -1380,7 +1380,7 @@ Update a community member's details
       <td><code>role</code></td>
       <td>The member's role</td>
       <td><code>Role</code></td>
-      <td>Optional</td>
+      <td>Required</td>
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
