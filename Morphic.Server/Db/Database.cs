@@ -286,7 +286,8 @@ namespace Morphic.Server.Db
                 new CreateIndexModel<UsernameCredential>(Builders<UsernameCredential>.IndexKeys.Hashed(uc => uc.Username)));
             // IndexExplanation: When changing a user's password, which lives in the UsernameCredentials collection,
             // we need to look up the UsernameCredentials by that user's ID, so we can change the password.
-            // See ChangePasswordEndpoint
+            // See ChangePasswordEndpoint.
+            // IndexUse: This is also needed/used when deleting the user: Need to find the credentials by userId. 
             CreateOrUpdateIndexOrFail(usernameCredentials,
                 new CreateIndexModel<UsernameCredential>(
                     Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));
