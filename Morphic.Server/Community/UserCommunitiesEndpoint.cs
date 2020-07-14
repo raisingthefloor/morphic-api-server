@@ -52,29 +52,30 @@ namespace Morphic.Server.Community{
             }
             var db = Context.GetDatabase();
             var members = await db.GetEnumerable<Member>(m => m.UserId == authenticatedUser.Id && m.State == MemberState.Active, ActiveSession);
-            var communities = new List<Community>();
+            var communities = new List<(Community, Member)>();
             foreach (var member in members)
             {
                 var community = await db.Get<Community>(member.CommunityId, ActiveSession);
                 if (community is Community community_)
                 {
-                    communities.Add(community_);
+                    communities.Add((community_, member));
                 }
             }
             Communities = communities.ToArray();
         }
 
         public User User = null!;
-        public Community[] Communities = null!;
+        public (Community, Member)[] Communities = null!;
 
         [Method]
         public async Task Get(){
             var collection = new UserCommunityCollection();
-            foreach (var community in Communities){
+            foreach (var pair in Communities){
                 collection.Communities.Add(new UserCommunityCollectionItem()
                 {
-                    Id = community.Id,
-                    Name = community.Name
+                    Id = pair.Item1.Id,
+                    Name = pair.Item1.Name,
+                    Role = pair.Item2.Role
                 });
             }
             await Respond(collection);
@@ -86,6 +87,9 @@ namespace Morphic.Server.Community{
 
             [JsonPropertyName("name")]
             public string Name { get; set; } = null!;
+
+            [JsonPropertyName("role")]
+            public MemberRole Role { get; set; }
         }
 
         private class UserCommunityCollection{

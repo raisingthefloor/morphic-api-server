@@ -760,8 +760,18 @@ Get a list of communities the user belongs to.
       <td><code>string</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].role</code></td>
+      <td>The role the user has in the community</td>
+      <td><code>Role</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
+
+#### Role: String
+* `manager`
+* `member`
 
 
 <a name="endpoint-user-community"></a>/v1/user/{uid}/communities/{id}
