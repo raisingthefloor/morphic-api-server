@@ -26,6 +26,7 @@ using Xunit;
 using System.Collections.Generic;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace Morphic.Json.Tests
 {
@@ -413,6 +414,58 @@ namespace Morphic.Json.Tests
 
             [JsonInclude]
             public int Two { get; set; } = 2;
+        }
+
+        #nullable disable
+
+
+        [Fact]
+        public void TestSerializeArray()
+        {
+            var obj = new CollectionModel()
+            {
+                Items = new CollectionItemModel[]{
+                    new CollectionItemModel(){ Id = "One" },
+                    new CollectionItemModel(){ Id = "Two" }
+                }
+            };
+            var json = JsonSerializer.Serialize<CollectionModel>(obj, options);
+            var document = JsonDocument.Parse(json);
+            var element = document.RootElement;
+            JsonElement value;
+            Assert.Equal(JsonValueKind.Object, element.ValueKind);
+            Assert.True(element.TryGetProperty("Items", out value));
+            Assert.Equal(JsonValueKind.Array, value.ValueKind);
+            Assert.Equal(2, value.GetArrayLength());
+            var items = value.EnumerateArray().ToArray();
+            Assert.True(items[0].TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("One", value.GetString());
+            Assert.True(items[1].TryGetProperty("Id", out value));
+            Assert.Equal(JsonValueKind.String, value.ValueKind);
+            Assert.Equal("Two", value.GetString());
+        }
+
+        [Fact]
+        public void TestDeserializeArray()
+        {
+            var json = @"{""Items"": [{""Id"": ""One""}, {""Id"": ""Two""}]}";
+            var instance = JsonSerializer.Deserialize<CollectionModel>(json, options);
+            Assert.Equal(2, instance.Items.Length);
+            Assert.Equal("One", instance.Items[0].Id);
+            Assert.Equal("Two", instance.Items[1].Id);
+        }
+
+        #nullable enable
+
+        class CollectionModel
+        {
+            public CollectionItemModel[] Items { get; set; } = { };
+        }
+
+        class CollectionItemModel
+        {
+            public string Id { get; set; } = null!;
         }
 
         #nullable disable

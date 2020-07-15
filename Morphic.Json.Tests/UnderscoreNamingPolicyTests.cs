@@ -35,7 +35,6 @@ namespace Morphic.Json.Tests
         [InlineData("test", "test")]
         [InlineData("testName", "test_name")]
         [InlineData("TestName", "test_name")]
-        [InlineData("TestName", "test_name")]
         [InlineData("TestNameMore", "test_name_more")]
         [InlineData("testNameMore", "test_name_more")]
         [InlineData("already_underscored", "already_underscored")]

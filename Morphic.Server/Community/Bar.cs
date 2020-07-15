@@ -21,28 +21,52 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Community
 {
 
     using Db;
+    using Json;
 
     public class Bar: Record
     {
 
+        [JsonIgnore]
         public string CommunityId { get; set; } = null!;
+
+        [JsonPropertyName("name")]
         public string Name { get; set; } = null!;
+
+        [JsonPropertyName("is_shared")]
+        public bool IsShared { get; set; } = true;
+
+        [JsonPropertyName("items")]
         public BarItem[] Items { get; set; } = { };
+
+        [JsonIgnore]
+        public DateTime CreatedAt { get; set; }
 
     }
 
     public class BarItem: Record
     {
 
-        public BarItemKind Kind;
+        [JsonPropertyName("kind")]
+        [JsonRequired]
+        public BarItemKind Kind { get; set; }
+
+        [JsonPropertyName("label")]
         public string Label { get; set; } = null!;
-        public Dictionary<string, object?>? Values;
+
+        [JsonPropertyName("is_primary")]
+        [JsonRequired]
+        public bool IsPrimary { get; set; } = false;
+
+        [JsonPropertyName("configuration")]
+        public Dictionary<string, object?>? Configuration { get; set; }
     }
 
     public enum BarItemKind

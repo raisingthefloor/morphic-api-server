@@ -57,7 +57,10 @@ namespace Morphic.Server.Community
             var bar = new Bar()
             {
                 Id = Guid.NewGuid().ToString(),
-                CommunityId = communityId
+                Name = "Default",
+                CommunityId = communityId,
+                CreatedAt = DateTime.Now,
+                IsShared = true
             };
             await db.Save(bar);
 

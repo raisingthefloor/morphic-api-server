@@ -830,14 +830,20 @@ The details of a community the user belongs to
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].is_primary</code></td>
+      <td>Whether the item should be displayed on the primary bar</td>
+      <td><code>Boolean</code></td>
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].value</code></td>
-      <td>The bar item's value, depending on its <code>kind</code></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
+      <td>The bar item's display text</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
+      <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
       <td>Optional</td>
     </tr>
@@ -1574,6 +1580,12 @@ Get the list of bar configurations for the community
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].is_shared</code></td>
+      <td>Whether the bar is shown in the list of preconfigured bars that can be shared across multiple users</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -1599,6 +1611,42 @@ Create a new bar configuration for the community
       <td>The bar's name</td>
       <td><code>String</code></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>is_shared</code></td>
+      <td>Whether the bar is shown in the list of preconfigured bars that can be shared across multiple users</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>items</code></td>
+      <td>The bar's items</td>
+      <td><code>Array</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].kind</code></td>
+      <td>The bar item's type</td>
+      <td><code>BarItemKind</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].is_primary</code></td>
+      <td>If the item should be shown on the primary bar</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
+      <td>The bar item's display text</td>
+      <td><code>string</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].value</code></td>
+      <td>The bar item's value, depending on its <code>kind</code></td>
+      <td><code>object</code></td>
+      <td>Optional</td>
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
@@ -1651,15 +1699,6 @@ Get the details of a particular bar
       <td>Required</td>
     </tr>
     <tr>
-      <th colspan="4">Request Body</th>
-    </tr>
-    <tr>
-      <td><code>name</code></td>
-      <td>The bar's name</td>
-      <td><code>String</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
       <th colspan="4"><code>200</code> Response Body</th>
     </tr>
     <tr>
@@ -1675,6 +1714,12 @@ Get the details of a particular bar
       <td>Required</td>
     </tr>
     <tr>
+      <td><code>is_shared</code></td>
+      <td>Whether the bar is shown in the main bar list</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <td><code>items</code></td>
       <td>The bar's items</td>
       <td><code>Array</code></td>
@@ -1684,6 +1729,12 @@ Get the details of a particular bar
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].kind</code></td>
       <td>The bar item's type</td>
       <td><code>BarItemKind</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].is_primary</code></td>
+      <td>If the item is shown on the primary bar</td>
+      <td><code>Boolean</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1742,6 +1793,12 @@ Update a bar's configuration
       <td>Required</td>
     </tr>
     <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].is_primary</code></td>
+      <td>If the item should be shown on the primary bar</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
       <td>The bar item's display text</td>
       <td><code>string</code></td>
@@ -1763,9 +1820,13 @@ Update a bar's configuration
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td><code>error</code></td>
+      <td rowspan="2"><code>error</code></td>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Cannot un-share the community's default bar</td>
+      <td colspan="2"><code>"default_must_be_shared"</code></td>
     </tr>
     <tr>
       <td><code>details</code></td>
@@ -1801,6 +1862,19 @@ Delete a bar configuration
     </tr>
     <tr>
       <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td rowspan="2"><code>error</code></td>
+      <td>Cannot delete the communitie's default bar</td>
+      <td colspan="2"><code>"cannot_delete_default"</code></td>
+    </tr>
+    <tr>
+      <td rowspan="2"><code>error</code></td>
+      <td>Cannot delete a bar that is in use</td>
+      <td colspan="2"><code>"cannot_delete_used"</code></td>
     </tr>
   </tbody>
 </table>
