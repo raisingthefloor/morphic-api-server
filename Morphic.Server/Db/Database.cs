@@ -93,6 +93,7 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(Community)] = morphic.GetCollection<Community>("Communities");
             CollectionByType[typeof(Member)] = morphic.GetCollection<Member>("CommunityMembers");
             CollectionByType[typeof(Bar)] = morphic.GetCollection<Bar>("CommunityBars");
+            CollectionByType[typeof(Invitation)] = morphic.GetCollection<Invitation>("CommunityInvitations");
         }
 
         public void DeleteDatabase()
@@ -327,6 +328,15 @@ namespace Morphic.Server.Db
             // IndexExplanation: Lookup community bars by community id
             var communityBars = CreateCollectionIfNotExists<Bar>();
             CreateOrUpdateIndexOrFail(communityBars, new CreateIndexModel<Bar>(Builders<Bar>.IndexKeys.Hashed(b => b.CommunityId)));
+
+            var communityInvitations = CreateCollectionIfNotExists<Invitation>();
+
+            // IndexExplanation: Invitation expire automatically
+            options = new CreateIndexOptions();
+            options.ExpireAfter = TimeSpan.Zero;
+            CreateOrUpdateIndexOrFail(communityInvitations,
+                new CreateIndexModel<Invitation>(
+                    Builders<Invitation>.IndexKeys.Ascending(t => t.ExpiresAt), options));
 
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",

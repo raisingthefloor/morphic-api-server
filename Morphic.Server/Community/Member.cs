@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 namespace Morphic.Server.Community{
 
@@ -58,6 +59,31 @@ namespace Morphic.Server.Community{
 
         [JsonIgnore]
         public DateTime CreatedAt { get; set; }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public string? FullName
+        {
+            get
+            {
+                var firstName = FirstName.PlainText;
+                var lastName = LastName.PlainText;
+
+                if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
+                {
+                    return firstName + " " + lastName;
+                }
+                if (!string.IsNullOrEmpty(firstName))
+                {
+                    return firstName;
+                }
+                if (!string.IsNullOrEmpty(lastName))
+                {
+                    return lastName;
+                }
+                return null;
+            }
+        }
 
     }
 

@@ -6,6 +6,7 @@ Endpoints
 * [User Registration](#section-user-registration)
   * [`/v1/register/username`](#endpoint-register-username)
   * [`/v1/register/key`](#endpoint-register-key)
+  * [`/v1/invitations/{id}`](#endpoint-invitation)
 * [Authentication](#section-authentication)
   * [`/v1/auth/username`](#endpoint-auth-username)
   * [`/v1/auth/key`](#endpoint-auth-key)
@@ -24,6 +25,7 @@ Endpoints
   * [`/v1/communities/{id}/members`](#endpoint-community-members)
   * [`/v1/communities/{cid}/members/{id}`](#endpoint-community-member)
   * [`/v1/communities/{id}/invitations`](#endpoint-community-invitations)
+  * [`/v1/communities/{cid}/invitations/{id}/accept`](#endpoint-community-invitation-accept)
   * [`/v1/communities/{id}/bars`](#endpoint-community-bars)
   * [`/v1/communities/{cid}/bars/{id}`](#endpoint-community-bar)
 
@@ -233,6 +235,65 @@ Immediately log the user in and return an authentication token.
   </tbody>
 </table>
 
+
+<a name="endpoint-invitation"></a>/v1/invitations/{id}
+------------------
+
+### GET
+
+Get the details of an invitation to show a custom user registration or login screen.
+
+The personal information returned can be used to pre-fill a user registration form.
+
+After the user is registered or authenticated, complete the invitation process by POSTing to
+the `/v1/community/{cid}/invitations/{id}/accept` endpoint.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>community</code></td>
+      <td>The community the user was invited to</td>
+      <td><code>object</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.id</code></td>
+      <td>The community's id</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.name</code></td>
+      <td>The community's name</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>email</code></td>
+      <td>The invitee's email</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>first_name</code></td>
+      <td>The invitee's first name</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td><code>last_name</code></td>
+      <td>The invitee's last name</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+  </tbody>
+</table>
 
 <a name="section-authentication"></a>Authentication
 =================
@@ -1013,6 +1074,11 @@ Create a new community
       <td>Required</td>
     </tr>
     <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <th colspan="4">Request Body</th>
     </tr>
     <tr>
@@ -1066,8 +1132,8 @@ Get a community's details
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1106,6 +1172,11 @@ Update a community
     <tr>
       <td><code>Content-Type</code></td>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1166,8 +1237,8 @@ Delete a community
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1193,8 +1264,8 @@ Get a list of community members
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1240,6 +1311,11 @@ Create a new community member
     <tr>
       <td><code>Content-Type</code></td>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1302,8 +1378,8 @@ Get a community member's details
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1369,6 +1445,11 @@ Update a community member's details
     <tr>
       <td><code>Content-Type</code></td>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1445,8 +1526,8 @@ Delete a member from a community
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1486,6 +1567,11 @@ Send a new invitation for a community member
       <td>Required</td>
     </tr>
     <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <th colspan="4">Request Body</th>
     </tr>
     <tr>
@@ -1499,6 +1585,12 @@ Send a new invitation for a community member
       <td>The member's email address, if not already added</td>
       <td><code>String</code></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>message</code></td>
+      <td>A custom message that will be included in the email</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
     </tr>
     <tr>
       <th colspan="4"><code>200</code> Response Body</th>
@@ -1542,6 +1634,32 @@ Send a new invitation for a community member
 </table>
 
 
+<a name="endpoint-community-invitation-accept"></a>/v1/communities/{cid}/invitations/{id}/accept
+------------------
+
+### POST
+
+Accept an invitation
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Content-Type</code></td>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+  </tbody>
+</table>
+
 <a name="endpoint-community-bars"></a>/v1/communities/{id}/bars
 ------------------
 
@@ -1555,8 +1673,8 @@ Get the list of bar configurations for the community
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1601,6 +1719,11 @@ Create a new bar configuration for the community
     <tr>
       <td><code>Content-Type</code></td>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1694,8 +1817,8 @@ Get the details of a particular bar
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1769,6 +1892,11 @@ Update a bar's configuration
     <tr>
       <td><code>Content-Type</code></td>
       <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -1853,8 +1981,8 @@ Delete a bar configuration
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
     </tr>
     <tr>

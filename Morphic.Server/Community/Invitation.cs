@@ -29,15 +29,27 @@ namespace Morphic.Server.Community
 {
 
     using Db;
+    using Security;
 
     public class Invitation: Record
     {
+
+        [JsonIgnore]
+        public string CommunityId { get; set; } = null!;
 
         [JsonPropertyName("member_id")]
         public string MemberId { get; set; } = null!;
 
         [JsonIgnore]
         public DateTime CreatedAt { get; set; }
+
+        [JsonIgnore]
+        public DateTime ExpiresAt { get; set; }
+
+        [JsonPropertyName("sent_at")]
+        public DateTime? SentAt { get; set; }
+
+        public EncryptedString Email { get; set; } = new EncryptedString();
 
     }
 
