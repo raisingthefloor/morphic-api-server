@@ -206,5 +206,79 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("name", out property));
             Assert.True(element.TryGetProperty("role", out property));
         }
+
+        [Fact]
+        public async Task TestCORS()
+        {
+            await CreateCommunity();
+            MorphicSettings.CommunityServerUrlPrefix = "http://localhost:1234";
+
+            // OPTIONS, no Origin
+            var path = $"/v1/users/{UserInfo1.Id}/communities";
+            var request = new HttpRequestMessage(HttpMethod.Options, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
+
+            // OPTIONS, bad Origin
+            path = $"/v1/users/{UserInfo1.Id}/communities";
+            request = new HttpRequestMessage(HttpMethod.Options, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
+            request.Headers.Add("Origin", "https://morphic.org");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
+
+            // OPTIONS, correct Origin
+            path = $"/v1/users/{UserInfo1.Id}/communities";
+            request = new HttpRequestMessage(HttpMethod.Options, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
+            request.Headers.Add("Origin", "http://localhost:1234");
+            request.Headers.Add("Access-Control-Request-Method", "*");
+            request.Headers.Add("Access-Control-Request-Headers", "*");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"));
+            var values = response.Headers.GetValues("Access-Control-Allow-Origin").ToArray();
+            Assert.Single(values);
+            Assert.Equal("http://localhost:1234", values[0]);
+            values = response.Headers.GetValues("Vary").ToArray();
+            Assert.Single(values);
+            Assert.Equal("Origin", values[0]);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Methods"));
+            values = response.Headers.GetValues("Access-Control-Allow-Methods").ToArray();
+            Assert.Single(values);
+            Assert.Equal("*", values[0]);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Headers"));
+            values = response.Headers.GetValues("Access-Control-Allow-Headers").ToArray();
+            Assert.Single(values);
+            Assert.Equal("Content-Type, Authorization", values[0]);
+
+            // OPTIONS, GET
+            path = $"/v1/users/{UserInfo1.Id}/communities";
+            request = new HttpRequestMessage(HttpMethod.Get, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
+            request.Headers.Add("Origin", "http://localhost:1234");
+            request.Headers.Add("Access-Control-Request-Method", "GET");
+            request.Headers.Add("Access-Control-Request-Headers", "*");
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Origin"));
+            values = response.Headers.GetValues("Access-Control-Allow-Origin").ToArray();
+            Assert.Single(values);
+            Assert.Equal("http://localhost:1234", values[0]);
+            values = response.Headers.GetValues("Vary").ToArray();
+            Assert.Single(values);
+            Assert.Equal("Origin", values[0]);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Methods"));
+            values = response.Headers.GetValues("Access-Control-Allow-Methods").ToArray();
+            Assert.Single(values);
+            Assert.Equal("*", values[0]);
+            Assert.True(response.Headers.Contains("Access-Control-Allow-Headers"));
+            values = response.Headers.GetValues("Access-Control-Allow-Headers").ToArray();
+            Assert.Single(values);
+            Assert.Equal("Content-Type, Authorization", values[0]);
+        }
     }
 }

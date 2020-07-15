@@ -94,6 +94,7 @@ namespace Morphic.Server.Http
             settings = Context.RequestServices.GetRequiredService<MorphicSettings>();
             this.logger = logger;
             AddAllowedOriginsFromAttributes();
+            AddAllowedOrigin(settings.CommunityServerUri);
             Response.OnStarting(() =>
             {
                 SetCrossOriginHeaders();
