@@ -791,11 +791,6 @@ Get a list of communities the user belongs to.
       <th colspan="4">Headers</th>
     </tr>
     <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
       <td><code>Authorization</code></td>
       <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
       <td>Required</td>
@@ -846,11 +841,6 @@ The details of a community the user belongs to
   <tbody>
     <tr>
       <th colspan="4">Headers</th>
-    </tr>
-    <tr>
-      <td><code>Content-Type</code></td>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
-      <td>Required</td>
     </tr>
     <tr>
       <td><code>Authorization</code></td>
