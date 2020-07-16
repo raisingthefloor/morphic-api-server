@@ -34,6 +34,7 @@ using Serilog;
 using Morphic.Json;
 using Morphic.Security;
 using System.Linq;
+using System.Net.Mime;
 
 namespace Morphic.Server.Http
 {
@@ -76,7 +77,8 @@ namespace Morphic.Server.Http
         /// <summary>Deserialize the request JSON body into an object</summary>
         public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
         {
-            if (request.ContentType == "application/json; charset=utf-8")
+            var contentType = new ContentType(request.ContentType);
+            if (contentType.MediaType.ToLower() == "application/json" && contentType.CharSet.ToLower() == "utf-8")
             {
                 try
                 {
