@@ -216,7 +216,6 @@ namespace Morphic.Server.Tests.Community
             // OPTIONS, no Origin
             var path = $"/v1/users/{UserInfo1.Id}/communities";
             var request = new HttpRequestMessage(HttpMethod.Options, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
             Assert.False(response.Headers.Contains("Access-Control-Allow-Origin"));
@@ -224,7 +223,6 @@ namespace Morphic.Server.Tests.Community
             // OPTIONS, bad Origin
             path = $"/v1/users/{UserInfo1.Id}/communities";
             request = new HttpRequestMessage(HttpMethod.Options, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
             request.Headers.Add("Origin", "https://morphic.org");
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -233,7 +231,6 @@ namespace Morphic.Server.Tests.Community
             // OPTIONS, correct Origin
             path = $"/v1/users/{UserInfo1.Id}/communities";
             request = new HttpRequestMessage(HttpMethod.Options, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", UserInfo1.AuthToken);
             request.Headers.Add("Origin", "http://localhost:1234");
             request.Headers.Add("Access-Control-Request-Method", "*");
             request.Headers.Add("Access-Control-Request-Headers", "*");
