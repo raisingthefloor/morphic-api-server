@@ -318,9 +318,12 @@ namespace Morphic.Server.Db
 
             // IndexExplanation: Lookup community members by community id, user id, or both combined
             var communityMembers = CreateCollectionIfNotExists<Member>();
+            // https://docs.mongodb.com/manual/reference/method/db.collection.createIndex/#create-an-index-on-a-multiple-fields
+            // "A compound index cannot include a hashed index component."
+            // So we leave these indexes as regular, unhashed, indexes.
             // CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Combine(new IndexKeysDefinition<Member>[]{
-            //     Builders<Member>.IndexKeys.Hashed(m => m.CommunityId),
-            //     Builders<Member>.IndexKeys.Hashed(m => m.UserId)
+            //     Builders<Member>.IndexKeys.Ascending(m => m.CommunityId),
+            //     Builders<Member>.IndexKeys.Ascending(m => m.UserId)
             // })));
             CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Hashed(m => m.CommunityId)));
             CreateOrUpdateIndexOrFail(communityMembers, new CreateIndexModel<Member>(Builders<Member>.IndexKeys.Hashed(m => m.UserId)));
