@@ -54,6 +54,12 @@ namespace Morphic.Json
         /// <summary>Returns <code>true</code> for anything in the <code>MorphicServer</code> namespace
         public override bool CanConvert (Type typeToConvert)
         {
+            if (typeToConvert.IsEnum){
+                return false;
+            }
+            if (typeToConvert.IsArray){
+                return false;
+            }
             return typeToConvert.Namespace == NamespaceName || (typeToConvert.Namespace?.StartsWith(NamespaceName + ".") ?? false);
         }
 

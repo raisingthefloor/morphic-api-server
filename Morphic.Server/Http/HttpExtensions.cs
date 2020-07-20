@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Threading;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System;
 using System.Net;
 using System.Text.Encodings.Web;
@@ -33,6 +34,7 @@ using Serilog;
 using Morphic.Json;
 using Morphic.Security;
 using System.Linq;
+using System.Net.Mime;
 
 namespace Morphic.Server.Http
 {
@@ -53,6 +55,7 @@ namespace Morphic.Server.Http
                 options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
                 options.Converters.Add(new EncryptedString.JsonConverter());
                 options.Converters.Add(new SearchableEncryptedString.JsonConverter());
+                options.Converters.Add(new EnumConverterFactory());
                 await JsonSerializer.SerializeAsync(response.Body, obj, obj.GetType(), options, cancellationToken);
             }
             await response.CompleteAsync();
@@ -74,7 +77,8 @@ namespace Morphic.Server.Http
         /// <summary>Deserialize the request JSON body into an object</summary>
         public static async Task<T> ReadJson<T>(this HttpRequest request, CancellationToken cancellationToken = default(CancellationToken)) where T: class
         {
-            if (request.ContentType == "application/json; charset=utf-8")
+            var contentType = new ContentType(request.ContentType);
+            if (contentType.MediaType.ToLower() == "application/json" && contentType.CharSet.ToLower() == "utf-8")
             {
                 try
                 {
@@ -83,6 +87,7 @@ namespace Morphic.Server.Http
                     options.Converters.Add(new ModelConverterFactory("Morphic.Server", new HashSet<Type> { typeof(EncryptedString), typeof(SearchableEncryptedString) }));
                     options.Converters.Add(new EncryptedString.JsonConverter());
                     options.Converters.Add(new SearchableEncryptedString.JsonConverter());
+                    options.Converters.Add(new EnumConverterFactory());
                     var obj = await JsonSerializer.DeserializeAsync(request.Body, typeof(T), options, cancellationToken);
                     if (obj is T o)
                     {

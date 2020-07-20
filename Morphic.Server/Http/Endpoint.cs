@@ -94,6 +94,7 @@ namespace Morphic.Server.Http
             settings = Context.RequestServices.GetRequiredService<MorphicSettings>();
             this.logger = logger;
             AddAllowedOriginsFromAttributes();
+            AddAllowedOrigin(settings.CommunityServerUri);
             Response.OnStarting(() =>
             {
                 SetCrossOriginHeaders();
@@ -178,7 +179,10 @@ namespace Morphic.Server.Http
                         Func<Task> call = async () =>
                         {
                             endpoint.PopulateParameterFields();
-                            await endpoint.LoadResource();
+                            if (method != "OPTIONS")
+                            {
+                                await endpoint.LoadResource();
+                            }
                             if (methodInfo.Invoke(endpoint, new object[] { }) is Task task)
                             {
                                 await task;
