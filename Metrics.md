@@ -86,6 +86,12 @@ An integer count which can go up and down
 * Labels:
   * `level`: log level
 
+### morphic_unregister_seconds
+* Description: The time in seconds (fractional) it took unregister a user
+* Type: histogram (bucket, count, sum)
+* Labels:
+  * `source`: "stale-user-job" or "user-request"
+
 ## Kubernetes Labels
 
 Prometheus scraping adds more labels for various kubernetes values.
