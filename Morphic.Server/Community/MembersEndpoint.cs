@@ -67,7 +67,10 @@ namespace Morphic.Server.Community{
                 {
                     Id = member.Id,
                     FirstName = member.FirstName.PlainText,
-                    LastName = member.LastName.PlainText
+                    LastName = member.LastName.PlainText,
+                    Role = member.Role,
+                    BarId = member.BarId,
+                    State = member.State
                 });
             }
             await Respond(page);
@@ -89,6 +92,15 @@ namespace Morphic.Server.Community{
 
             [JsonPropertyName("last_name")]
             public string? LastName { get; set; }
+
+            [JsonPropertyName("role")]
+            public MemberRole Role { get; set; }
+
+            [JsonPropertyName("bar_id")]
+            public string? BarId { get; set; }
+
+            [JsonPropertyName("state")]
+            public MemberState State { get; set; }
         }
 
         [Method]

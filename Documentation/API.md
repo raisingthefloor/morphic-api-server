@@ -1285,6 +1285,24 @@ Get a list of community members
       <td>String</code></td>
       <td>Optional</td>
     </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].role</code></td>
+      <td>The member's role</td>
+      <td>Role</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].state</code></td>
+      <td>The member's state</td>
+      <td>State</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code></td>
+      <td>The member's bar_id (null means use community default_bar_id)</td>
+      <td>String</code></td>
+      <td>Optional</td>
+    </tr>
   </tbody>
 </table>
 
