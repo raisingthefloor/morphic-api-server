@@ -18,6 +18,7 @@
     <PackageReference Include="Serilog.Filters.Expressions" Version="2.1.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="1.1.0" />
     <PackageReference Include="sib_api_v3_sdk" Version="2.1.1" />
+    <PackageReference Include="Stripe.net" Version="37.20.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Morphic.Json\Morphic.Json.csproj" />
