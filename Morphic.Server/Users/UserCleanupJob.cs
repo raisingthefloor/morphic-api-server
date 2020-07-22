@@ -63,6 +63,9 @@ namespace Morphic.Server.Users
             logger.LogDebug("Deleted {deleted} UsernameCredentials for user {userId}", deleted, userId);
             deleted = await db.DeleteMany<KeyCredential>(u => u.UserId == userId);
             logger.LogDebug("Deleted {deleted} KeyCredentials for user {userId}", deleted, userId);
+            deleted = await db.DeleteMany<Member>(m => m.UserId == userId);
+            logger.LogDebug("Deleted {deleted} Member for user {userId}", deleted, userId);
+
             histogram.Labels(source).Observe(stopWatch.Elapsed.TotalSeconds);
         }
 
