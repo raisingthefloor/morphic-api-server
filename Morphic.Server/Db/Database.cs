@@ -138,26 +138,12 @@ namespace Morphic.Server.Db
         }
 
         /// <summary>
-        /// Get a list of items. Returns a cursor.
+        /// Get a list of items. Returns an IEnumerable.
         /// </summary>
         /// <param name="filter">Linq filter</param>
         /// <param name="session">The session</param>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public async Task<IAsyncCursor<T>> Find<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
-        {
-            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
-            {
-                if (session != null)
-                {
-                    return (await collection.FindAsync(session.Handle, filter));
-                }
-
-                return (await collection.FindAsync(filter));
-            }
-            throw new MorphicServerException($"unknown collection type {typeof(T)}");
-        }
-        
         public async Task<IEnumerable<T>> GetEnumerable<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
@@ -248,22 +234,6 @@ namespace Morphic.Server.Db
             return -1;
         }
         
-        public async Task<bool> DeleteAll<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
-        {
-            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
-            {
-                if (session != null)
-                {
-                    return (await collection.DeleteManyAsync(session.Handle, filter))
-                        .IsAcknowledged;
-                }
-
-                return (await collection.DeleteManyAsync(filter)).IsAcknowledged;
-            }
-
-            return false;
-        }
-
         /// <summary>Run async operations within a transaction, using a lambda to specify the operations</summary>
         /// <remarks>
         /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>

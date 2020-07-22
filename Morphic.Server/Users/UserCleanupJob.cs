@@ -3,8 +3,8 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using MongoDB.Driver;
 using Morphic.Server.Auth;
+using Morphic.Server.Community;
 using Morphic.Server.Db;
 using Prometheus;
 
@@ -75,13 +75,11 @@ namespace Morphic.Server.Users
                     $"Can not use settings.StaleUserAfterDays {settings.StaleUserAfterDays}");
             }
             var cutoff = DateTime.UtcNow - new TimeSpan(settings.StaleUserAfterDays, 0, 0, 0);
-            using (var cursor = await db.Find<User>(u => u.LastAuth < cutoff))
+            var users = await db.GetEnumerable<User>(u => u.LastAuth < cutoff);
+            foreach (var user in users)
             {
-                await cursor.ForEachAsync(user =>
-                {
-                    logger.LogInformation("Removing stale user {UserId}", user.Id);
-                    UnregisterUser(user.Id, "stale-user-job").Wait();
-                });
+                logger.LogInformation("Removing stale user {UserId}", user.Id);
+                UnregisterUser(user.Id, "stale-user-job").Wait();
             }
         }
 
