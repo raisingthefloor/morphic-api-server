@@ -51,7 +51,8 @@ In Prometheus, the single metric is converted into three:
           "PasswordResetId": "<template Id>",
           "PasswordResetEmailNotValidatedId": "<template Id>",
           "PasswordResetUnknownEmailId": "<template Id>",
-          "ChangePasswordEmailId": "<template Id>"
+          "ChangePasswordEmailId": "<template Id>",
+          "CommunityInvitationId": "<template Id>"
         },
         "SendInBlueSettings": {
           "ApiKey": "api key for SendInBlue"
@@ -59,7 +60,8 @@ In Prometheus, the single metric is converted into three:
           "PasswordResetId": "<template Id>",
           "PasswordResetEmailNotValidatedId": "<template Id>",
           "PasswordResetUnknownEmailId": "<template Id>",
-          "ChangePasswordEmailId": "<template Id>"
+          "ChangePasswordEmailId": "<template Id>",
+          "CommunityInvitationId": "<template Id>"
         }
     }
 
