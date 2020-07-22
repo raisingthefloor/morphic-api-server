@@ -29,7 +29,7 @@ namespace Morphic.Server.Tests
 {
 
     using Db;
-    using Auth;
+    using Server.Auth;
 
     public class BadPasswordLockoutTests : EndpointRequestTests
     {

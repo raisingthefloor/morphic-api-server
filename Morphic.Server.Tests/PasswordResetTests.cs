@@ -33,7 +33,7 @@ using Xunit;
 namespace Morphic.Server.Tests
 {
 
-    using Auth;
+    using Server.Auth;
 
     public class PasswordResetTests : EndpointRequestTests
     {

@@ -26,6 +26,7 @@ using System.IO;
 using System.Security.Cryptography;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Bson.Serialization;
+using MongoDB.Bson;
 using Prometheus;
 
 namespace Morphic.Security
@@ -351,11 +352,19 @@ namespace Morphic.Security
         {
             public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, EncryptedField value)
             {
-                context.Writer.WriteString(value.ToCombinedString());
+                if (value == null){
+                    context.Writer.WriteNull();
+                }else{
+                    context.Writer.WriteString(value.ToCombinedString());
+                }
             }
 
             public override EncryptedField Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
             {
+                if (context.Reader.CurrentBsonType == BsonType.Null){
+                    context.Reader.ReadNull();
+                    return null!;
+                }
                 return EncryptedField.FromCombinedString(context.Reader.ReadString());
             }
         }
