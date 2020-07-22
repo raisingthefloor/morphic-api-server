@@ -216,10 +216,11 @@ namespace Morphic.Server.Db
         }
 
         /// <summary>Delete one or more records from the database based on an expression</summary>
+        /// <returns>Returns the number of records deleted or -1 on error.</returns>
         /// <remarks>
         /// The source collection is chosen based on the record's type
         /// </remarks>
-        public async Task<long> DeleteMany<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        public async Task<long> DeleteAll<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {

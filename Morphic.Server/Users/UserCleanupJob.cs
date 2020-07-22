@@ -53,17 +53,17 @@ namespace Morphic.Server.Users
 
             // delete related entries
             
-            var deleted = await db.DeleteMany<Preferences>(r => r.UserId == userId);
+            var deleted = await db.DeleteAll<Preferences>(r => r.UserId == userId);
             logger.LogDebug("Deleted {deleted} Preferences for user {userId}", deleted, userId);
-            deleted = await db.DeleteMany<AuthToken>(r => r.UserId == userId);
+            deleted = await db.DeleteAll<AuthToken>(r => r.UserId == userId);
             logger.LogDebug("Deleted {deleted} AuthTokens for user {userId}", deleted, userId);
-            deleted = await db.DeleteMany<BadPasswordLockout>(r => r.Id == userId);
+            deleted = await db.DeleteAll<BadPasswordLockout>(r => r.Id == userId);
             logger.LogDebug("Deleted {deleted} BadPasswordLockout for user {userId}", deleted, userId);
-            deleted = await db.DeleteMany<UsernameCredential>(u => u.UserId == userId);
+            deleted = await db.DeleteAll<UsernameCredential>(u => u.UserId == userId);
             logger.LogDebug("Deleted {deleted} UsernameCredentials for user {userId}", deleted, userId);
-            deleted = await db.DeleteMany<KeyCredential>(u => u.UserId == userId);
+            deleted = await db.DeleteAll<KeyCredential>(u => u.UserId == userId);
             logger.LogDebug("Deleted {deleted} KeyCredentials for user {userId}", deleted, userId);
-            deleted = await db.DeleteMany<Member>(m => m.UserId == userId);
+            deleted = await db.DeleteAll<Member>(m => m.UserId == userId);
             logger.LogDebug("Deleted {deleted} Member for user {userId}", deleted, userId);
 
             histogram.Labels(source).Observe(stopWatch.Elapsed.TotalSeconds);

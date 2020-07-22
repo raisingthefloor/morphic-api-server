@@ -80,8 +80,8 @@ namespace Morphic.Server.Community
         public async Task Delete(){
             var db = Context.GetDatabase();
             await db.Delete(Community);
-            await db.DeleteMany<Member>(m => m.CommunityId == Community.Id);
-            await db.DeleteMany<Bar>(b => b.CommunityId == Community.Id);
+            await db.DeleteAll<Member>(m => m.CommunityId == Community.Id);
+            await db.DeleteAll<Bar>(b => b.CommunityId == Community.Id);
         }
 
         class CommunityPutRequest
