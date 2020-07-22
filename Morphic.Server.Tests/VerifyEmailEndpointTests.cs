@@ -32,7 +32,7 @@ namespace Morphic.Server.Tests
 {
 
     using Users;
-    using Auth;
+    using Server.Auth;
 
     public class VerifyEmailEndpointTests : EndpointRequestTests
     {
