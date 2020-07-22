@@ -66,7 +66,7 @@ namespace Morphic.Server.Auth
         /// <summary>The limited-use token data populated by <code>LoadResource()</code></summary>
         public OneTimeToken OneTimeToken = null!;
 
-        private User User;
+        private User User = null!;
         
         public override async Task LoadResource()
         {
