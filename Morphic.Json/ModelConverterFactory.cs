@@ -185,13 +185,10 @@ namespace Morphic.Json
                     {
                         if (propertyInfo.GetCustomAttribute<JsonIgnoreAttribute>() == null)
                         {
-                            if (!propertyInfo.IsNullable())
+                            if ((!propertyInfo.IsNullable() && propertyInfo.GetValue(instance) == null) || (propertyInfo.GetCustomAttribute<JsonRequiredAttribute>() != null && !seenPropertyNames.Contains(propertyInfo.Name)))
                             {
-                                if (propertyInfo.GetValue(instance) == null || (propertyInfo.GetCustomAttribute<JsonRequiredAttribute>() != null && !seenPropertyNames.Contains(propertyInfo.Name)))
-                                {
-                                    var propertyName = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? propertyInfo.Name;
-                                    required.Add(propertyName);
-                                }
+                                var propertyName = propertyInfo.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? propertyInfo.Name;
+                                required.Add(propertyName);
                             }
                         }
                     }

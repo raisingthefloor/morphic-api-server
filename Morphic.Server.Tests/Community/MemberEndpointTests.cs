@@ -217,7 +217,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("role", "manager");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // PUT, missing last name
             request = new HttpRequestMessage(HttpMethod.Put, path);
@@ -227,7 +227,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("role", "manager");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // PUT, missing role
             request = new HttpRequestMessage(HttpMethod.Put, path);
