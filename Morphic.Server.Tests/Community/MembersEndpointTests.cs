@@ -206,7 +206,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("last_name", "Member");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // POST, missing last name
             request = new HttpRequestMessage(HttpMethod.Post, path);
@@ -215,7 +215,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "New");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
