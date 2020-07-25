@@ -127,10 +127,10 @@ namespace Morphic.Server.Community{
         class MemberPostRequest
         {
             [JsonPropertyName("first_name")]
-            public string FirstName { get; set; } = null!;
+            public string? FirstName { get; set; } = null!;
 
             [JsonPropertyName("last_name")]
-            public string LastName { get; set; } = null!;
+            public string? LastName { get; set; } = null!;
         }
 
         class MemberPostResponse

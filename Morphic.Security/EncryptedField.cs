@@ -193,7 +193,7 @@ namespace Morphic.Security
         private static byte[] EncryptStringToBytes_Aes256CBC(string plainText, byte[] key, byte[] iv)
         {
             // Check arguments.
-            if (plainText == null || plainText.Length <= 0)
+            if (plainText == null)
                 throw new PlainTextEmptyException("plainText");
             if (key == null || key.Length <= 16)
                 throw new KeyArgumentBad("key");
