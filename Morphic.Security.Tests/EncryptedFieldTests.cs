@@ -130,8 +130,7 @@ namespace Morphic.Security.Tests
             decryptedText = otherEncryptedField.Decrypt();
             Assert.Equal(plainText, decryptedText);
 
-            Assert.Throws<EncryptedField.PlainTextEmptyException>(
-                () => EncryptedField.FromPlainText(""));
+            AssertProperlyEncrypted(keyName, "");
         }
 
         [Fact]
