@@ -31,7 +31,7 @@ using Hangfire;
 
 namespace Morphic.Server.Auth
 {
-
+    using Security;
     using Http;
     using Users;
 
@@ -105,9 +105,16 @@ namespace Morphic.Server.Auth
             var user = new User();
             var cred = new UsernameCredential(user.Id, request.Username, request.Password);
             user.Email.PlainText = request.Email;
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-
+            if (!string.IsNullOrEmpty(request.FirstName))
+            {
+                user.FirstName = new EncryptedString();
+                user.FirstName.PlainText = request.FirstName;
+            }
+            if (!string.IsNullOrEmpty(request.LastName))
+            {
+                user.LastName = new EncryptedString();
+                user.LastName.PlainText = request.LastName;
+            }
             await Register(cred, user);
             jobClient.Enqueue<EmailVerificationEmail>(x => x.SendEmail(
                 user.Id,
@@ -185,8 +192,16 @@ namespace Morphic.Server.Auth
             cred.Id = request.Key;
             var user = new User();
             user.EmailVerified = false;
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
+            if (!string.IsNullOrEmpty(request.FirstName))
+            {
+                user.FirstName = new EncryptedString();
+                user.FirstName.PlainText = request.FirstName;
+            }
+            if (!string.IsNullOrEmpty(request.LastName))
+            {
+                user.LastName = new EncryptedString();
+                user.LastName.PlainText = request.LastName;
+            }
             await Register(cred, user);
         }
 

@@ -79,8 +79,8 @@ namespace Morphic.Server.Users
             var db = Context.GetDatabase();
             var members = await db.GetEnumerable<Community.Member>(m => m.UserId == User.Id);
             foreach (var member in members){
-                member.FirstName.PlainText = User.FirstName;
-                member.LastName.PlainText = User.LastName;
+                member.FirstName.PlainText = User.FirstName?.PlainText;
+                member.LastName.PlainText = User.LastName?.PlainText;
                 await db.Save(member);
             }
         }

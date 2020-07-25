@@ -82,8 +82,8 @@ namespace Morphic.Server.Community
                 State = MemberState.Active,
                 CreatedAt = DateTime.Now
             };
-            member.FirstName.PlainText = User.FirstName;
-            member.LastName.PlainText = User.LastName;
+            member.FirstName.PlainText = User.FirstName?.PlainText;
+            member.LastName.PlainText = User.LastName?.PlainText;
             await db.Save(member);
 
             await Respond(new CommunityPutResponse()

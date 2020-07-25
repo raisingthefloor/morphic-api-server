@@ -26,20 +26,22 @@ using System.Net.Mail;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using MongoDB.Bson.Serialization.Attributes;
-using Morphic.Security;
 
 namespace Morphic.Server.Users
 {
-
+    using Json;
+    using Security;
     using Db;
     
     public class User: Record
     {
         
         [JsonPropertyName("first_name")]
-        public string? FirstName { get; set; }
+        [JsonInclude]
+        public EncryptedString? FirstName { get; set; }
         [JsonPropertyName("last_name")]
-        public string? LastName { get; set; }
+        [JsonInclude]
+        public EncryptedString? LastName { get; set; }
         [JsonPropertyName("preferences_id")]
         public string? PreferencesId { get; set; }
         [JsonPropertyName("email")]
@@ -79,18 +81,18 @@ namespace Morphic.Server.Users
             {
                 string fullName = "";
 
-                if (!string.IsNullOrEmpty(FirstName) || !string.IsNullOrEmpty(LastName))
+                if (!string.IsNullOrEmpty(FirstName?.PlainText) || !string.IsNullOrEmpty(LastName?.PlainText))
                 {
-                    if (!string.IsNullOrEmpty(FirstName)) fullName = FirstName!;
-                    if (!string.IsNullOrEmpty(LastName))
+                    if (!string.IsNullOrEmpty(FirstName?.PlainText)) fullName = FirstName.PlainText;
+                    if (!string.IsNullOrEmpty(LastName?.PlainText))
                     {
                         if (fullName == "")
                         {
-                            fullName = LastName;
+                            fullName = LastName.PlainText;
                         }
                         else
                         {
-                            fullName += " " + LastName;
+                            fullName += " " + LastName.PlainText;
                         }
                     }
                 }
