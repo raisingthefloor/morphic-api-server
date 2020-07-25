@@ -33,7 +33,7 @@ using System.Text;
 
 namespace Morphic.Server.Tests
 {
-
+    using Security;
     using Users;
 
     public class UserEndpointTests : EndpointRequestTests
@@ -204,15 +204,19 @@ namespace Morphic.Server.Tests
             user.LastName = null;
             Assert.Equal("", user.FullName);
 
-            user.FirstName = "foo";
+            user.FirstName = new EncryptedString();
+            user.FirstName.PlainText = "foo";
             Assert.Equal("foo", user.FullName);
 
             user.FirstName = null;
-            user.LastName = "bar";
+            user.LastName = new EncryptedString();
+            user.LastName.PlainText = "bar";
             Assert.Equal("bar", user.FullName);
 
-            user.FirstName = "foo";
-            user.LastName = "bar";
+            user.FirstName = new EncryptedString();
+            user.LastName = new EncryptedString();
+            user.FirstName.PlainText = "foo";
+            user.LastName.PlainText = "bar";
             Assert.Equal("foo bar", user.FullName);
         }
 
