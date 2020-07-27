@@ -900,18 +900,6 @@ The details of a community the user belongs to
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>String</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1787,18 +1775,6 @@ Create a new bar configuration for the community
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1894,18 +1870,6 @@ Get the details of a particular bar
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1964,18 +1928,6 @@ Update a bar's configuration
       <td>If the item should be shown on the primary bar</td>
       <td><code>Boolean</code></td>
       <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
