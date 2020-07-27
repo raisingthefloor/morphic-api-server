@@ -12,7 +12,7 @@ try:
 except ImportError:
     has_lorem = False
 
-from morphiclite import MorphicLite, Register, UserAuth, Preferences, Users
+from morphiclite import MorphicLite, Register, UserAuth, Preferences, Users, Unregister
 
 
 def dict_compare(d1, d2):
@@ -172,6 +172,20 @@ def testrunner(args):
 
                 except MorphicLite.MorphicLiteError as e:
                     logger.error(e)
+
+                if args.unregister:
+                    try:
+                        users_kwargs = {
+                            'url': base_url,
+                            'userId': auth['user']['id'],
+                            'authToken': auth['token'],
+                            'logger': logger
+                        }
+                        unregister = Unregister(**users_kwargs).unregisterUser()
+                        print(unregister)
+                    except Exception as e:
+                        logger.error(e)
+
             except MorphicLite.MorphicLiteError as e:
                 logger.error(e)
             except Exception as e:
@@ -184,6 +198,7 @@ parser.add_argument('--url', help='base url', default="http://localhost:5002")
 parser.add_argument('--extra-tests', help='some extra negative tests', action='store_true')
 parser.add_argument('-n', '--nusers', help='number of users', default=1000, type=int)
 parser.add_argument('-l', '--loops', help='number of loops', default=10, type=int)
+parser.add_argument('--unregister', help='unregister users, too', action="store_true", default=False)
 
 args = parser.parse_args()
 try:

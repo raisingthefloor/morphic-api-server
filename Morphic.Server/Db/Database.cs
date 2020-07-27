@@ -137,6 +137,13 @@ namespace Morphic.Server.Db
             return null;
         }
 
+        /// <summary>
+        /// Get a list of items. Returns an IEnumerable.
+        /// </summary>
+        /// <param name="filter">Linq filter</param>
+        /// <param name="session">The session</param>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public async Task<IEnumerable<T>> GetEnumerable<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
@@ -149,7 +156,7 @@ namespace Morphic.Server.Db
             }
             return new T[] { };
         }
-
+        
         /// <summary>Create or update a record in the database</summary>
         /// <remarks>
         /// The destination collection is chosen based on the record's type
@@ -208,22 +215,26 @@ namespace Morphic.Server.Db
             return false;
         }
 
-        public async Task<bool> DeleteAll<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
+        /// <summary>Delete one or more records from the database based on an expression</summary>
+        /// <returns>Returns the number of records deleted or -1 on error.</returns>
+        /// <remarks>
+        /// The source collection is chosen based on the record's type
+        /// </remarks>
+        public async Task<long> DeleteAll<T>(Expression<Func<T, bool>> filter, Session? session = null) where T : Record
         {
             if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
                 if (session != null)
                 {
-                    return (await collection.DeleteManyAsync(session.Handle, filter))
-                        .IsAcknowledged;
+                    return (await collection.DeleteManyAsync(session.Handle, filter)).DeletedCount;
                 }
 
-                return (await collection.DeleteManyAsync(filter)).IsAcknowledged;
+                return (await collection.DeleteManyAsync(filter)).DeletedCount;
             }
 
-            return false;
+            return -1;
         }
-
+        
         /// <summary>Run async operations within a transaction, using a lambda to specify the operations</summary>
         /// <remarks>
         /// For most operations that require transactions, a better option is to use the <code>[Method(RunInTransaction=True)]</code>
@@ -279,7 +290,8 @@ namespace Morphic.Server.Db
                 new CreateIndexModel<UsernameCredential>(Builders<UsernameCredential>.IndexKeys.Hashed(uc => uc.Username)));
             // IndexExplanation: When changing a user's password, which lives in the UsernameCredentials collection,
             // we need to look up the UsernameCredentials by that user's ID, so we can change the password.
-            // See ChangePasswordEndpoint
+            // See ChangePasswordEndpoint.
+            // IndexUse: This is also needed/used when deleting the user: Need to find the credentials by userId. 
             CreateOrUpdateIndexOrFail(usernameCredentials,
                 new CreateIndexModel<UsernameCredential>(
                     Builders<UsernameCredential>.IndexKeys.Hashed(t => t.UserId)));

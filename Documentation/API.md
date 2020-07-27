@@ -28,7 +28,8 @@ Endpoints
   * [`/v1/communities/{cid}/invitations/{id}/accept`](#endpoint-community-invitation-accept)
   * [`/v1/communities/{id}/bars`](#endpoint-community-bars)
   * [`/v1/communities/{cid}/bars/{id}`](#endpoint-community-bar)
-
+* [User Un-Registration](#section-user-unregistration)
+  * [`/v1/users/{userId}/unregister`](#endpoint-user-unregister)
 
 <a name="section-user-registration"></a>User Registration
 =================
@@ -2011,6 +2012,51 @@ Delete a bar configuration
       <td rowspan="2"><code>error</code></td>
       <td>Cannot delete a bar that is in use</td>
       <td colspan="2"><code>"cannot_delete_used"</code></td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+<a name="section-user-unregistration"></a>User Un-Registration
+=================
+
+<a name="endpoint-user-unregister"></a>/v1/users/{userId}/unregister
+------------------
+
+### POST
+
+Create a new user with empty preferences and the ability to login with the
+given username/password credentials.
+
+Immediately log the user in and return an authentication token.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
     </tr>
   </tbody>
 </table>

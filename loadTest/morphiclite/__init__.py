@@ -118,6 +118,15 @@ class Register(MorphicLite):
         return register_response
 
 
+class Unregister(AuthedMorphicRequest):
+    DefaultUnregisterUrl = "/v1/users/{userId}/unregister"
+
+    def unregisterUser(self):
+        path = self.DefaultUnregisterUrl.format(userId=self.userId)
+        unregister_response = self.json_request('POST', path)
+        return unregister_response
+
+
 class UserAuth(MorphicLite):
     DefaultAuthUrl = "/v1/auth/username"
 
