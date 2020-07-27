@@ -61,6 +61,9 @@ namespace Morphic.Server.Community
         [JsonPropertyName("label")]
         public string Label { get; set; } = null!;
 
+        [JsonPropertyName("image_url")]
+        public string? ImageUrl { get; set; }
+
         [JsonPropertyName("is_primary")]
         [JsonRequired]
         public bool IsPrimary { get; set; } = false;
@@ -73,7 +76,7 @@ namespace Morphic.Server.Community
     {
         Link,
         Application,
-        Action
+        Action,
     }
 
 }

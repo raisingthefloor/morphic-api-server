@@ -870,6 +870,18 @@ The details of a community the user belongs to
       <td>Required</td>
     </tr>
     <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.id</code></td>
+      <td>The bar's id</td>
+      <td><code>string</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.name</code></td>
+      <td>The bar's name</td>
+      <td><code>string</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.items</code></td>
       <td>The items shown on the bar</td>
       <td><code>Array</code></td>
@@ -892,6 +904,12 @@ The details of a community the user belongs to
       <td>The bar item's display text</td>
       <td><code>String</code></td>
       <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
+      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
@@ -1775,8 +1793,14 @@ Create a new bar configuration for the community
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].value</code></td>
-      <td>The bar item's value, depending on its <code>kind</code></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
+      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
+      <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
       <td>Optional</td>
     </tr>
@@ -1876,8 +1900,14 @@ Get the details of a particular bar
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].value</code></td>
-      <td>The bar item's value, depending on its <code>kind</code></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
+      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
+      <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
       <td>Optional</td>
     </tr>
@@ -1942,8 +1972,14 @@ Update a bar's configuration
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].value</code></td>
-      <td>The bar item's value, depending on its <code>kind</code></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
+      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
+      <td><code>String</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
+      <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
       <td>Optional</td>
     </tr>
