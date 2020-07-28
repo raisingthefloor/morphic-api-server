@@ -23,25 +23,24 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Threading.Tasks;
 using Hangfire;
 using Microsoft.Extensions.Logging;
-using Morphic.Server.Db;
-using Morphic.Server.Users;
 using Stripe;
 
 namespace Morphic.Server.Payments
 {
     using Background;
+    using Db;
+    using Users;
+    
     public class ProcessStripePayment : BackgroundJob
     {
         private readonly StripeSettings stripeSetting;
         private readonly ILogger<ProcessStripePayment> logger;
         private readonly Database db;
         
-        protected ProcessStripePayment(MorphicSettings morphicSettings, StripeSettings stripeSetting,
-            ILogger<ProcessStripePayment> logger, Database db) : base(morphicSettings)
+        public ProcessStripePayment(MorphicSettings morphicSettings, StripeSettings stripeSetting, ILogger<ProcessStripePayment> logger, Database db): base(morphicSettings)
         {
             this.stripeSetting = stripeSetting;
             this.logger = logger;
@@ -56,18 +55,18 @@ namespace Morphic.Server.Payments
             };
         }
 
-        private Dictionary<string, string> StripeMetadata(History history)
+        private Dictionary<string, string> StripeMetadata(UserPaymentHistory userPaymentHistory)
         {
             return new Dictionary<string, string>
             {
-                {"MorphicUserId", history.UserId},
+                {"MorphicUserId", userPaymentHistory.UserId},
             };
         }
 
         [AutomaticRetry(Attempts = 20)]
         public async Task ProcessPayment(string transactionId, string? clientIp)
         {
-            var transaction = await db.Get<Transaction>(transactionId);
+            var transaction = await db.Get<PaymentTransaction>(transactionId);
             if (transaction == null)
             {
                 throw new ProcessStripePaymentException($"No transaction found for id {transactionId}");
@@ -78,48 +77,58 @@ namespace Morphic.Server.Payments
             {
                 throw new ProcessStripePaymentException($"User not found for id {transaction.UserId}");
             }
-            
-            var requestOptions = stripeSetting.StripeRequestOptions(transaction.IdempotencyKey);
-            
-            var history = await db.Get<History>(h =>
-                h.UserId == transaction.UserId && h.Processor == PaymentProcessors.Stripe);
-            if (history == null)
-            {
-                history = new History(user, PaymentProcessors.Stripe);
-                // TODO need to create customer first
-                var customerId = await CreateCustomer(user, requestOptions);
-                history.ProcessorCustomerId = customerId;
-                await db.Save(history);
-            }
 
-            if (string.IsNullOrEmpty(transaction.CreditCardId))
+            try
             {
-                if (transaction.CreditCardInfo == null)
+                // Find the user's payment history with us. If not found:
+                //   assume we don't have this client in stripe, so create a new customer ID there.
+                //   create a new payment history entry 
+                var history = await db.Get<UserPaymentHistory>(h =>
+                    h.UserId == transaction.UserId && h.Processor == PaymentProcessors.Stripe);
+                if (history == null)
                 {
-                    throw new ProtocolViolationException("CreditCardInfo and ccId can not both be empty");
+                    var customerId = await CreateCustomer(user, transaction.TransactionKey);
+                    history = new UserPaymentHistory(user, PaymentProcessors.Stripe);
+                    history.ProcessorCustomerId = customerId;
+                    await db.Save(history);
                 }
-                var ccId = CreateCard(history, transaction.CreditCardInfo, requestOptions);
-                history.CreditCardIdList ??= new List<string>();
-                history.CreditCardIdList.Add(ccId);
-                transaction.CreditCardId = ccId;
-                transaction.CreditCardInfo = null;
-                await db.Save(history);
-                await db.Save(transaction);
-            }
 
-            var paymentId = MakePayment(user, history,
-                transaction.CreditCardId,
-                transaction.Amount,
-                transaction.Currency,
-                requestOptions);
-            history.TransactionIdList ??= new List<TransactionHistory>();
-            history.TransactionIdList.Add(new TransactionHistory(paymentId, clientIp));
-            await db.Save(history);
+                // If we're not using a previously saved ID for the credit card, create one in stripe and save
+                // the ID for future reference.
+                if (string.IsNullOrEmpty(transaction.CreditCardId))
+                {
+                    if (transaction.CreditCardInfo == null)
+                    {
+                        throw new ProcessStripePaymentException("CreditCardInfo and ccId can not both be empty");
+                    }
+
+                    var ccId = CreateCard(history, transaction.CreditCardInfo, transaction.TransactionKey);
+                    history.CreditCardIdList ??= new List<string>();
+                    history.CreditCardIdList.Add(ccId);
+                    transaction.CreditCardId = ccId;
+                    transaction.CreditCardInfo = null;
+                    await db.Save(history);
+                    await db.Save(transaction);
+                }
+
+                // Make the payment
+                var paymentId = MakePayment(user, history,
+                    transaction.CreditCardId,
+                    transaction.Amount,
+                    transaction.Currency,
+                    transaction.TransactionKey);
+                history.TransactionIdList ??= new List<TransactionHistory>();
+                history.TransactionIdList.Add(new TransactionHistory(paymentId, clientIp));
+                await db.Save(history);
+            }
+            catch (ProcessStripePaymentException e)
+            {
+                logger.LogError("Could not process Payment. Aborting. {Exception}", e);
+            }
         }
 
         #region Stripe Helpers
-        public async Task<string> CreateCustomer(User user,
-            RequestOptions requestOptions)
+        public async Task<string> CreateCustomer(User user, string transactionKey)
         {
             var createOptions = new CustomerCreateOptions
             {
@@ -128,6 +137,7 @@ namespace Morphic.Server.Payments
                 Metadata = StripeMetadata(user),
             };
             var service = new CustomerService();
+            var requestOptions = stripeSetting.StripeRequestOptions($"cus_{transactionKey}");
             try
             {
                 var customer = await service.CreateAsync(createOptions, requestOptions);
@@ -141,7 +151,7 @@ namespace Morphic.Server.Payments
             }
         }
 
-        public string CreateCard(History history, CreditCardInfo ccInfo, RequestOptions requestOptions)
+        public string CreateCard(UserPaymentHistory userPaymentHistory, CreditCardInfo ccInfo, string transactionKey)
         {
             DateTime expDate;
             if (!DateTime.TryParse(ccInfo.ExpirationDate.PlainText, out expDate))
@@ -159,19 +169,30 @@ namespace Morphic.Server.Payments
             var options = new CardCreateOptions
             {
                 Source = source,
-                Metadata = StripeMetadata(history),
+                Metadata = StripeMetadata(userPaymentHistory),
             };
             var service = new CardService();
-            var response = service.Create(history.ProcessorCustomerId, options, requestOptions);
-            return response.Id;
+            var requestOptions = stripeSetting.StripeRequestOptions($"cc_{transactionKey}");
+            try
+            {
+                var response = service.Create(userPaymentHistory.ProcessorCustomerId, options, requestOptions);
+                return response.Id;
+            }
+            catch (StripeException e)
+            {
+                logger.LogError("Error creating credit card: {Type} {Code} {Message}",
+                    e.StripeError.Type, e.StripeError.Code, e.StripeError.Message);
+                throw new ProcessStripePaymentException("Stripe Exception", e);
+            }
+
         }
         
-        public string MakePayment(User user, History history, string source, long amount, string currency,
-            RequestOptions requestOptions)
+        public string MakePayment(User user, UserPaymentHistory userPaymentHistory, string source, long amount, string currency,
+            string transactionKey)
         {
             var options = new ChargeCreateOptions
             {
-                Customer = history.ProcessorCustomerId,
+                Customer = userPaymentHistory.ProcessorCustomerId,
                 Amount = amount,
                 Currency = currency,
                 Source = source,
@@ -180,8 +201,18 @@ namespace Morphic.Server.Payments
                 Metadata = StripeMetadata(user),
             };
             var service = new ChargeService();
-            var response = service.Create(options, requestOptions);
-            return response.Id;
+            var requestOptions = stripeSetting.StripeRequestOptions($"pay_{transactionKey}");
+            try
+            {
+                var response = service.Create(options, requestOptions);
+                return response.Id;
+            }
+            catch (StripeException e)
+            {
+                logger.LogError("Error creating payment: {Type} {Code} {Message}",
+                    e.StripeError.Type, e.StripeError.Code, e.StripeError.Message);
+                throw new ProcessStripePaymentException("Stripe Exception", e);
+            }
         }
         
         #endregion

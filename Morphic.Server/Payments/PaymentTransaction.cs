@@ -37,19 +37,19 @@ namespace Morphic.Server.Payments
     /// <summary>
     /// The _id of this record is to be considered the 'morphic transactionId'
     /// </summary>
-    public class Transaction : Record
+    public class PaymentTransaction : Record
     {
-        public Transaction(
+        public PaymentTransaction(
             User user,
             PaymentProcessors processor,
-            string idempotencyKey,
+            string transactionKey,
             long amount,
             string currency)
         {
             Id = Guid.NewGuid().ToString();
             UserId = user.Id;
             Processor = processor;
-            IdempotencyKey = idempotencyKey;
+            TransactionKey = transactionKey;
             Amount = amount;
             Currency = currency;
         }
@@ -59,7 +59,7 @@ namespace Morphic.Server.Payments
         /// </summary>
         public string UserId { get; set;  }
         
-        public string IdempotencyKey { get; set; }
+        public string TransactionKey { get; set; }
         
         /// <summary>
         /// The payment processor used for this customer

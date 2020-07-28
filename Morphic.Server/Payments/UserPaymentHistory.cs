@@ -32,9 +32,9 @@ namespace Morphic.Server.Payments
     /// <summary>
     /// Payment history for a user for a specific processor
     /// </summary>
-    public class History : Record
+    public class UserPaymentHistory : Record
     {
-        public History(User user, PaymentProcessors processor)
+        public UserPaymentHistory(User user, PaymentProcessors processor)
         {
             Id = Guid.NewGuid().ToString();
             UserId = user.Id;
@@ -61,8 +61,8 @@ namespace Morphic.Server.Payments
         /// </summary>
         public string ProcessorSubscriptionId { get; set; } = null!;
 
-        public List<string>? CreditCardIdList;
-        public List<TransactionHistory>? TransactionIdList;
+        public List<string> CreditCardIdList = new List<string>();
+        public List<TransactionHistory> TransactionIdList = new List<TransactionHistory>();
     }
 
     public class TransactionHistory
@@ -78,4 +78,5 @@ namespace Morphic.Server.Payments
             TransactionDateUtc = DateTime.UtcNow;
         }
     }
+
 }
