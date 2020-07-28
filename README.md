@@ -25,9 +25,33 @@ $ dotnet run --project Morphic.Server
 
 You can get started making requests by registering a new user:
 ````
-$ curl http://localhost:5002/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword"}'
+$ curl http://localhost:5002/v1/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword", "email": "user1@example.com"}'
 ````
-
+This gets you a response like this:
+````
+{
+  "token":"N07vxU53lSBDGkIyKslLDo4ciFJjlepwUZ7CstcmLdLG8hHhm7fzcQhacvTT/R2E1/oMBjT+gwpDJR7NqVZDNg==",
+  "user":{
+    "first_name":null,
+    "last_name":null,
+    "preferences_id":"174db6c9-9e4e-4867-8392-cfe8ab25fe3c",
+    "id":"c6e59372-5449-44a5-b426-55b7a658d252"
+  }
+}
+````
+For further API calls, use the `token` as a Bearer authorization header such as:
+````
+$ curl -H 'Authorization: Bearer N07vxU53lSBDGkIyKslLDo4ciFJjlepwUZ7CstcmLdLG8hHhm7fzcQhacvTT/R2E1/oMBjT+gwpDJR7NqVZDNg==' -H 'Content-Type: application/json; charset=utf-8' http://localhost:5002/v1/users/c6e59372-5449-44a5-b426-55b7a658d252
+````
+which gets us the response"
+````
+{
+  "first_name":null,
+  "last_name":null,
+  "preferences_id":"174db6c9-9e4e-4867-8392-cfe8ab25fe3c",
+  "id":"c6e59372-5449-44a5-b426-55b7a658d252"
+}
+````
 docker-compose and morphicserver container
 =====
 An alternative to docker swarm is to run the containers directly with docker-compose:
