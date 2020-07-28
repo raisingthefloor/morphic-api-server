@@ -195,7 +195,7 @@ namespace Morphic.Server.Tests
             return element;
         }
 
-        public void assertMissingRequired(JsonElement error, List<string> missing, bool strict=true)
+        public void assertMissingRequired(JsonElement error, List<string> missing)
         {
             JsonElement property;
             Assert.True(error.TryGetProperty("details", out property));
@@ -207,14 +207,7 @@ namespace Morphic.Server.Tests
             {
                 propertyArray.Add(property[i].GetString());
             }
-            if (strict)
-            {
-                Assert.True(Enumerable.SequenceEqual(propertyArray.OrderBy(t => t), missing.OrderBy(t => t)));
-            }
-            else
-            {
-                Assert.True(propertyArray.Intersect(missing).Equals(missing));
-            }
+            Assert.Equal(missing.OrderBy(t => t), propertyArray.OrderBy(t => t));
         }
     }
 }
