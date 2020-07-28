@@ -76,18 +76,18 @@ namespace Morphic.Server.Tests.Auth
                 Items = new BarItem[]{
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Google",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://google.com" }
+                            { "url", "https://google.com"},
+                            {"label", "Google" }
                         }
                     },
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Facebook",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://facebook.com" }
+                            { "url", "https://facebook.com"},
+                            { "label", "Facebook" }
                         }
                     }
                 }

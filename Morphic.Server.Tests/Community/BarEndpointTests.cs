@@ -77,18 +77,18 @@ namespace Morphic.Server.Tests.Community
                 Items = new BarItem[]{
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Google",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://google.com" }
+                            { "url", "https://google.com" },
+                            { "label", "Google" }
                         }
                     },
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Facebook",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://facebook.com" }
+                            { "url", "https://facebook.com" },
+                            { "label", "Facebook" }
                         }
                     }
                 }
@@ -105,18 +105,18 @@ namespace Morphic.Server.Tests.Community
                 Items = new BarItem[]{
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Google",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://google.com" }
+                            { "url", "https://google.com" },
+                            { "label", "Google" }
                         }
                     },
                     new BarItem(){
                         Kind = BarItemKind.Link,
-                        Label = "Facebook",
                         IsPrimary = true,
                         Configuration = new Dictionary<string, object>(){
-                            { "url", "https://facebook.com" }
+                            { "url", "https://facebook.com" },
+                            { "label", "Facebook" }
                         }
                     }
                 }
@@ -215,12 +215,6 @@ namespace Morphic.Server.Tests.Community
             Assert.Equal(JsonValueKind.Array, property.ValueKind);
             Assert.Equal(2, property.GetArrayLength());
             var items = property.EnumerateArray().ToList();
-            Assert.True(items[0].TryGetProperty("label", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("Google", property.GetString());
-            Assert.True(items[1].TryGetProperty("label", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("Facebook", property.GetString());
         }
 
         [Fact]
@@ -230,18 +224,18 @@ namespace Morphic.Server.Tests.Community
             var items = new object[]{
                 new Dictionary<string, object>(){
                     {"kind", "link"},
-                    {"label", "Google"},
                     {"is_primary", true},
                     {"configuration", new Dictionary<string, object>(){
-                        {"url", "https://google.com"}
+                        {"url", "https://google.com"},
+                        {"label", "Google"}
                     }}
                 },
                 new Dictionary<string, object>(){
                     {"kind", "link"},
-                    {"label", "Facebook"},
                     {"is_primary", true},
                     {"configuration", new Dictionary<string, object>(){
-                        {"url", "https://facebook.com"}
+                        {"url", "https://facebook.com"},
+                        {"label", "Facebook"}
                     }}
                 }
             };

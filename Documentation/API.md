@@ -1879,9 +1879,52 @@ Get the details of a particular bar
 </table>
 
 #### BarItemKind: String
-* `link`
-* `application`
-* `action`
+* `link` (uses `LinkConfiguration` for `configuration`)
+* `application` (uses `ApplicationConfiguration` for `configuration`)
+* `action`  (uses `ActionConfiguration` for `configuration`)
+
+#### Bar Item configuration types
+
+````
+ButtonConfiguration: object{
+  # The user-visible text shown on the button 
+  label: string
+
+  # The user-visible image shown on the button
+  # Absolute URL for custom uploaded images (e.g., "http://bucket.s3/path/to/image")
+  # Filename (relative url) for client-bundled icons (e.g., "video")
+  image_url: string?
+}
+````
+
+````
+LinkConfiguration: ButtonConfiguration{
+  # The url that should open as the result of clicking the button
+  url: string
+}
+````
+
+````
+ApplicationConfiguration: ButtonConfiguration{
+  # Indicates the button should open the OS-default application of the given type
+  # Possible values include:
+  # - email
+  # - calendar
+  # - browser
+  default: string?
+
+  # The name or full path of the windows exe to open
+  # (names are looked up in the registry HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths)
+  exe: string?
+}
+````
+
+````
+ActionConfiguration: object{
+  # The action identifier
+  identifier: string
+}
+````
 
 ### PUT
 
