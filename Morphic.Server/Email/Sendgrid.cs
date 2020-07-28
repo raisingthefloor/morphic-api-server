@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -76,7 +77,7 @@ namespace Morphic.Server.Email
             return emailTemplateId;
         }
 
-        public override async Task<bool> SendTemplate(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
+        public override async Task<string> SendTemplate(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
         {
             var emailTemplateId = EmailTypeToSendgridId(emailType);
             var from = new EmailAddress(emailAttributes["FromEmail"], emailAttributes["FromUserName"]);
@@ -85,7 +86,7 @@ namespace Morphic.Server.Email
             return await SendViaSendGrid(msg);
         }
 
-        private async Task<bool> SendViaSendGrid(SendGridMessage msg)
+        private async Task<string> SendViaSendGrid(SendGridMessage msg)
         {
             var client = new SendGridClient(emailSettings.SendGridSettings.ApiKey);
             var response = await client.SendEmailAsync(msg);
@@ -94,13 +95,19 @@ namespace Morphic.Server.Email
             {
                 logger.LogError("Email send failed: {StatusCode} {Headers} {Body}", response.StatusCode,
                     response.Headers, response.Body.ReadAsStringAsync().Result);
-                return false;
+                throw new SendgridException($"Send Failed: {response.StatusCode}");
             }
             else
             {
                 logger.LogDebug("Email send succeeded: {StatusCode} {Headers} {Body}", response.StatusCode,
                     response.Headers, response.Body.ReadAsStringAsync().Result);
-                return true;
+                var id = string.Join(":", response.Headers.GetValues("X-Message-Id"));
+                if (string.IsNullOrEmpty(id))
+                {
+                    id = Guid.NewGuid().ToString();
+                    logger.LogError("No X-Message-Id returned from sendgrid: Inventing Guid {Guid}", id);
+                }
+                return id;
             }
         }
         

@@ -79,7 +79,7 @@ namespace Morphic.Server.Email
             }
         }
         
-        public override async Task<bool> SendTemplate(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
+        public override async Task<string> SendTemplate(EmailConstants.EmailTypes emailType, Dictionary<string, string> emailAttributes)
         {
             var to = new List<SendSmtpEmailTo>();
             to.Add(new SendSmtpEmailTo(emailAttributes["ToEmail"], emailAttributes["ToUserName"]));
@@ -89,7 +89,7 @@ namespace Morphic.Server.Email
             return await SendViaSendInBlue(sendSmtpEmail);
         }
         
-        private async Task<bool> SendViaSendInBlue(SendSmtpEmail msg)
+        private async Task<string> SendViaSendInBlue(SendSmtpEmail msg)
         {
             var configuration = new Configuration();
             configuration.AddApiKey("api-key", emailSettings.SendInBlueSettings.ApiKey);
@@ -99,8 +99,8 @@ namespace Morphic.Server.Email
             {
                 // Send a transactional email
                 CreateSmtpEmail result = await apiInstance.SendTransacEmailAsync(msg);
-                logger.LogDebug("SendInBlue sent email {Result}", result);
-                return true;
+                logger.LogDebug("SendInBlue sent email {Result}", result.MessageId);
+                return result.MessageId;
             }
             catch (Exception e)
             {

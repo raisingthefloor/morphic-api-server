@@ -117,7 +117,7 @@ namespace Morphic.Server.Email
                 throw new SendEmailException("Email sending disabled");
             }
 
-            logger.LogInformation("SendOneEmail sending email {EmailType} {ClientIp}",
+            logger.LogDebug("SendOneEmail sending email {EmailType} {ClientIp}",
                 emailAttributes["EmailType"], emailAttributes["ClientIp"]);
             var stopWatch = Stopwatch.StartNew();
             bool success = false;
@@ -128,7 +128,10 @@ namespace Morphic.Server.Email
                 {
                     throw new SendEmailException("Unknown email type " + EmailSettings.Type);
                 }
-                success = await worker.SendTemplate(emailType, emailAttributes);
+                success = true;
+                var id = await worker.SendTemplate(emailType, emailAttributes);
+                logger.LogInformation("SendOneEmail: Send success. {EmailType} {ClientIp} {MessageId}",
+                    emailAttributes["EmailType"], emailAttributes["ClientIp"], id);
             }
             finally
             {

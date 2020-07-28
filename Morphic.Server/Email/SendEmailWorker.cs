@@ -15,7 +15,7 @@ namespace Morphic.Server.Email
             this.logger = logger;
         }
 
-        public abstract Task<bool> SendTemplate(EmailConstants.EmailTypes emailType,
+        public abstract Task<string> SendTemplate(EmailConstants.EmailTypes emailType,
             Dictionary<string, string> emailAttributes);
 
     }
