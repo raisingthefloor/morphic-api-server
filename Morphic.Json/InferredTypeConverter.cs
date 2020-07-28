@@ -103,7 +103,7 @@ namespace Morphic.Json
                 case JsonTokenType.False:
                     return reader.GetBoolean();
                 default:
-                    throw new JsonException("Unepxected token");
+                    throw new JsonException("Unexpected token");
             }
         }
     }
