@@ -900,18 +900,6 @@ The details of a community the user belongs to
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>String</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1787,18 +1775,6 @@ Create a new bar configuration for the community
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1894,18 +1870,6 @@ Get the details of a particular bar
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
-    </tr>
-    <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>
       <td>The bar item's configuration, depending on its <code>kind</code></td>
       <td><code>object</code></td>
@@ -1915,9 +1879,52 @@ Get the details of a particular bar
 </table>
 
 #### BarItemKind: String
-* `link`
-* `application`
-* `action`
+* `link` (uses `LinkConfiguration` for `configuration`)
+* `application` (uses `ApplicationConfiguration` for `configuration`)
+* `action`  (uses `ActionConfiguration` for `configuration`)
+
+#### Bar Item configuration types
+
+````
+ButtonConfiguration: object{
+  # The user-visible text shown on the button 
+  label: string
+
+  # The user-visible image shown on the button
+  # Absolute URL for custom uploaded images (e.g., "http://bucket.s3/path/to/image")
+  # Filename (relative url) for client-bundled icons (e.g., "video")
+  image_url: string?
+}
+````
+
+````
+LinkConfiguration: ButtonConfiguration{
+  # The url that should open as the result of clicking the button
+  url: string
+}
+````
+
+````
+ApplicationConfiguration: ButtonConfiguration{
+  # Indicates the button should open the OS-default application of the given type
+  # Possible values include:
+  # - email
+  # - calendar
+  # - browser
+  default: string?
+
+  # The name or full path of the windows exe to open
+  # (names are looked up in the registry HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths)
+  exe: string?
+}
+````
+
+````
+ActionConfiguration: object{
+  # The action identifier
+  identifier: string
+}
+````
 
 ### PUT
 
@@ -1964,18 +1971,6 @@ Update a bar's configuration
       <td>If the item should be shown on the primary bar</td>
       <td><code>Boolean</code></td>
       <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].label</code></td>
-      <td>The bar item's display text</td>
-      <td><code>string</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].image_url</code></td>
-      <td>The bar item's image url (relative URLs are names of client-bundled images)</td>
-      <td><code>String</code></td>
-      <td>Optional</td>
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].configuration</code></td>

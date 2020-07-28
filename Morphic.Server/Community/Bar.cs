@@ -58,12 +58,6 @@ namespace Morphic.Server.Community
         [JsonRequired]
         public BarItemKind Kind { get; set; }
 
-        [JsonPropertyName("label")]
-        public string Label { get; set; } = null!;
-
-        [JsonPropertyName("image_url")]
-        public string? ImageUrl { get; set; }
-
         [JsonPropertyName("is_primary")]
         [JsonRequired]
         public bool IsPrimary { get; set; } = false;
