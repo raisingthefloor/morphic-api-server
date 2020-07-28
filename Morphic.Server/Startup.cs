@@ -39,6 +39,7 @@ using Morphic.Security;
 
 namespace Morphic.Server
 {
+    using Payments;
 
     using Db;
     using Email;
@@ -64,6 +65,8 @@ namespace Morphic.Server
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
             services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
+            services.Configure<StripeSettings>(Configuration.GetSection("StripeSettings"));
+            services.AddSingleton<StripeSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<StripeSettings>>().Value);
             services.Configure<KeyStorageSettings>(Configuration.GetSection("KeyStorageSettings"));
             services.AddSingleton<KeyStorageSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<KeyStorageSettings>>().Value);
             services.AddSingleton<KeyStorage>(serviceProvider => KeyStorage.CreateShared(serviceProvider.GetRequiredService<KeyStorageSettings>(), serviceProvider.GetRequiredService<ILogger<KeyStorage>>()));

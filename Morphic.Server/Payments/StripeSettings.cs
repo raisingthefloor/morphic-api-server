@@ -27,13 +27,11 @@ namespace Morphic.Server.Payments
 {
     public class StripeSettings
     {
-        public string ApiKeyPublic =
-            "pk_test_51H6X3kF2lpQHHE2Y53uIFt6vYSS81j9KscRV76QqUF8Y4YJJ2bJOQUgIgdtEWeGbRk53N9SKU2dhSttpXkIXzNSV00ZzmKJWY2";
+        //public string ApiKeyPublic { get; set; } = "pk_test_51H6X3kF2lpQHHE2Y53uIFt6vYSS81j9KscRV76QqUF8Y4YJJ2bJOQUgIgdtEWeGbRk53N9SKU2dhSttpXkIXzNSV00ZzmKJWY2";
 
-        public string ApiKeySecret =
-            "sk_test_51H6X3kF2lpQHHE2YF6koDSp0CxvFzYMLY4tQhSS6H5t6qQj3GcDGNhHQ4kKEJmRXRCG4COjAzoT4ZJNj4qrERD7000lhXBnGJx";
+        public string ApiKeySecret { get; set; } = "sk_test_51H6X3kF2lpQHHE2YF6koDSp0CxvFzYMLY4tQhSS6H5t6qQj3GcDGNhHQ4kKEJmRXRCG4COjAzoT4ZJNj4qrERD7000lhXBnGJx";
 
-        public string? AccountId = null;
+        public string? AccountId { get; set; } = null;
         
         public RequestOptions StripeRequestOptions(string idempotencyKey)
         {
