@@ -33,11 +33,11 @@ using MongoDB.Driver;
 using MongoDB.Bson.Serialization;
 using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver.Core.Clusters;
-using Morphic.Security;
 
 namespace Morphic.Server.Db
 {
-
+    using Security;
+    using Payments;
     using Auth;
     using Users;
     using Community;
@@ -94,6 +94,8 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(Member)] = morphic.GetCollection<Member>("CommunityMembers");
             CollectionByType[typeof(Bar)] = morphic.GetCollection<Bar>("CommunityBars");
             CollectionByType[typeof(Invitation)] = morphic.GetCollection<Invitation>("CommunityInvitations");
+            CollectionByType[typeof(UserPaymentHistory)] = morphic.GetCollection<UserPaymentHistory>("UserPaymentHistory");
+            CollectionByType[typeof(PaymentTransaction)] = morphic.GetCollection<PaymentTransaction>("PaymentTransaction");
         }
 
         public void DeleteDatabase()
@@ -340,6 +342,12 @@ namespace Morphic.Server.Db
             CreateOrUpdateIndexOrFail(communityInvitations,
                 new CreateIndexModel<Invitation>(
                     Builders<Invitation>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+            var userPaymentHistory = CreateCollectionIfNotExists<UserPaymentHistory>();
+            CreateOrUpdateIndexOrFail(userPaymentHistory,
+                new CreateIndexModel<UserPaymentHistory>(Builders<UserPaymentHistory>.IndexKeys.Hashed(h => h.UserId)));
+            
+            CreateCollectionIfNotExists<PaymentTransaction>();
 
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",
