@@ -1890,6 +1890,9 @@ ButtonConfiguration: object{
   # The user-visible text shown on the button 
   label: string
 
+  # RRGGBB hex string with leading "#"
+  color: string
+
   # The user-visible image shown on the button
   # Absolute URL for custom uploaded images (e.g., "http://bucket.s3/path/to/image")
   # Filename (relative url) for client-bundled icons (e.g., "video")
@@ -1901,6 +1904,12 @@ ButtonConfiguration: object{
 LinkConfiguration: ButtonConfiguration{
   # The url that should open as the result of clicking the button
   url: string
+
+  # The subkind of link
+  # Meaningful for showing the appropriate editor UI in the web client
+  # Not used by the desktop client
+  # Values determined by the web client, but might be strings like "skype" or "zoom"
+  subkind: String
 }
 ````
 
@@ -1923,6 +1932,9 @@ ApplicationConfiguration: ButtonConfiguration{
 ActionConfiguration: object{
   # The action identifier
   identifier: string
+
+  # RRGGBB hex string with leading "#"
+  color: string
 }
 ````
 
