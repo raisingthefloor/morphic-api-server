@@ -360,20 +360,22 @@ namespace Morphic.Server.Db
 
         private IMongoCollection<T> CreateCollectionIfNotExists<T>()
         {
-            var collName = typeof(T).Name;
-            try
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
             {
-                morphic.CreateCollection(collName);
-                logger.LogDebug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collName);
+                try
+                {
+                    morphic.CreateCollection(collection.CollectionNamespace.CollectionName);
+                    logger.LogDebug("Created Collection {Database}.{Collection}", morphic.DatabaseNamespace, collection.CollectionNamespace.CollectionName);
+                }
+                catch (MongoCommandException e)
+                {
+                    if (e.CodeName != "NamespaceExists")
+                        throw;
+                    logger.LogDebug("Collection {Database}.{Collection} existed already", morphic.DatabaseNamespace, collection.CollectionNamespace.CollectionName);
+                }
+                return collection;
             }
-            catch (MongoCommandException e)
-            {
-                if (e.CodeName != "NamespaceExists")
-                    throw;
-                logger.LogDebug("Collection {Database}.{Collection} existed already", morphic.DatabaseNamespace,collName);
-            }
-
-            return morphic.GetCollection<T>(collName);
+            throw new Exception("No collection registered for type");
         }
 
         /// <summary>
