@@ -28,6 +28,7 @@ Endpoints
   * [`/v1/communities/{cid}/invitations/{id}/accept`](#endpoint-community-invitation-accept)
   * [`/v1/communities/{id}/bars`](#endpoint-community-bars)
   * [`/v1/communities/{cid}/bars/{id}`](#endpoint-community-bar)
+  * [`/v1/communities/{id}/skype/meetings`](#endpoint-community-skype-meetings)
 * [User Un-Registration](#section-user-unregistration)
   * [`/v1/users/{userId}/unregister`](#endpoint-user-unregister)
 
@@ -1891,7 +1892,7 @@ ButtonConfiguration: object{
   label: string
 
   # RRGGBB hex string with leading "#"
-  color: string
+  color: string?
 
   # The user-visible image shown on the button
   # Absolute URL for custom uploaded images (e.g., "http://bucket.s3/path/to/image")
@@ -1909,7 +1910,7 @@ LinkConfiguration: ButtonConfiguration{
   # Meaningful for showing the appropriate editor UI in the web client
   # Not used by the desktop client
   # Values determined by the web client, but might be strings like "skype" or "zoom"
-  subkind: String
+  subkind: String?
 }
 ````
 
@@ -1934,7 +1935,7 @@ ActionConfiguration: object{
   identifier: string
 
   # RRGGBB hex string with leading "#"
-  color: string
+  color: string?
 }
 ````
 
@@ -2100,6 +2101,45 @@ Immediately log the user in and return an authentication token.
     </tr>
     <tr>
       <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+  </tbody>
+</table>
+
+<a name="endpoint-community-skype-meetings"></a>/v1/communities/{id}/skype/meetings
+------------------
+
+### GET
+
+Proxy for `https://api.join.skype.com/v1/meetnow/createjoinlinkguest`, which enforces CORS
+restrictions on browser-based requests.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <td><code>Title</code></td>
+      <td>The title for the new meeting</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>joinLink</code></td>
+      <td>The url of the new skype meeting</td>
+      <td><code>String</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>

@@ -25,6 +25,7 @@ using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
 using System;
 using System.Text.Json.Serialization;
+using System.Collections.Generic;
 
 namespace Morphic.Server.Community
 {
@@ -54,6 +55,8 @@ namespace Morphic.Server.Community
             var input = await Request.ReadJson<CommunityPutRequest>();
             var communityId = Guid.NewGuid().ToString();
 
+            var populateDefaultBars = Request.Query.ContainsKey("populate_default_bars");
+
             var bar = new Bar()
             {
                 Id = Guid.NewGuid().ToString(),
@@ -62,6 +65,84 @@ namespace Morphic.Server.Community
                 CreatedAt = DateTime.Now,
                 IsShared = true
             };
+            if (populateDefaultBars)
+            {
+                bar.Items = new BarItem[]{
+                    new BarItem(){
+                        Kind = BarItemKind.Link,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "label", "Email" },
+                            { "image_url", "envelope-solid" },
+                            { "url", "https://mail.google.com" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Link,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "label", "Calendar" },
+                            { "image_url", "calendar-solid" },
+                            { "url", "https://calendar.google.com" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Link,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "label", "Amazon" },
+                            { "image_url", "amazon-brands" },
+                            { "url", "https://amazon.com" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Link,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "label", "CNN" },
+                            { "image_url", "newspaper-solid" },
+                            { "url", "https://cnn.com" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Action,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "identifier", "screen-zoom" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Link,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "subkind", "Skype" },
+                            { "label", "Family Call" },
+                            { "image_url", "video-solid" },
+                            { "url", "https://join.skype.com/your-meeting-id" },
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Action,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "identifier", "magnify" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Action,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "identifier", "volume" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Application,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "label", "Quick Assist" },
+                            { "image_url", "question-solid" },
+                            { "default", "quick-assist" }
+                        }
+                    },
+                    new BarItem(){
+                        Kind = BarItemKind.Action,
+                        Configuration = new Dictionary<string, object?>(){
+                            { "identifier", "copy-paste" }
+                        }
+                    },
+                };
+            }
             await db.Save(bar);
 
             var community = new Community()
