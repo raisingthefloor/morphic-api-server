@@ -112,7 +112,7 @@ namespace Morphic.Server.Community
                             { "subkind", "skype" },
                             { "label", "Family Call" },
                             { "image_url", "video-solid" },
-                            { "url", "https://join.skype.com/your-meeting-id" },
+                            { "url", "https://join.skype.com/" },
                         }
                     },
                     new BarItem(){
