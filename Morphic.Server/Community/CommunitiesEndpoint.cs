@@ -109,7 +109,7 @@ namespace Morphic.Server.Community
                     new BarItem(){
                         Kind = BarItemKind.Link,
                         Configuration = new Dictionary<string, object?>(){
-                            { "subkind", "Skype" },
+                            { "subkind", "skype" },
                             { "label", "Family Call" },
                             { "image_url", "video-solid" },
                             { "url", "https://join.skype.com/your-meeting-id" },
