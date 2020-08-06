@@ -81,6 +81,7 @@ namespace Morphic.Server.Auth
             IBackgroundJobClient jobClient): base(contextAccessor, logger)
         {
             this.jobClient = jobClient;
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         [Method]

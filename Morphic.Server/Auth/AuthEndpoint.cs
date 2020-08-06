@@ -94,6 +94,7 @@ namespace Morphic.Server.Auth
 
         public AuthUsernameEndpoint(IHttpContextAccessor contextAccessor, ILogger<AuthUsernameEndpoint> logger): base(contextAccessor, logger)
         {
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         private async Task SaveOrLog(Database db, User user)

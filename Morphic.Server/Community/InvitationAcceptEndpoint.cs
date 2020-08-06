@@ -42,6 +42,7 @@ namespace Morphic.Server.Community
 
         public InvitationAcceptEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
+            AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
         [Parameter]
