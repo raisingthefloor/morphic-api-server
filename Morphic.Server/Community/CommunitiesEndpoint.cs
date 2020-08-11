@@ -161,6 +161,7 @@ namespace Morphic.Server.Community
                 CommunityId = communityId,
                 PlanId = plan.Id,
                 TrialEnd = DateTime.Now.AddDays(30),
+                Status = BillingStatus.Paid,
                 ContactMemeberId = memberId
             };
 

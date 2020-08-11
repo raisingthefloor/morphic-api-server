@@ -31,9 +31,14 @@ using System.Text.Json;
 using System.Text;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Morphic.Server.Tests.Community
 {
+
+    using Server.Billing;
+    using Billing;
+
     public class CommunitiesEndpointTests : EndpointRequestTests
     {
 
@@ -73,6 +78,9 @@ namespace Morphic.Server.Tests.Community
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
+            var paymentProcessor = (Server.Services.GetRequiredService<IPaymentProcessor>() as MockPaymentProcessor)!;
+            Assert.Equal(0, paymentProcessor.StartCommunitySubscriptionCalls);
+
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo1.AuthToken);
@@ -93,6 +101,7 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Test Community", property.GetString());
+            Assert.Equal(1, paymentProcessor.StartCommunitySubscriptionCalls);
         }
     }
 }

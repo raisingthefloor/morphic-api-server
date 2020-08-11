@@ -83,16 +83,10 @@ namespace Morphic.Server.Community
         {
             var db = Context.GetDatabase();
             var input = await Request.ReadJson<BillingPutRequest>();
-            if (input.PlanId != Billing.PlanId)
+            var plan = plans.GetPlan(input.PlanId);
+            if (plan == null)
             {
-                var plan = plans.GetPlan(input.PlanId);
-                if (plan == null)
-                {
-                    throw new HttpError(HttpStatusCode.BadRequest, BillingPutError.BadPlanId);
-                }
-                Billing.PlanId = plan.Id;
-                await paymentProcessor.ChangeCommunitySubscription(Community, Billing);
-                await db.SetField(Billing, b => b.PlanId, Billing.PlanId);
+                throw new HttpError(HttpStatusCode.BadRequest, BillingPutError.BadPlanId);
             }
             var member = await db.Get<Member>(m => m.Id == input.ContactMemberId && m.CommunityId == Community.Id && m.Role == MemberRole.Manager);
             if (member == null || member.UserId == null)
@@ -104,9 +98,18 @@ namespace Morphic.Server.Community
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BillingPutError.BadMemberId);
             }
-            Billing.ContactMemeberId = member.Id;
-            await paymentProcessor.ChangeCommunityContact(Community, Billing, user);
-            await db.SetField(Billing, b => b.ContactMemeberId, Billing.ContactMemeberId);
+            if (plan.Id != Billing.PlanId)
+            {
+                Billing.PlanId = plan.Id;
+                await paymentProcessor.ChangeCommunitySubscription(Community, Billing);
+                await db.SetField(Billing, b => b.PlanId, Billing.PlanId);
+            }
+            if (member.Id != Billing.ContactMemeberId)
+            {
+                Billing.ContactMemeberId = member.Id;
+                await paymentProcessor.ChangeCommunityContact(Community, Billing, user);
+                await db.SetField(Billing, b => b.ContactMemeberId, Billing.ContactMemeberId);
+            }
         }
 
         class BillingPutRequest

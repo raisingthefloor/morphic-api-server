@@ -63,7 +63,11 @@ namespace Morphic.Server.Billing
         public Plan Default { get; private set; } = null!;
 
         public Plan? GetPlan(string id){
-            return plansById[id];
+            if (plansById.TryGetValue(id, out var plan))
+            {
+                return plan;
+            }
+            return null;
         }
 
         public List<Plan> All = new List<Plan>();

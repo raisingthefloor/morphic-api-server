@@ -40,8 +40,7 @@ namespace Morphic.Server.Tests.Community
     using Server.Billing;
     using Billing;
 
-
-    public class MemberEndpointTests : EndpointRequestTests
+    public class BillingEndpointTests : EndpointRequestTests
     {
 
         private Community Community;
@@ -54,6 +53,7 @@ namespace Morphic.Server.Tests.Community
         private Member OtherManager;
         private Member ActiveMember;
         private Member InvitedMember;
+        private Bar DefaultBar;
 
         private async Task CreateCommunity(){
             ManagerUserInfo = await CreateTestUser();
@@ -63,12 +63,15 @@ namespace Morphic.Server.Tests.Community
 
             var communityId = Guid.NewGuid().ToString();
             var managerId = Guid.NewGuid().ToString();
-            var bar = new Bar()
+            DefaultBar = new Bar()
             {
                 Id = Guid.NewGuid().ToString(),
-                CommunityId = communityId
+                Name = "Default",
+                IsShared = true,
+                CommunityId = communityId,
+                CreatedAt = DateTime.Now
             };
-            await Database.Save(bar);
+            await Database.Save(DefaultBar);
 
             Billing = new BillingRecord()
             {
@@ -84,7 +87,7 @@ namespace Morphic.Server.Tests.Community
             {
                 Id = communityId,
                 Name = "Test Community",
-                DefaultBarId = bar.Id,
+                DefaultBarId = DefaultBar.Id,
                 BillingId = Billing.Id
             };
             await Database.Save(Community);
@@ -119,7 +122,8 @@ namespace Morphic.Server.Tests.Community
                 CommunityId = Community.Id,
                 UserId = ActiveUserInfo.Id,
                 State = MemberState.Active,
-                Role = MemberRole.Member
+                Role = MemberRole.Member,
+                BarId = DefaultBar.Id
             };
             ActiveMember.FirstName.PlainText = "Active";
             ActiveMember.LastName.PlainText = "Member";
@@ -144,7 +148,7 @@ namespace Morphic.Server.Tests.Community
             await CreateCommunity();
 
             // GET, not authorized
-            var path = $"/v1/communities/{Community.Id}/members/{ActiveMember.Id}";
+            var path = $"/v1/communities/{Community.Id}/billing";
             var request = new HttpRequestMessage(HttpMethod.Get, path);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -174,21 +178,16 @@ namespace Morphic.Server.Tests.Community
             JsonElement property;
             Assert.True(element.TryGetProperty("id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal(ActiveMember.Id, property.GetString());
-            Assert.True(element.TryGetProperty("first_name", out property));
+            Assert.Equal(Billing.Id, property.GetString());
+            Assert.True(element.TryGetProperty("plan_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("Active", property.GetString());
-            Assert.True(element.TryGetProperty("last_name", out property));
+            Assert.Equal("testplan1", property.GetString());
+            Assert.True(element.TryGetProperty("trial_end", out property));
+            Assert.Equal(JsonValueKind.Number, property.ValueKind);
+            Assert.True(Math.Abs(property.GetDouble() - 1234567890.123) < 0.001);
+            Assert.True(element.TryGetProperty("status", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("Member", property.GetString());
-            Assert.True(element.TryGetProperty("role", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("member", property.GetString());
-            Assert.True(element.TryGetProperty("state", out property));
-            Assert.Equal(JsonValueKind.String, property.ValueKind);
-            Assert.Equal("active", property.GetString());
-            Assert.True(element.TryGetProperty("bar_id", out property));
-            Assert.Equal(JsonValueKind.Null, property.ValueKind);
+            Assert.Equal("paid", property.GetString());
         }
 
         [Fact]
@@ -197,13 +196,11 @@ namespace Morphic.Server.Tests.Community
             await CreateCommunity();
 
             // PUT, unauth
-            var path = $"/v1/communities/{Community.Id}/members/{ActiveMember.Id}";
+            var path = $"/v1/communities/{Community.Id}/billing";
             var request = new HttpRequestMessage(HttpMethod.Put, path);
             var content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
-            content.Add("bar_id", null);
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -212,9 +209,8 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
@@ -223,9 +219,8 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ActiveUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -234,147 +229,92 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", InvitedUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-            // PUT, missing first name
+            // PUT, missing plan
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // PUT, missing last name
-            request = new HttpRequestMessage(HttpMethod.Put, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("role", "manager");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // PUT, missing role
-            request = new HttpRequestMessage(HttpMethod.Put, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-            // PUT, bad bar_id
+            // PUT, missing contact
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
-            content.Add("bar_id", "notreal");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-            // PUT, success
+            // PUT, bad plan
+            path = $"/v1/communities/{Community.Id}/billing";
             request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "manager");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // PUT, can change self name
-            path = $"/v1/communities/{Community.Id}/members/{Manager.Id}";
-            request = new HttpRequestMessage(HttpMethod.Put, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Manager");
-            content.Add("role", "manager");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // PUT, can't demote self
-            path = $"/v1/communities/{Community.Id}/members/{Manager.Id}";
-            request = new HttpRequestMessage(HttpMethod.Put, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("first_name", "Changed");
-            content.Add("last_name", "Member");
-            content.Add("role", "member");
+            content.Add("plan_id", "testplanbad");
+            content.Add("contact_member_id", Manager.Id);
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
 
-        [Fact]
-        public async Task TestDelete()
-        {
-            await CreateCommunity();
-
-            // DELETE, unauth
-            var path = $"/v1/communities/{Community.Id}/members/{ActiveMember.Id}";
-            var request = new HttpRequestMessage(HttpMethod.Delete, path);
-            var response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-
-            // DELETE, not a manager
-            request = new HttpRequestMessage(HttpMethod.Delete, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ActiveUserInfo.AuthToken);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
-
-            // DELETE, not active
-            request = new HttpRequestMessage(HttpMethod.Delete, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", InvitedUserInfo.AuthToken);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-
-            // DELETE, success
-            request = new HttpRequestMessage(HttpMethod.Delete, path);
+            // PUT, bad member (notfound)
+            path = $"/v1/communities/{Community.Id}/billing";
+            request = new HttpRequestMessage(HttpMethod.Put, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-
-            // DELETE, can't delete self
-            path = $"/v1/communities/{Community.Id}/members/{Manager.Id}";
-            request = new HttpRequestMessage(HttpMethod.Delete, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
+            content = new Dictionary<string, object>();
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", "badmember");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        }
 
-        [Fact]
-        public async Task TestDeleteBillingContact()
-        {
-            await CreateCommunity();
-            
+            // PUT, bad member (not a manager)
+            path = $"/v1/communities/{Community.Id}/billing";
+            request = new HttpRequestMessage(HttpMethod.Put, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
+            content = new Dictionary<string, object>();
+            content.Add("plan_id", "testplan1");
+            content.Add("contact_member_id", ActiveMember.Id);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
             var paymentProcessor = (Server.Services.GetRequiredService<IPaymentProcessor>() as MockPaymentProcessor)!;
+
+            Assert.Equal(0, paymentProcessor.ChangeCommunitySubscriptionCalls);
             Assert.Equal(0, paymentProcessor.ChangeCommunityContactCalls);
-            Assert.Equal(Manager.Id, Billing.ContactMemeberId);
 
-            // DELETE, change billing contact
-            var path = $"/v1/communities/{Community.Id}/members/{Manager.Id}";
-            var request = new HttpRequestMessage(HttpMethod.Delete, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", OtherManagerUserInfo.AuthToken);
-            var response = await Client.SendAsync(request);
+            // PUT, success, change plan
+            request = new HttpRequestMessage(HttpMethod.Put, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
+            content = new Dictionary<string, object>();
+            content.Add("plan_id", "testplan2");
+            content.Add("contact_member_id", Manager.Id);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(1, paymentProcessor.ChangeCommunitySubscriptionCalls);
+            Assert.Equal(0, paymentProcessor.ChangeCommunityContactCalls);
 
+            // PUT, success, change contact
+            request = new HttpRequestMessage(HttpMethod.Put, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
+            content = new Dictionary<string, object>();
+            content.Add("plan_id", "testplan2");
+            content.Add("contact_member_id", OtherManager.Id);
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(1, paymentProcessor.ChangeCommunitySubscriptionCalls);
             Assert.Equal(1, paymentProcessor.ChangeCommunityContactCalls);
-            var billing = await Database.Get<BillingRecord>(Billing.Id);
-            Assert.Equal(OtherManager.Id, billing.ContactMemeberId);
         }
+
     }
 }
