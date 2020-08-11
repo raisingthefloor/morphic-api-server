@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.IO;
 using Hangfire;
 using Hangfire.Mongo;
 using Microsoft.AspNetCore.Builder;
@@ -44,7 +45,8 @@ namespace Morphic.Server
     using Email;
     using Http;
     using Auth;
-    
+    using Billing;
+
     public class Startup
     {
         public Startup(IConfiguration configuration)
@@ -67,6 +69,10 @@ namespace Morphic.Server
             services.Configure<KeyStorageSettings>(Configuration.GetSection("KeyStorageSettings"));
             services.AddSingleton<KeyStorageSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<KeyStorageSettings>>().Value);
             services.AddSingleton<KeyStorage>(serviceProvider => KeyStorage.CreateShared(serviceProvider.GetRequiredService<KeyStorageSettings>(), serviceProvider.GetRequiredService<ILogger<KeyStorage>>()));
+            services.AddSingleton<Plans>(serviceProvider => Plans.FromJson(Path.Join(serviceProvider.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "Billing", serviceProvider.GetRequiredService<StripeSettings>().Plans)));
+            services.Configure<StripeSettings>(Configuration.GetSection("StripeSettings"));
+            services.AddSingleton<StripeSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<StripeSettings>>().Value);
+            services.AddSingleton<IPaymentProcessor, StripePaymentProcessor>();
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, Recaptcha>();

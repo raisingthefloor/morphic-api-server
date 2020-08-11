@@ -41,6 +41,7 @@ namespace Morphic.Server.Db
     using Auth;
     using Users;
     using Community;
+    using Billing;
 
     /// <summary>Database settings</summary>
     /// <remarks>
@@ -94,6 +95,7 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(Member)] = morphic.GetCollection<Member>("CommunityMembers");
             CollectionByType[typeof(Bar)] = morphic.GetCollection<Bar>("CommunityBars");
             CollectionByType[typeof(Invitation)] = morphic.GetCollection<Invitation>("CommunityInvitations");
+            CollectionByType[typeof(BillingRecord)] = morphic.GetCollection<BillingRecord>("BillingRecord");
         }
 
         public void DeleteDatabase()
@@ -234,6 +236,34 @@ namespace Morphic.Server.Db
 
             return -1;
         }
+
+        /// <summary>Increment (or decrement) the value of a single field by the given amount</summary>
+        /// <returns>Whether the update succeded</returns>
+        public async Task<bool> Increment<T, TField>(T obj, Expression<Func<T, TField>> field, TField value) where T: Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                var builder = new UpdateDefinitionBuilder<T>();
+                var update = builder.Inc(field, value);
+                var result = await collection.UpdateOneAsync(record => record.Id == obj.Id, update);
+                return result.ModifiedCount == 1;
+            }
+            return false;
+        }
+
+        /// <summary>Increment (or decrement) the value of a single field by the given amount</summary>
+        /// <returns>Whether the update succeded</returns>
+        public async Task<bool> SetField<T, TField>(T obj, Expression<Func<T, TField>> field, TField value) where T: Record
+        {
+            if (CollectionByType[typeof(T)] is IMongoCollection<T> collection)
+            {
+                var builder = new UpdateDefinitionBuilder<T>();
+                var update = builder.Set(field, value);
+                var result = await collection.UpdateOneAsync(record => record.Id == obj.Id, update);
+                return result.ModifiedCount == 1;
+            }
+            return false;
+        }
         
         /// <summary>Run async operations within a transaction, using a lambda to specify the operations</summary>
         /// <remarks>
@@ -352,6 +382,11 @@ namespace Morphic.Server.Db
             CreateOrUpdateIndexOrFail(communityInvitations,
                 new CreateIndexModel<Invitation>(
                     Builders<Invitation>.IndexKeys.Ascending(t => t.ExpiresAt), options));
+
+
+            // IndexExplanation: Stripe webhooks will call with just a subscription id
+            var billing = CreateCollectionIfNotExists<BillingRecord>();
+            CreateOrUpdateIndexOrFail(billing, new CreateIndexModel<BillingRecord>(Builders<BillingRecord>.IndexKeys.Hashed(b => b.Stripe!.SubscriptionId)));
 
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",

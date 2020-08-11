@@ -906,6 +906,14 @@ The details of a community the user belongs to
       <td><code>object</code></td>
       <td>Optional</td>
     </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>error</code></td>
+      <td>The community is locked, possibly because of a payment problem</td>
+      <td colspan="2"><code>"community_locked"</code></td>
+    </tr>
   </tbody>
 </table>
 
@@ -1155,6 +1163,18 @@ Get a community's details
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td><code>member_count</code></td>
+      <td>The number of members in the community that count towards the plan maximum</td>
+      <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>member_limit</code></td>
+      <td>The maximum number of members allowed according to the plan</td>
+      <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
@@ -1362,9 +1382,13 @@ Create a new community member
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td><code>error</code></td>
+      <td rowspan="2"><code>error</code></td>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
+    </tr>
+    <tr>
+      <td>Member Limit reached for current plan</td>
+      <td colspan="2"><code>"limit_reached"</code></td>
     </tr>
     <tr>
       <td><code>details</code></td>

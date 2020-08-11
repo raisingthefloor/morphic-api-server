@@ -100,6 +100,7 @@ namespace Morphic.Server.Community{
                 throw new HttpError(HttpStatusCode.BadRequest, MemberDeleteError.CannotDeleteSelf);
             }
             await Delete(Member);
+            await Context.GetDatabase().Increment(Community, c => c.MemberCount, -1);
         }
 
         class MemberPutRequest

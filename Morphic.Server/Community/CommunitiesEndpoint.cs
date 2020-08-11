@@ -26,19 +26,23 @@ using System.Threading.Tasks;
 using System;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
+using Stripe;
 
 namespace Morphic.Server.Community
 {
 
     using Http;
     using Users;
+    using Billing;
 
     [Path("/v1/communities")]
     public class CommunitiesEndpoint: Endpoint
     {
 
-        public CommunitiesEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
+        public CommunitiesEndpoint(IPaymentProcessor paymentProcessor, Plans plans, IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
+            this.paymentProcessor = paymentProcessor;
+            this.plans = plans;
         }
 
         public override async Task LoadResource()
@@ -47,6 +51,8 @@ namespace Morphic.Server.Community
         }
 
         private User User = null!;
+        private IPaymentProcessor paymentProcessor;
+        private Plans plans;
 
         [Method]
         public async Task Post()
@@ -145,18 +151,39 @@ namespace Morphic.Server.Community
             }
             await db.Save(bar);
 
+            var plan = plans.Default;
+
+            var memberId = Guid.NewGuid().ToString();
+
+            var billing = new BillingRecord()
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommunityId = communityId,
+                PlanId = plan.Id,
+                TrialEnd = DateTime.Now.AddDays(30),
+                ContactMemeberId = memberId
+            };
+
             var community = new Community()
             {
                 Id = communityId,
                 Name = input.Name,
                 DefaultBarId = bar.Id,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.Now,
+                BillingId = billing.Id,
+                MemberCount = 0,
+                MemberLimit = plan.MemberLimit
             };
             await db.Save(community);
 
+            await paymentProcessor.StartCommunitySubscription(User, community, plan, billing);
+
+            await db.Save(billing);
+
+            // Everyone gets one free user, so we don't count this first one towards community.MemberCount
             var member = new Member()
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = memberId,
                 CommunityId = community.Id,
                 UserId = User.Id,
                 Role = MemberRole.Manager,

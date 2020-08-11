@@ -24,38 +24,12 @@
 using System;
 using System.Text.Json.Serialization;
 
-
-namespace Morphic.Server.Community
+namespace Morphic.Server.Billing
 {
-
-    using Db;
-
-    public class Community: Record
+    public class StripePlan
     {
-
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = null!;
-
-        [JsonPropertyName("default_bar_id")]
-        public string DefaultBarId { get; set; } = null!;
-
-        [JsonPropertyName("billing_id")]
-        public string? BillingId { get; set; }
-
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_count")]
-        public int MemberCount { get; set; }
-
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_limit")]
-        public int MemberLimit { get; set; }
-
-        [JsonIgnore]
-        public bool IsLocked { get; set; }
-
-        [JsonIgnore]
-        public DateTime CreatedAt { get; set; }
-
+        [JsonPropertyName("price_id")]
+        public string PriceId { get; set; } = null!;
     }
 
 }

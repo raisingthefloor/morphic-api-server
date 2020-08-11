@@ -1,0 +1,24 @@
+[
+    {
+        "id": "basic-1-month",
+        "active": true,
+        "member_limit": 5,
+        "months": 1,
+        "price": 600,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HEfJgFNS9zyw2T7js0QBmSM"
+        }
+    },
+    {
+        "id": "basic-6-month",
+        "active": true,
+        "member_limit": 5,
+        "months": 6,
+        "price": 3000,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HEfJgFNS9zyw2T7CAAkOzhm"
+        }
+    }
+]

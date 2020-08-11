@@ -22,40 +22,45 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
-
-namespace Morphic.Server.Community
+namespace Morphic.Server.Billing
 {
 
-    using Db;
-
-    public class Community: Record
+    public class Plans
     {
+        public static Plans FromJson(string path)
+        {
+            var json = File.ReadAllBytes(path);
+            var plans = JsonSerializer.Deserialize<Plan[]>(json);
+            return new Plans(plans);
+        }
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = null!;
+        public Plans(Plan[] plans)
+        {
+            foreach (var plan in plans){
+                if (plan.IsActive){
+                    Active.Add(plan);
+                }
+                plansById.Add(plan.Id, plan);
+            }
+        }
 
-        [JsonPropertyName("default_bar_id")]
-        public string DefaultBarId { get; set; } = null!;
+        public Plan Default{
+            get{
+                return GetPlan("basic-1-month")!;
+            }
+        }
 
-        [JsonPropertyName("billing_id")]
-        public string? BillingId { get; set; }
+        public Plan? GetPlan(string id){
+            return plansById[id];
+        }
 
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_count")]
-        public int MemberCount { get; set; }
-
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_limit")]
-        public int MemberLimit { get; set; }
-
-        [JsonIgnore]
-        public bool IsLocked { get; set; }
-
-        [JsonIgnore]
-        public DateTime CreatedAt { get; set; }
-
+        public List<Plan> Active = new List<Plan>();
+        private Dictionary<string, Plan> plansById = new Dictionary<string, Plan>();
     }
 
 }

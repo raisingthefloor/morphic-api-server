@@ -24,38 +24,37 @@
 using System;
 using System.Text.Json.Serialization;
 
-
-namespace Morphic.Server.Community
+namespace Morphic.Server.Billing
 {
 
     using Db;
 
-    public class Community: Record
+    public class BillingRecord: Record
     {
 
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = null!;
+        [JsonIgnore]
+        public string? CommunityId { get; set; }
 
-        [JsonPropertyName("default_bar_id")]
-        public string DefaultBarId { get; set; } = null!;
+        [JsonPropertyName("plan_id")]
+        public string PlanId { get; set; } = null!;
 
-        [JsonPropertyName("billing_id")]
-        public string? BillingId { get; set; }
+        [JsonPropertyName("trial_end")]
+        public DateTime TrialEnd { get; set; }
 
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_count")]
-        public int MemberCount { get; set; }
+        [JsonPropertyName("status")]
+        public BillingStatus Status { get; set; }
 
-        // Does not include the one free manager everyone is allowed
-        [JsonPropertyName("member_limit")]
-        public int MemberLimit { get; set; }
+        [JsonPropertyName("contact_member_id")]
+        public string ContactMemeberId { get; set; } = null!;
 
         [JsonIgnore]
-        public bool IsLocked { get; set; }
-
-        [JsonIgnore]
-        public DateTime CreatedAt { get; set; }
-
+        public StripeBillingRecord? Stripe { get; set; }
     }
 
-}
+    public enum BillingStatus
+    {
+        Paid,
+        PastDue,
+        Canceled
+    }
+};

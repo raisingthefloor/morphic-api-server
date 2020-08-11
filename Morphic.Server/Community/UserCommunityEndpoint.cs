@@ -65,6 +65,13 @@ namespace Morphic.Server.Community{
 
         [Method]
         public async Task Get(){
+            if (Community.IsLocked)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
+                {
+                    {"error", "community_locked"}
+                });
+            }
             await Respond(new UserCommunity()
             {
                 Id = Community.Id,
