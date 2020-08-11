@@ -34,6 +34,9 @@ namespace Morphic.Server.Billing
         [JsonPropertyName("active")]
         public bool IsActive { get; set; }
 
+        [JsonPropertyName("default")]
+        public bool IsDefault { get; set; }
+
         [JsonPropertyName("member_limit")]
         public int MemberLimit { get; set; }
 

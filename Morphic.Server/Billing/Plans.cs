@@ -41,24 +41,32 @@ namespace Morphic.Server.Billing
 
         public Plans(Plan[] plans)
         {
-            foreach (var plan in plans){
-                if (plan.IsActive){
+            foreach (var plan in plans)
+            {
+                if (plan.IsActive)
+                {
                     Active.Add(plan);
                 }
                 plansById.Add(plan.Id, plan);
+                All.Add(plan);
+                if (plan.IsDefault)
+                {
+                    Default = plan;
+                }
+            }
+            if (Default == null)
+            {
+                Default = All[0];
             }
         }
 
-        public Plan Default{
-            get{
-                return GetPlan("basic-1-month")!;
-            }
-        }
+        public Plan Default { get; private set; } = null!;
 
         public Plan? GetPlan(string id){
             return plansById[id];
         }
 
+        public List<Plan> All = new List<Plan>();
         public List<Plan> Active = new List<Plan>();
         private Dictionary<string, Plan> plansById = new Dictionary<string, Plan>();
     }

@@ -388,6 +388,9 @@ namespace Morphic.Server.Db
             var billing = CreateCollectionIfNotExists<BillingRecord>();
             CreateOrUpdateIndexOrFail(billing, new CreateIndexModel<BillingRecord>(Builders<BillingRecord>.IndexKeys.Hashed(b => b.Stripe!.SubscriptionId)));
 
+            // IndexExplanation: Stripe webhooks will call with just a customer id
+            CreateOrUpdateIndexOrFail(billing, new CreateIndexModel<BillingRecord>(Builders<BillingRecord>.IndexKeys.Hashed(b => b.Stripe!.CustomerId)));
+
             stopWatch.Stop();
             logger.LogInformation("Database create/update took {TotalElapsedSeconds}secs",
                 stopWatch.Elapsed.TotalSeconds);

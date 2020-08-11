@@ -30,6 +30,10 @@ namespace Morphic.Server.Billing
 
     public interface IPaymentProcessor
     {
-        Task StartCommunitySubscription(User owner, Community community, Plan plan, BillingRecord billing);
+        Task StartCommunitySubscription(Community community, BillingRecord billing, User contact);
+        Task ChangeCommunitySubscription(Community community, BillingRecord billing);
+        Task CancelCommunitySubscription(Community community, BillingRecord billing);
+        Task ChangeCommunityContact(Community community, BillingRecord billing, User contact);
+        Task ChangeCommunityCard(Community community, BillingRecord billing, object card);
     }
 }

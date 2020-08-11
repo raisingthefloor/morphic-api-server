@@ -42,7 +42,7 @@ namespace Morphic.Server.Billing
     public class StripePaymentProcessor : IPaymentProcessor
     {
 
-        public StripePaymentProcessor(StripeSettings settings, ILogger<StripePaymentProcessor> logger)
+        public StripePaymentProcessor(StripeSettings settings, Plans plans, ILogger<StripePaymentProcessor> logger)
         {
             RequestOptions = new RequestOptions()
             {
@@ -50,16 +50,21 @@ namespace Morphic.Server.Billing
             };
             Customers = new CustomerService();
             Subscriptions = new SubscriptionService();
+            Sources = new SourceService();
+            this.plans = plans;
             this.logger = logger;
         }
 
         public RequestOptions RequestOptions;
         public CustomerService Customers;
         public SubscriptionService Subscriptions;
+        public SourceService Sources;
         private ILogger logger;
+        private Plans plans;
 
-        public async Task StartCommunitySubscription(User owner, Community community, Plan plan, BillingRecord billing)
+        public async Task StartCommunitySubscription(Community community, BillingRecord billing, User contact)
         {
+            var plan = plans.GetPlan(billing.PlanId)!;
             if (plan.Stripe is StripePlan stripePlan)
             {
                 try
@@ -67,7 +72,7 @@ namespace Morphic.Server.Billing
                     var customer = new CustomerCreateOptions()
                     {
                         Name = community.Name,
-                        Email = owner.Email.PlainText
+                        Email = contact.Email.PlainText
                     };
                     var stripeCustomer = await Customers.CreateAsync(customer, RequestOptions);
                     var subscription = new SubscriptionCreateOptions()
@@ -99,6 +104,112 @@ namespace Morphic.Server.Billing
                 }
             }else{
                 throw new ArgumentException("StripePaymentProcessor requires a StripePlan");
+            }
+        }
+
+        public async Task ChangeCommunitySubscription(Community community, BillingRecord billing)
+        {
+            var plan = plans.GetPlan(billing.PlanId)!;
+            if (plan.Stripe is StripePlan stripePlan)
+            {
+                try
+                {
+                    var update = new SubscriptionUpdateOptions()
+                    {
+                        Items = new List<SubscriptionItemOptions>()
+                        {
+                            new SubscriptionItemOptions()
+                            {
+                                Price = stripePlan.PriceId
+                            }
+                        }
+                    };
+                    await Subscriptions.UpdateAsync(billing.Stripe!.SubscriptionId, update, RequestOptions);
+                }
+                catch (StripeException e)
+                {
+                    logger.LogError(e, "Failed to update stripe subscription");
+                    throw;
+                }
+            }
+            else
+            {
+                throw new ArgumentException("StripePaymentProcessor requires a StripePlan");
+            }
+        }
+
+        public async Task CancelCommunitySubscription(Community community, BillingRecord billing)
+        {
+            var plan = plans.GetPlan(billing.PlanId)!;
+            if (plan.Stripe is StripePlan stripePlan)
+            {
+                try
+                {
+                    var update = new SubscriptionUpdateOptions()
+                    {
+                        CancelAtPeriodEnd = true
+                    };
+                    await Subscriptions.UpdateAsync(billing.Stripe!.SubscriptionId, update, RequestOptions);
+                }
+                catch (StripeException e)
+                {
+                    logger.LogError(e, "Failed to update stripe subscription");
+                    throw;
+                }
+            }
+            else
+            {
+                throw new ArgumentException("StripePaymentProcessor requires a StripePlan");
+            }
+        }
+
+        public async Task ChangeCommunityContact(Community community, BillingRecord billing, User contact)
+        {
+            try
+            {
+                var update = new CustomerUpdateOptions()
+                {
+                    Email = contact.Email.PlainText
+                };
+                await Customers.UpdateAsync(billing.Stripe!.CustomerId, update, RequestOptions);
+            }
+            catch (StripeException e)
+            {
+                logger.LogError(e, "Failed to update stripe customer");
+                throw;
+            }
+        }
+
+        public async Task ChangeCommunityCard(Community community, BillingRecord billing, object card)
+        {
+            if (card is string stripeToken)
+            {
+                try
+                {
+                    var update = new CustomerUpdateOptions()
+                    {
+                        Source = stripeToken
+                    };
+                    update.AddExpand("default_source");
+                    var stripeCustomer = await Customers.UpdateAsync(billing.Stripe!.CustomerId, update, RequestOptions);
+                    if (stripeCustomer.DefaultSource is Source stripeSource)
+                    {
+                        billing.Card = new Card()
+                        {
+                            Last4 = stripeSource.Card.Last4,
+                            Brand = stripeSource.Card.Brand
+                        };
+                    }
+                }
+                catch (StripeException e)
+                {
+                    logger.LogError(e, "Failed to update stripe customer");
+                    throw;
+                }
+            }
+            else
+            {
+                throw new ArgumentException("StripePaymentProcessor requires a string card token");
             }
         }
 

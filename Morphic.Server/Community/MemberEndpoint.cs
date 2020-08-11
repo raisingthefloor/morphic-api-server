@@ -32,14 +32,19 @@ namespace Morphic.Server.Community{
 
     using Http;
     using Json;
+    using Billing;
+    using Users;
 
     [Path("/v1/communities/{communityId}/members/{id}")]
     public class MemberEndpoint: Endpoint
     {
 
-        public MemberEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
+        public MemberEndpoint(IPaymentProcessor paymentProcessor, IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
+            this.paymentProcessor = paymentProcessor;
         }
+
+        private IPaymentProcessor paymentProcessor;
 
         [Parameter]
         public string CommunityId = "";
@@ -49,9 +54,9 @@ namespace Morphic.Server.Community{
 
         public override async Task LoadResource()
         {
-            var authenticatedUser = await RequireUser();
+            AuthenticatedUser = await RequireUser();
             Community = await Load<Community>(CommunityId);
-            AuthenticatedMember = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == authenticatedUser.Id && m.State == MemberState.Active);
+            AuthenticatedMember = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == AuthenticatedUser.Id && m.State == MemberState.Active);
             if (AuthenticatedMember.Role != MemberRole.Manager){
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
@@ -59,6 +64,7 @@ namespace Morphic.Server.Community{
         }
 
         public Community Community = null!;
+        public User AuthenticatedUser = null!;
         public Member AuthenticatedMember = null!;
         public Member Member = null!;
 
@@ -95,9 +101,25 @@ namespace Morphic.Server.Community{
         [Method]
         public async Task Delete()
         {
+            var db = Context.GetDatabase();
             if (Member.Id == AuthenticatedMember.Id)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, MemberDeleteError.CannotDeleteSelf);
+            }
+            // If we're removing the member that is the billing contact for the community,
+            // then make the logged-in member the new billing contact
+            if (Community.BillingId is string billingId)
+            {
+                var billing = await db.Get<BillingRecord>(billingId);
+                if (billing != null)
+                {
+                    if (billing.ContactMemeberId == Member.Id)
+                    {
+                        billing.ContactMemeberId = AuthenticatedMember.Id;
+                        await this.paymentProcessor.ChangeCommunityContact(Community, billing, AuthenticatedUser);
+                        await db.SetField(billing, b => b.ContactMemeberId, billing.ContactMemeberId);
+                    }
+                }
             }
             await Delete(Member);
             await Context.GetDatabase().Increment(Community, c => c.MemberCount, -1);

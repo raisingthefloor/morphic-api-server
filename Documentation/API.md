@@ -16,6 +16,7 @@ Endpoints
   * [`/v1/users/{id}/password`](#endpoint-password)
   * [`/v1/users/{id}/communities`](#endpoint-user-communities)
   * [`/v1/users/{uid}/communities/{cid}`](#endpoint-user-community)
+  * [`/v1/users/{id}/unregister`](#endpoint-user-unregister)
 * [Password Reset](#section-password-reset)
   * [`/v1/auth/username/password_reset/{oneTimeToken}`](#endpoint-password-reset)  
   * [`/v1/auth/username/password_reset/request`](#endpoint-password-reset-request)
@@ -29,8 +30,10 @@ Endpoints
   * [`/v1/communities/{id}/bars`](#endpoint-community-bars)
   * [`/v1/communities/{cid}/bars/{id}`](#endpoint-community-bar)
   * [`/v1/communities/{id}/skype/meetings`](#endpoint-community-skype-meetings)
-* [User Un-Registration](#section-user-unregistration)
-  * [`/v1/users/{userId}/unregister`](#endpoint-user-unregister)
+  * [`/v1/communities/{id}/billing`](#endpoint-community-billing)
+  * [`/v1/communities/{id}/billing/card`](#endpoint-community-billing-card)
+* [Plans](#section-plans)
+  * [`v1/plans/community`](#endpoint-plans-community)
 
 <a name="section-user-registration"></a>User Registration
 =================
@@ -706,7 +709,7 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-password"></a>/v1/user/{userId}/password
+<a name="endpoint-password"></a>/v1/user/{id}/password
 ------------------
 
 ### POST
@@ -921,6 +924,46 @@ The details of a community the user belongs to
 * `link`
 * `application`
 * `action`
+
+<a name="endpoint-user-unregister"></a>/v1/users/{id}/unregister
+------------------
+
+### POST
+
+Create a new user with empty preferences and the ability to login with the
+given username/password credentials.
+
+Immediately log the user in and return an authentication token.
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <th><code>Content-Type</code></th>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th><code>Authorization</code></th>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates authentication required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>403</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
+    </tr>
+  </tbody>
+</table>
 
 <a name="section-password-reset"></a>Password Reset
 =================
@@ -2084,51 +2127,6 @@ Delete a bar configuration
   </tbody>
 </table>
 
-
-
-<a name="section-user-unregistration"></a>User Un-Registration
-=================
-
-<a name="endpoint-user-unregister"></a>/v1/users/{userId}/unregister
-------------------
-
-### POST
-
-Create a new user with empty preferences and the ability to login with the
-given username/password credentials.
-
-Immediately log the user in and return an authentication token.
-
-<table>
-  <tbody>
-    <tr>
-      <th colspan="4">Headers</th>
-    </tr>
-    <tr>
-      <th><code>Content-Type</code></th>
-      <td colspan="2"><code>application/json; charset=utf-8</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <th><code>Authorization</code></th>
-      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
-      <td>Required</td>
-    </tr>
-    <tr>
-      <th colspan="4"><code>200</code> Response Body</th>
-    </tr>
-    <tr>
-      <td colspan="4">Empty indicates authentication required</td>
-    </tr>
-    <tr>
-      <th colspan="4"><code>403</code> Response Body</th>
-    </tr>
-    <tr>
-      <td colspan="4">Empty indicates unauthorized, regardless of whether the requested record actually exists</td>
-    </tr>
-  </tbody>
-</table>
-
 <a name="endpoint-community-skype-meetings"></a>/v1/communities/{id}/skype/meetings
 ------------------
 
@@ -2163,6 +2161,250 @@ restrictions on browser-based requests.
       <td><code>joinLink</code></td>
       <td>The url of the new skype meeting</td>
       <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<a name="endpoint-community-billing"></a>/v1/communities/{id}/billing
+------------------
+
+### GET
+
+Get the billing information for a community
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>plan_id</code></td>
+      <td>The community plan</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>trial_end</code></td>
+      <td>UNIX timestamp representing the end of the trial period</td>
+      <td><code>Double</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>status</code></td>
+      <td>Payment status</td>
+      <td><code>PaymentStatus</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>contact_member_id</code></td>
+      <td>The ID of the member who is the billing contact</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>card</code></td>
+      <td>An object representing the credit card on file</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.brand</code></td>
+      <td>The brand of the card</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.last4</code></td>
+      <td>The last four digits of the card</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+  </tbody>
+</table>
+
+#### PaymentStatus: String
+* `paid`
+* `past_due`
+* `canceled`
+
+
+### PUT
+
+Update the billing information for a community
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <td><code>plan_id</code></td>
+      <td>The community plan</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td><code>contact_member_id</code></td>
+      <td>The ID of the member who is the billing contact</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td colspan="4">Empty indicates success</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td rowspan="2"><code>error</code></td>
+      <td>Invalid plan</td>
+      <td colspan="2"><code>"bad_plan_id"</code></td>
+    </tr>
+    <tr>
+      <td>Invalid contact</td>
+      <td colspan="2"><code>"bad_member_id"</code></td>
+    </tr>
+  </tbody>
+</table>
+
+
+<a name="endpoint-community-billing"></a>/v1/communities/{id}/billing/card
+------------------
+
+### POST
+
+Update the card used for billing
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4">Request Body</th>
+    </tr>
+    <tr>
+      <td><code>token</code></td>
+      <td>The stripe card token id</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>card</code></td>
+      <td>An object representing the credit card on file</td>
+      <td><code>object</code></td>
+      <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.brand</code></td>
+      <td>The brand of the card</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>.last4</code></td>
+      <td>The last four digits of the card</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>400</code> Response Body</th>
+    </tr>
+    <tr>
+      <td rowspan="2"><code>error</code></td>
+      <td>The card could not be validated</td>
+      <td colspan="2"><code>"invalid"</code></td>
+    </tr>
+  </tbody>
+</table>
+
+
+<a name="section-plans"></a>Plans
+=================
+
+<a name="endpoint-plans-community"></a>/v1/plans/community
+------------------
+
+### GET
+
+Get the list of active billing plans for Morphic Community
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Content-Type</code></td>
+      <td colspan="2"><code>application/json; charset=utf-8</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>plans</code></td>
+      <td>The list of active community plans</td>
+      <td><code>Array</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].id</code></td>
+      <td>The plan's uinique ID</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].member_limit</code></td>
+      <td>The number of members allowed under the plan</td>
+      <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].months</code></td>
+      <td>The number of months in the plan's billing cycle</td>
+      <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].price</code></td>
+      <td>The price in the currency's smallest denomination (e.g., cent for USD)</td>
+      <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].currency</code></td>
+      <td>The currency of the price</td>
+      <td><code>int</code></td>
       <td>Required</td>
     </tr>
   </tbody>

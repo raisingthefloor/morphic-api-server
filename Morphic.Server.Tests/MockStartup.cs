@@ -39,6 +39,8 @@ namespace Morphic.Server.Tests
     using Db;
     using Email;
     using Http;
+    using Billing;
+    using Server.Billing;
 
     public class MockStartup
     {
@@ -67,7 +69,44 @@ namespace Morphic.Server.Tests
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRecaptcha, MockRecaptcha>();
             services.AddSingleton<IBackgroundJobClient, MockBackgroundJobClient>();
-
+            services.AddSingleton<StripeSettings>(new StripeSettings()
+            {
+                WebhookSecret = "webhooksecret"
+            });
+            services.AddSingleton<IPaymentProcessor, MockPaymentProcessor>();
+            services.AddSingleton<Plans>(new Plans(
+                new Plan[]
+                {
+                    new Plan()
+                    {
+                        Id = "testplan1",
+                        IsDefault = true,
+                        IsActive = true,
+                        MemberLimit = 5,
+                        Months = 1,
+                        Price = 500,
+                        Currency = "USD"
+                    },
+                    new Plan()
+                    {
+                        Id = "testplan2",
+                        IsActive = true,
+                        MemberLimit = 10,
+                        Months = 1,
+                        Price = 1000,
+                        Currency = "USD"
+                    },
+                    new Plan()
+                    {
+                        Id = "testplan3",
+                        IsActive = false,
+                        MemberLimit = 5,
+                        Months = 1,
+                        Price = 600,
+                        Currency = "USD"
+                    }
+                }
+            ));
             services.AddRouting();
             services.AddEndpoints();
         }

@@ -47,6 +47,9 @@ namespace Morphic.Server.Billing
         [JsonPropertyName("contact_member_id")]
         public string ContactMemeberId { get; set; } = null!;
 
+        [JsonPropertyName("card")]
+        public Card? Card { get; set; }
+
         [JsonIgnore]
         public StripeBillingRecord? Stripe { get; set; }
     }

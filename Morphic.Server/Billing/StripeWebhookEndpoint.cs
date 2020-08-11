@@ -39,21 +39,35 @@ namespace Morphic.Server.Billing
     [Path("/v1/stripe/webhook")]
     public class StripeWebhookEndpoint: Endpoint
     {
-        public StripeWebhookEndpoint(StripeSettings stripeSettings, IHttpContextAccessor contextAccessor, ILogger<StripeWebhookEndpoint> logger): base(contextAccessor, logger)
+        public StripeWebhookEndpoint(StripeSettings stripeSettings, Plans plans, IHttpContextAccessor contextAccessor, ILogger<StripeWebhookEndpoint> logger): base(contextAccessor, logger)
         {
             endpointSecret = stripeSettings.WebhookSecret;
+            this.plans = plans;
         }
 
         private string endpointSecret;
+        private Plans plans;
 
         [Method]
         public async Task Post()
         {
             var stream = new StreamReader(Request.Body);
             var json = await stream.ReadToEndAsync();
+            if (json == ""){
+                throw new HttpError(HttpStatusCode.BadRequest);
+            }
             try
             {
-                var stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], endpointSecret);
+                Event stripeEvent;
+                try
+                {
+                    stripeEvent = EventUtility.ConstructEvent(json, Request.Headers["Stripe-Signature"], endpointSecret);
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "Stripe webhook exception thrown parsing event");
+                    throw new HttpError(HttpStatusCode.BadRequest);
+                }
                 switch (stripeEvent.Type)
                 {
                     case Events.CustomerSubscriptionUpdated:
@@ -65,6 +79,14 @@ namespace Morphic.Server.Billing
                             else
                             {
                                 throw new HttpError(HttpStatusCode.BadRequest);
+                            }
+                            break;
+                        }
+                    case Events.CustomerSourceUpdated:
+                        {
+                            if (stripeEvent.Data.Object is Stripe.Card card)
+                            {
+                                await HandleCardUpdated(card);
                             }
                             break;
                         }
@@ -103,6 +125,41 @@ namespace Morphic.Server.Billing
             if (status != billing.Status){
                 await db.SetField(billing, b => b.Status, status);
             }
+
+            var trialEnd = subscription.TrialEnd ?? default(DateTime);
+            if (trialEnd != billing.TrialEnd)
+            {
+                await db.SetField(billing, b => b.TrialEnd, trialEnd);
+            }
+
+            var items = subscription.Items.Data.ToArray();
+            if (items.Length > 0)
+            {
+                var plan = plans.GetPlanForStripePrice(items[0].Price.Id);
+                if (plan != null)
+                {
+                    if (plan.Id != billing.PlanId)
+                    {
+                        await db.SetField(billing, b => b.PlanId, plan.Id);
+                    }
+                }
+            }
+        }
+
+        private async Task HandleCardUpdated(Stripe.Card card)
+        {
+            var db = Context.GetDatabase();
+            var billing = await db.Get<BillingRecord>(b => b.Stripe!.CustomerId == card.CustomerId);
+            if (billing == null)
+            {
+                return;
+            }
+            billing.Card = new Card()
+            {
+                Last4 = card.Last4,
+                Brand = card.Brand
+            };
+            await db.SetField(billing, b => b.Card, billing.Card);
         }
     }
 

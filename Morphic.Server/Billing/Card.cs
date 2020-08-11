@@ -26,30 +26,14 @@ using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Billing
 {
-    public class StripePlan
-    {
-        [JsonPropertyName("price_id")]
-        public string PriceId { get; set; } = null!;
-    }
-
-    public static class StripePlansExtension
+    public class Card
     {
 
-        public static Plan? GetPlanForStripePrice(this Plans plans, string priceId)
-        {
-            foreach (var plan in plans.All)
-            {
-                if (plan.Stripe is StripePlan stripePlan)
-                {
-                    if (stripePlan.PriceId == priceId)
-                    {
-                        return plan;
-                    }
-                }
-            }
-            return null;
-        }
+        [JsonPropertyName("brand")]
+        public string Brand { get; set; } = null!;
 
+        [JsonPropertyName("last4")]
+        public string Last4 { get; set; } = null!;
     }
 
 }

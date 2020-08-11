@@ -2,6 +2,7 @@
     {
         "id": "basic-1-month",
         "active": true,
+        "default": true,
         "member_limit": 5,
         "months": 1,
         "price": 600,

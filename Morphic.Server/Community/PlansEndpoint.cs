@@ -20,36 +20,40 @@
 // * Canadian Foundation for Innovation
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
+using System.Threading.Tasks;
 
-using System;
-using System.Text.Json.Serialization;
-
-namespace Morphic.Server.Billing
+namespace Morphic.Server.Community
 {
-    public class StripePlan
-    {
-        [JsonPropertyName("price_id")]
-        public string PriceId { get; set; } = null!;
-    }
 
-    public static class StripePlansExtension
+    using Http;
+    using Billing;
+
+    [Path("/v1/plans/community")]
+    public class PlansEndpoint: Endpoint
     {
 
-        public static Plan? GetPlanForStripePrice(this Plans plans, string priceId)
+        public PlansEndpoint(Plans plans, IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger): base(contextAccessor, logger)
         {
-            foreach (var plan in plans.All)
-            {
-                if (plan.Stripe is StripePlan stripePlan)
-                {
-                    if (stripePlan.PriceId == priceId)
-                    {
-                        return plan;
-                    }
-                }
-            }
-            return null;
+            this.plans = plans;
         }
 
+        private Plans plans;
+
+        [Method]
+        public async Task Get()
+        {
+            await Respond(new PlansPage()
+            {
+                Plans = plans.Active.ToArray()
+            });
+        }
+
+        private class PlansPage
+        {
+            public Plan[] Plans { get; set; } = null!;
+        }
     }
 
 }
