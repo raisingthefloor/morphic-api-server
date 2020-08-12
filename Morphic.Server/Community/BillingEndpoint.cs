@@ -88,6 +88,10 @@ namespace Morphic.Server.Community
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BillingPutError.BadPlanId);
             }
+            if (plan.MemberLimit < Community.MemberCount)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, BillingPutError.PlanLimitExceeded);
+            }
             var member = await db.Get<Member>(m => m.Id == input.ContactMemberId && m.CommunityId == Community.Id && m.Role == MemberRole.Manager);
             if (member == null || member.UserId == null)
             {
@@ -103,6 +107,7 @@ namespace Morphic.Server.Community
                 Billing.PlanId = plan.Id;
                 await paymentProcessor.ChangeCommunitySubscription(Community, Billing);
                 await db.SetField(Billing, b => b.PlanId, Billing.PlanId);
+                await db.SetField(Community, c => c.MemberLimit, plan.MemberLimit);
             }
             if (member.Id != Billing.ContactMemeberId)
             {
@@ -128,6 +133,7 @@ namespace Morphic.Server.Community
 
             public static BillingPutError BadPlanId = new BillingPutError() { Error = "bad_plan_id" };
             public static BillingPutError BadMemberId = new BillingPutError() { Error = "bad_member_id" };
+            public static BillingPutError PlanLimitExceeded = new BillingPutError() { Error = "plan_limit_exceeded" };
         }
 
     }

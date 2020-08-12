@@ -2277,13 +2277,17 @@ Update the billing information for a community
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td rowspan="2"><code>error</code></td>
+      <td rowspan="3"><code>error</code></td>
       <td>Invalid plan</td>
       <td colspan="2"><code>"bad_plan_id"</code></td>
     </tr>
     <tr>
       <td>Invalid contact</td>
       <td colspan="2"><code>"bad_member_id"</code></td>
+    </tr>
+    <tr>
+      <td>The chosen plan's member limit smaller than the community's member count</td>
+      <td colspan="2"><code>"plan_limit_exceeded"</code></td>
     </tr>
   </tbody>
 </table>
