@@ -289,7 +289,8 @@ namespace Morphic.Server.Tests
             Assert.Empty(allowedOrigin);
             Assert.Empty(allowedMethods);
             Assert.Empty(allowedHeaders);
-            Assert.Empty(vary);
+            Assert.Single(vary);
+            Assert.Equal("Origin", vary[0]);
 
             // Sending disallowed origin
             services = new ServiceCollection();
@@ -310,7 +311,8 @@ namespace Morphic.Server.Tests
             Assert.Empty(allowedOrigin);
             Assert.Empty(allowedMethods);
             Assert.Empty(allowedHeaders);
-            Assert.Empty(vary);
+            Assert.Single(vary);
+            Assert.Equal("Origin", vary[0]);
 
             // Sending allowed origin
             services = new ServiceCollection();
@@ -411,7 +413,8 @@ namespace Morphic.Server.Tests
             Assert.Equal("*", allowedMethods[0]);
             Assert.Single(allowedHeaders);
             Assert.Equal("Content-Type, Authorization", allowedHeaders[0]);
-            Assert.Empty(vary);
+            Assert.Single(vary);
+            Assert.Equal("Origin", vary[0]);
 
         }
 
