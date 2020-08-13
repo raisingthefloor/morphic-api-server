@@ -97,6 +97,7 @@ namespace Morphic.Server.Http
             AddAllowedOrigin(settings.CommunityServerUri);
             Response.OnStarting(() =>
             {
+                Response.Headers.Add("Cache-Control", "no-cache");
                 SetCrossOriginHeaders();
                 return Task.CompletedTask;
             });
@@ -494,12 +495,10 @@ namespace Morphic.Server.Http
 
         protected void SetCrossOriginHeaders()
         {
+            Response.Headers.Add("Vary", "Origin");
             if (EffectiveAllowedOrigin is AllowedOrigin allowed)
             {
                 Response.Headers.Add("Access-Control-Allow-Origin", allowed.Origin);
-                if (allowed.Varies){
-                    Response.Headers.Add("Vary", "Origin");
-                }
                 if (Request.Headers["Access-Control-Request-Method"].Count > 0)
                 {
                     Response.Headers.Add("Access-Control-Allow-Methods", String.Join(", ", allowed.Methods));
