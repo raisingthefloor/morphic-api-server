@@ -25,7 +25,6 @@
     {
         "id": "midsize-1-month",
         "active": true,
-        "default": true,
         "member_limit": 15,
         "months": 1,
         "price": 1200,
@@ -48,7 +47,6 @@
     {
         "id": "large-1-month",
         "active": true,
-        "default": true,
         "member_limit": 50,
         "months": 1,
         "price": 3600,

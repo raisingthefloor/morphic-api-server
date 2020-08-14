@@ -30,6 +30,7 @@ namespace Morphic.Server.Billing
     {
         public string? CustomerId { get; set; }
         public string? SubscriptionId { get; set; }
+        public string? SubscriptionItemId { get; set; }
     }
 
 };

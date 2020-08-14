@@ -29,6 +29,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using Stripe;
+using System.Linq;
 
 namespace Morphic.Server.Billing
 {
@@ -135,12 +136,39 @@ namespace Morphic.Server.Billing
             var items = subscription.Items.Data.ToArray();
             if (items.Length > 0)
             {
-                var plan = plans.GetPlanForStripePrice(items[0].Price.Id);
+                Plan? plan = null;
+                SubscriptionItem? ourItem = null;
+                try
+                {
+                    // Find the item that matches what we have in our db
+                    ourItem = items.First(i => i.Id == billing.Stripe!.SubscriptionItemId);
+                    plan = plans.GetPlanForStripePrice(items[0].Price.Id);
+                }
+                catch
+                {
+                    // If our item isn't found, look for the first item using a price that we know about
+                    foreach (var item in items)
+                    {
+                        plan = plans.GetPlanForStripePrice(item.Price.Id);
+                        if (plan != null)
+                        {
+                            ourItem = item;
+                            break;
+                        }
+                    }
+                }
                 if (plan != null)
                 {
                     if (plan.Id != billing.PlanId)
                     {
                         await db.SetField(billing, b => b.PlanId, plan.Id);
+                    }
+                }
+                if (ourItem != null)
+                {
+                    if (ourItem.Id != billing.Stripe!.SubscriptionItemId)
+                    {
+                        await db.SetField(billing, b => b.Stripe!.SubscriptionItemId, ourItem.Id);
                     }
                 }
             }

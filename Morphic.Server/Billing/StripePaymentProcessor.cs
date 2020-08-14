@@ -50,6 +50,7 @@ namespace Morphic.Server.Billing
             };
             Customers = new CustomerService();
             Subscriptions = new SubscriptionService();
+            SubscriptionItems = new SubscriptionItemService();
             Sources = new SourceService();
             this.plans = plans;
             this.logger = logger;
@@ -58,6 +59,7 @@ namespace Morphic.Server.Billing
         public RequestOptions RequestOptions;
         public CustomerService Customers;
         public SubscriptionService Subscriptions;
+        public SubscriptionItemService SubscriptionItems;
         public SourceService Sources;
         private ILogger logger;
         private Plans plans;
@@ -96,6 +98,7 @@ namespace Morphic.Server.Billing
                     }
                     billing.Stripe.CustomerId = stripeCustomer.Id;
                     billing.Stripe.SubscriptionId = stripeSubscription.Id;
+                    billing.Stripe.SubscriptionItemId = stripeSubscription.Items.Data[0].Id;
                 }
                 catch (StripeException e)
                 {
@@ -114,17 +117,11 @@ namespace Morphic.Server.Billing
             {
                 try
                 {
-                    var update = new SubscriptionUpdateOptions()
+                    var update = new SubscriptionItemUpdateOptions()
                     {
-                        Items = new List<SubscriptionItemOptions>()
-                        {
-                            new SubscriptionItemOptions()
-                            {
-                                Price = stripePlan.PriceId
-                            }
-                        }
+                        Price = stripePlan.PriceId
                     };
-                    await Subscriptions.UpdateAsync(billing.Stripe!.SubscriptionId, update, RequestOptions);
+                    await SubscriptionItems.UpdateAsync(billing.Stripe!.SubscriptionItemId, update, RequestOptions);
                 }
                 catch (StripeException e)
                 {
