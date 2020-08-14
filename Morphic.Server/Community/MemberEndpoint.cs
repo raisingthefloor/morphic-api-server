@@ -96,6 +96,21 @@ namespace Morphic.Server.Community{
             }
             Member.BarId = input.BarId;
             await Save(Member);
+            // If we're demoting the member that is the billing contact for the community,
+            // then make the logged-in member the new billing contact
+            if (Community.BillingId is string billingId)
+            {
+                var billing = await db.Get<BillingRecord>(billingId);
+                if (billing != null)
+                {
+                    if (billing.ContactMemeberId == Member.Id && Member.Role != MemberRole.Manager)
+                    {
+                        billing.ContactMemeberId = AuthenticatedMember.Id;
+                        await this.paymentProcessor.ChangeCommunityContact(Community, billing, AuthenticatedUser);
+                        await db.SetField(billing, b => b.ContactMemeberId, billing.ContactMemeberId);
+                    }
+                }
+            }
         }
 
         [Method]

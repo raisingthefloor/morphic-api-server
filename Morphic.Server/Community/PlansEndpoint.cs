@@ -23,6 +23,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
+using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Community
 {
@@ -52,6 +53,7 @@ namespace Morphic.Server.Community
 
         private class PlansPage
         {
+            [JsonPropertyName("plans")]
             public Plan[] Plans { get; set; } = null!;
         }
     }
