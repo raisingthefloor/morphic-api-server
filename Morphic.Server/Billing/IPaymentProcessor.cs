@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Threading.Tasks;
 
 namespace Morphic.Server.Billing
@@ -35,5 +36,9 @@ namespace Morphic.Server.Billing
         Task CancelCommunitySubscription(Community community, BillingRecord billing);
         Task ChangeCommunityContact(Community community, BillingRecord billing, User contact);
         Task ChangeCommunityCard(Community community, BillingRecord billing, object card);
+    }
+
+    public class PaymentProcessorCardException: Exception
+    {
     }
 }

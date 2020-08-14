@@ -189,19 +189,19 @@ namespace Morphic.Server.Billing
                     };
                     update.AddExpand("default_source");
                     var stripeCustomer = await Customers.UpdateAsync(billing.Stripe!.CustomerId, update, RequestOptions);
-                    if (stripeCustomer.DefaultSource is Source stripeSource)
+                    if (stripeCustomer.DefaultSource is Stripe.Card stripeCard)
                     {
                         billing.Card = new Card()
                         {
-                            Last4 = stripeSource.Card.Last4,
-                            Brand = stripeSource.Card.Brand
+                            Last4 = stripeCard.Last4,
+                            Brand = stripeCard.Brand
                         };
                     }
                 }
                 catch (StripeException e)
                 {
                     logger.LogError(e, "Failed to update stripe customer");
-                    throw;
+                    throw new PaymentProcessorCardException();
                 }
             }
             else

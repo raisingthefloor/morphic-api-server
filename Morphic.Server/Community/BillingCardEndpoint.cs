@@ -75,7 +75,14 @@ namespace Morphic.Server.Community
         {
             var db = Context.GetDatabase();
             var input = await Request.ReadJson<CardPostRequest>();
-            await paymentProcessor.ChangeCommunityCard(Community, Billing, input.Token);
+            try
+            {
+                await paymentProcessor.ChangeCommunityCard(Community, Billing, input.Token);
+            }
+            catch (PaymentProcessorCardException)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, CardPostError.Invalid);
+            }
             await db.SetField(Billing, b => b.Card, Billing.Card);
             await Respond(new CardPostResponse()
             {
