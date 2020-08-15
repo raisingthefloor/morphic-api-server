@@ -20,6 +20,7 @@
 // * Canadian Foundation for Innovation
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
+using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -65,12 +66,15 @@ namespace Morphic.Server.Community{
 
         [Method]
         public async Task Get(){
-            if (Community.IsLocked)
+            if (Community.LockedDate is DateTime lockedDate)
             {
-                throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
+                if (DateTime.Now <= lockedDate.AddDays(30))
                 {
-                    {"error", "community_locked"}
-                });
+                    throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
+                    {
+                        {"error", "community_locked"}
+                    });
+                }
             }
             await Respond(new UserCommunity()
             {

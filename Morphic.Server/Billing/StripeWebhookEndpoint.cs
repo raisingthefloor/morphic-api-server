@@ -125,6 +125,22 @@ namespace Morphic.Server.Billing
             }
             if (status != billing.Status){
                 await db.SetField(billing, b => b.Status, status);
+                if (billing.CommunityId is string communityId)
+                {
+                    var community = await db.Get<Community>(communityId);
+                    if (community != null)
+                    {
+                        DateTime? lockedDate = null;
+                        if (status == BillingStatus.Canceled)
+                        {
+                            lockedDate = DateTime.Now;
+                        }
+                        if (community.LockedDate != lockedDate)
+                        {
+                            await db.SetField(community, c => c.LockedDate!, lockedDate);
+                        }
+                    }
+                }
             }
 
             var trialEnd = subscription.TrialEnd ?? default(DateTime);

@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 
 namespace Morphic.Server.Community
@@ -51,7 +52,17 @@ namespace Morphic.Server.Community
         public int MemberLimit { get; set; }
 
         [JsonIgnore]
-        public bool IsLocked { get; set; }
+        public DateTime? LockedDate { get; set; }
+
+        [BsonIgnore]
+        [JsonPropertyName("is_locked")]
+        public bool IsLocked
+        {
+            get
+            {
+                return LockedDate != null;
+            }
+        }
 
         [JsonIgnore]
         public DateTime CreatedAt { get; set; }

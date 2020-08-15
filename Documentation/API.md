@@ -1218,6 +1218,12 @@ Get a community's details
       <td><code>int</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td><code>is_locked</code></td>
+      <td>Indicates the community is locked because of payment issues</td>
+      <td><code>Boolean</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
