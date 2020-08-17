@@ -117,7 +117,7 @@ namespace Morphic.Server.Billing
                     status = BillingStatus.PastDue;
                     break;
                 case "canceled":
-                    status = BillingStatus.Canceled;
+                    status = BillingStatus.Closed;
                     break;
                 default:
                     status = BillingStatus.Paid;
@@ -131,7 +131,7 @@ namespace Morphic.Server.Billing
                     if (community != null)
                     {
                         DateTime? lockedDate = null;
-                        if (status == BillingStatus.Canceled)
+                        if (status == BillingStatus.Closed)
                         {
                             lockedDate = DateTime.Now;
                         }

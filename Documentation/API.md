@@ -32,6 +32,7 @@ Endpoints
   * [`/v1/communities/{id}/skype/meetings`](#endpoint-community-skype-meetings)
   * [`/v1/communities/{id}/billing`](#endpoint-community-billing)
   * [`/v1/communities/{id}/billing/card`](#endpoint-community-billing-card)
+  * [`/v1/communities/{id}/billing/cancel`](#endpoint-community-billing-cancel)
 * [Plans](#section-plans)
   * [`v1/plans/community`](#endpoint-plans-community)
 
@@ -2239,9 +2240,10 @@ Get the billing information for a community
 </table>
 
 #### PaymentStatus: String
-* `paid`
-* `past_due`
-* `canceled`
+* `paid` - All payments have been made (or still in trial)
+* `past_due` - Payments have failed, but retries have not been exhausted
+* `canceled` - User canceled their account, but it won't close until the end of the billing cycle
+* `closed` - Account is closed due to user request or lack of payment
 
 
 ### PUT
@@ -2299,7 +2301,7 @@ Update the billing information for a community
 </table>
 
 
-<a name="endpoint-community-billing"></a>/v1/communities/{id}/billing/card
+<a name="endpoint-community-billing-card"></a>/v1/communities/{id}/billing/card
 ------------------
 
 ### POST
@@ -2353,6 +2355,37 @@ Update the card used for billing
       <td rowspan="2"><code>error</code></td>
       <td>The card could not be validated</td>
       <td colspan="2"><code>"invalid"</code></td>
+    </tr>
+  </tbody>
+</table>
+
+
+
+<a name="endpoint-community-billing-cancel"></a>/v1/communities/{id}/billing/cancel
+------------------
+
+### POST
+
+Cancel the account at the end of the billing period
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> Response Body</th>
+    </tr>
+    <tr>
+      <td><code>billing</code></td>
+      <td>The updated billing record</td>
+      <td><code>Billing</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>

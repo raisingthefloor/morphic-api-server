@@ -58,6 +58,7 @@ namespace Morphic.Server.Billing
     {
         Paid,
         PastDue,
-        Canceled
+        Canceled,
+        Closed
     }
 };
