@@ -64,6 +64,23 @@ namespace Morphic.Server.Community
             }
         }
 
+        [BsonIgnore]
+        [JsonIgnore]
+        public bool IsMemberLocked
+        {
+            get
+            {
+                if (LockedDate is DateTime lockedDate)
+                {
+                    if (DateTime.Now >= lockedDate.AddDays(30))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         [JsonIgnore]
         public DateTime CreatedAt { get; set; }
 

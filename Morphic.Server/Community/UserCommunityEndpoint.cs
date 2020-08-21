@@ -66,22 +66,19 @@ namespace Morphic.Server.Community{
 
         [Method]
         public async Task Get(){
-            if (Community.LockedDate is DateTime lockedDate)
+            if (Community.IsMemberLocked)
             {
-                if (DateTime.Now <= lockedDate.AddDays(30))
+                throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
                 {
-                    throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
-                    {
-                        {"error", "community_locked"}
-                    });
-                }
+                    {"error", "community_locked"}
+                });
             }
             await Respond(new UserCommunity()
             {
                 Id = Community.Id,
                 Name = Community.Name,
                 Bar = Bar
-        });
+            });
         }
 
         private class UserCommunity
