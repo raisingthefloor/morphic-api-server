@@ -1692,7 +1692,7 @@ Send a new invitation for a community member
       <th colspan="4"><code>400</code> Response Body</th>
     </tr>
     <tr>
-      <td rowspan="4"><code>error</code></td>
+      <td rowspan="5"><code>error</code></td>
       <td>Missing required fields</td>
       <td colspan="2"><code>"missing_required"</code></td>
     </tr>
@@ -1707,6 +1707,10 @@ Send a new invitation for a community member
     <tr>
       <td>Active Member</td>
       <td colspan="2"><code>"member_active"</code></td>
+    </tr>
+    <tr>
+      <td>Manager Email Verification Required</td>
+      <td colspan="2"><code>"email_verification_required"</code></td>
     </tr>
     <tr>
       <td><code>details</code></td>

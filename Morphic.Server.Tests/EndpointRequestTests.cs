@@ -172,7 +172,7 @@ namespace Morphic.Server.Tests
             public string LastName { get; set; }
         }
 
-        public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error)
+        public async Task<JsonElement> assertJsonError(HttpResponseMessage response, HttpStatusCode code, string error, bool mustContainDetails = true)
         {
             JsonElement property;
 
@@ -190,7 +190,10 @@ namespace Morphic.Server.Tests
             Assert.True(element.TryGetProperty("error", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal(error, property.GetString());
-            Assert.True(element.TryGetProperty("details", out property));
+            if (mustContainDetails)
+            {
+                Assert.True(element.TryGetProperty("details", out property));
+            }
             // don't check value here. Caller can check the details of details.
             return element;
         }

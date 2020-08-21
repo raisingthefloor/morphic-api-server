@@ -69,6 +69,10 @@ namespace Morphic.Server.Community
         {
             var db = Context.GetDatabase();
             var input = await Request.ReadJson<InvitationPostRequest>();
+            if (!User.EmailVerified)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, InvitationPostError.EmailVerificationRequired);
+            }
             var member = await db.Get<Member>(input.MemeberId);
             if (member == null || member.CommunityId != Community.Id)
             {
@@ -122,6 +126,7 @@ namespace Morphic.Server.Community
             public static InvitationPostError MemberNotFound = new InvitationPostError() { Error = "member_not_found" };
             public static InvitationPostError MemberActive = new InvitationPostError() { Error = "member_active" };
             public static InvitationPostError MalformedEmail = new InvitationPostError() { Error = "malformed_email" };
+            public static InvitationPostError EmailVerificationRequired = new InvitationPostError() { Error = "email_verification_required" };
         }
     }
 

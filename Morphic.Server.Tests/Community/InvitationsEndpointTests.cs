@@ -36,6 +36,7 @@ namespace Morphic.Server.Tests.Community
 {
 
     using Server.Community;
+    using Server.Users;
 
     public class InvitationsEndpointTests : EndpointRequestTests
     {
@@ -234,6 +235,20 @@ namespace Morphic.Server.Tests.Community
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+
+            // POST, unverified email
+            request = new HttpRequestMessage(HttpMethod.Post, path);
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
+            content = new Dictionary<string, object>();
+            content.Add("member_id", UninvitedMember.Id);
+            content.Add("email", "test@morphic.org");
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+            response = await Client.SendAsync(request);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "email_verification_required", mustContainDetails: false);
+
+            var user = await Database.Get<User>(ManagerUserInfo.Id);
+            user.EmailVerified = true;
+            await Database.Save(user);
 
             Assert.Null(JobClient.Job);
 
