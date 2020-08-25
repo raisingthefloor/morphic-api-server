@@ -95,6 +95,10 @@ namespace Morphic.Server.Http
             this.logger = logger;
             AddAllowedOriginsFromAttributes();
             AddAllowedOrigin(settings.CommunityServerUri);
+            if (settings.AltCommunityServerUri is Uri altCommunityUri)
+            {
+                AddAllowedOrigin(altCommunityUri);
+            }
             Response.OnStarting(() =>
             {
                 Response.Headers.Add("Cache-Control", "no-cache");
