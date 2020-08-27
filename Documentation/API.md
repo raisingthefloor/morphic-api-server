@@ -706,7 +706,7 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-password"></a>/v1/user/{userId}/password
+<a name="endpoint-password"></a>/v1/users/{userId}/password
 ------------------
 
 ### POST
@@ -780,7 +780,7 @@ for additional security.
 </table>
 
 
-<a name="endpoint-user-communities"></a>/v1/user/{id}/communities
+<a name="endpoint-user-communities"></a>/v1/users/{id}/communities
 ------------------
 
 ### GET
@@ -832,7 +832,7 @@ Get a list of communities the user belongs to.
 * `member`
 
 
-<a name="endpoint-user-community"></a>/v1/user/{uid}/communities/{id}
+<a name="endpoint-user-community"></a>/v1/users/{uid}/communities/{id}
 ------------------
 
 ### GET
