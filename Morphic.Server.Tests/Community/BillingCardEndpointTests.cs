@@ -31,80 +31,70 @@ using System.Text.Json;
 using System.Text;
 using System.Collections.Generic;
 using System.Net.Http.Headers;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Morphic.Server.Tests.Community
 {
 
     using Server.Community;
-    using Server.Users;
+    using Server.Billing;
+    using Billing;
 
-    public class InvitationsEndpointTests : EndpointRequestTests
+    public class BillingCardEndpointTests : EndpointRequestTests
     {
 
         private Community Community;
+        private BillingRecord Billing;
         private UserInfo ManagerUserInfo;
+        private UserInfo OtherManagerUserInfo;
         private UserInfo ActiveUserInfo;
         private UserInfo InvitedUserInfo;
         private Member Manager;
+        private Member OtherManager;
         private Member ActiveMember;
         private Member InvitedMember;
-        private Member UninvitedMember;
+        private Bar DefaultBar;
 
         private async Task CreateCommunity(){
             ManagerUserInfo = await CreateTestUser();
+            OtherManagerUserInfo = await CreateTestUser();
             ActiveUserInfo = await CreateTestUser();
             InvitedUserInfo = await CreateTestUser();
 
             var communityId = Guid.NewGuid().ToString();
-            var bar = new Bar()
+            var managerId = Guid.NewGuid().ToString();
+            DefaultBar = new Bar()
             {
                 Id = Guid.NewGuid().ToString(),
                 Name = "Default",
-                CommunityId = communityId,
                 IsShared = true,
+                CommunityId = communityId,
                 CreatedAt = DateTime.Now
             };
-            await Database.Save(bar);
+            await Database.Save(DefaultBar);
 
-            bar = new Bar()
+            Billing = new BillingRecord()
             {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Bar 2",
+                PlanId = Server.Services.GetRequiredService<Plans>().Default.Id,
+                TrialEnd = DateTime.UnixEpoch.AddSeconds(1234567890.123),
+                Status = BillingStatus.Paid,
                 CommunityId = communityId,
-                IsShared = true,
-                CreatedAt = DateTime.Now,
-                Items = new BarItem[]{
-                    new BarItem(){
-                        Kind = BarItemKind.Link,
-                        IsPrimary = true,
-                        Configuration = new Dictionary<string, object>(){
-                            { "url", "https://google.com" },
-                            {"label", "Google"}
-                        }
-                    },
-                    new BarItem(){
-                        Kind = BarItemKind.Link,
-                        IsPrimary = true,
-                        Configuration = new Dictionary<string, object>(){
-                            { "url", "https://facebook.com" },
-                            {"label", "Facebook"}
-                        }
-                    }
-                }
+                ContactMemeberId = managerId,
             };
-            await Database.Save(bar);
+            await Database.Save(Billing);
 
             Community = new Community()
             {
                 Id = communityId,
                 Name = "Test Community",
-                DefaultBarId = bar.Id
-        };
+                DefaultBarId = DefaultBar.Id,
+                BillingId = Billing.Id
+            };
             await Database.Save(Community);
 
             Manager = new Member()
             {
-                Id = Guid.NewGuid().ToString(),
+                Id = managerId,
                 CommunityId = Community.Id,
                 UserId = ManagerUserInfo.Id,
                 State = MemberState.Active,
@@ -114,13 +104,26 @@ namespace Morphic.Server.Tests.Community
             Manager.LastName.PlainText = "Tester";
             await Database.Save(Manager);
 
+            OtherManager = new Member()
+            {
+                Id = Guid.NewGuid().ToString(),
+                CommunityId = Community.Id,
+                UserId = OtherManagerUserInfo.Id,
+                State = MemberState.Active,
+                Role = MemberRole.Manager
+            };
+            OtherManager.FirstName.PlainText = "Other";
+            OtherManager.LastName.PlainText = "Manager";
+            await Database.Save(OtherManager);
+
             ActiveMember = new Member()
             {
                 Id = Guid.NewGuid().ToString(),
                 CommunityId = Community.Id,
                 UserId = ActiveUserInfo.Id,
                 State = MemberState.Active,
-                Role = MemberRole.Member
+                Role = MemberRole.Member,
+                BarId = DefaultBar.Id
             };
             ActiveMember.FirstName.PlainText = "Active";
             ActiveMember.LastName.PlainText = "Member";
@@ -137,33 +140,30 @@ namespace Morphic.Server.Tests.Community
             InvitedMember.FirstName.PlainText = "Invited";
             InvitedMember.LastName.PlainText = "Person";
             await Database.Save(InvitedMember);
+        }
 
-            UninvitedMember = new Member()
-            {
-                Id = Guid.NewGuid().ToString(),
-                CommunityId = Community.Id,
-                State = MemberState.Uninvited,
-                Role = MemberRole.Member
-            };
-            InvitedMember.FirstName.PlainText = "Uninvited";
-            InvitedMember.LastName.PlainText = "Person";
-            await Database.Save(UninvitedMember);
+        [Fact]
+        public async Task TestGet()
+        {
+            await CreateCommunity();
+
+            // GET
+            var path = $"/v1/communities/{Community.Id}/billing/card";
+            var request = new HttpRequestMessage(HttpMethod.Get, path);
+            var response = await Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
         }
 
         [Fact]
         public async Task TestPost()
         {
-
             await CreateCommunity();
 
-            JobClient.Job = null;
-
             // POST, unauth
-            var path = $"/v1/communities/{Community.Id}/invitations";
+            var path = $"/v1/communities/{Community.Id}/billing/card";
             var request = new HttpRequestMessage(HttpMethod.Post, path);
             var content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
+            content.Add("token", "abc123");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -172,8 +172,7 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
+            content.Add("token", "abc123");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
@@ -182,8 +181,7 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ActiveUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
+            content.Add("token", "abc123");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -192,91 +190,33 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", InvitedUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
+            content.Add("token", "abc123");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
 
-            // POST, missing member_id
+            // POST, missing token
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("email", "test@morphic.org");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
 
-            // POST, missing email
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("email", "test@morphic.org");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+            var paymentProcessor = (Server.Services.GetRequiredService<IPaymentProcessor>() as MockPaymentProcessor)!;
 
-            // POST, bad active member id
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("member_id", ActiveMember.Id);
-            content.Add("email", "test@morphic.org");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-            // POST, bad unknown member id
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("member_id", "abcdef");
-            content.Add("email", "test@morphic.org");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-
-            // POST, unverified email
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            await assertJsonError(response, HttpStatusCode.BadRequest, "email_verification_required", mustContainDetails: false);
-
-            var user = await Database.Get<User>(ManagerUserInfo.Id);
-            user.EmailVerified = true;
-            await Database.Save(user);
-
-            Assert.Null(JobClient.Job);
+            Assert.Equal(0, paymentProcessor.ChangeCommunityCardCalls);
 
             // POST, success
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
+            content.Add("token", "abc123");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Job.Type.FullName);
-
-            // POST, success with message
-            JobClient.Job = null;
-            request = new HttpRequestMessage(HttpMethod.Post, path);
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
-            content = new Dictionary<string, object>();
-            content.Add("member_id", UninvitedMember.Id);
-            content.Add("email", "test@morphic.org");
-            content.Add("message", "This is a custom message");
-            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
-            response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Job.Type.FullName);
+            Assert.Equal(1, paymentProcessor.ChangeCommunityCardCalls);
         }
+
     }
 }

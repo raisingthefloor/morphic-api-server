@@ -23,6 +23,7 @@
 
 using System;
 using System.Text.Json.Serialization;
+using MongoDB.Bson.Serialization.Attributes;
 
 
 namespace Morphic.Server.Community
@@ -38,6 +39,47 @@ namespace Morphic.Server.Community
 
         [JsonPropertyName("default_bar_id")]
         public string DefaultBarId { get; set; } = null!;
+
+        [JsonPropertyName("billing_id")]
+        public string? BillingId { get; set; }
+
+        // Does not include the one free manager everyone is allowed
+        [JsonPropertyName("member_count")]
+        public int MemberCount { get; set; }
+
+        // Does not include the one free manager everyone is allowed
+        [JsonPropertyName("member_limit")]
+        public int MemberLimit { get; set; }
+
+        [JsonIgnore]
+        public DateTime? LockedDate { get; set; }
+
+        [BsonIgnore]
+        [JsonPropertyName("is_locked")]
+        public bool IsLocked
+        {
+            get
+            {
+                return LockedDate != null;
+            }
+        }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public bool IsMemberLocked
+        {
+            get
+            {
+                if (LockedDate is DateTime lockedDate)
+                {
+                    if (DateTime.Now >= lockedDate.AddDays(30))
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
 
         [JsonIgnore]
         public DateTime CreatedAt { get; set; }

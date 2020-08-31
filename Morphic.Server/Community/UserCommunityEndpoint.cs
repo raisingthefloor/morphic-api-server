@@ -20,6 +20,7 @@
 // * Canadian Foundation for Innovation
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
+using System;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Threading.Tasks;
@@ -65,12 +66,19 @@ namespace Morphic.Server.Community{
 
         [Method]
         public async Task Get(){
+            if (Community.IsMemberLocked)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
+                {
+                    {"error", "community_locked"}
+                });
+            }
             await Respond(new UserCommunity()
             {
                 Id = Community.Id,
                 Name = Community.Name,
                 Bar = Bar
-        });
+            });
         }
 
         private class UserCommunity

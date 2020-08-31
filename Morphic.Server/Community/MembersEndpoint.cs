@@ -27,6 +27,7 @@ using System;
 using System.Net;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Linq;
 
 namespace Morphic.Server.Community{
 
@@ -106,6 +107,12 @@ namespace Morphic.Server.Community{
         [Method]
         public async Task Post()
         {
+            if (Community.MemberLimit > 0 && Community.MemberCount >= Community.MemberLimit){
+                throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
+                {
+                    {"error", "limit_reached"}
+                });
+            }
             var input = await Request.ReadJson<MemberPostRequest>();
             var member = new Member()
             {
@@ -118,6 +125,7 @@ namespace Morphic.Server.Community{
             member.FirstName.PlainText = input.FirstName;
             member.LastName.PlainText = input.LastName;
             await Save(member);
+            await Context.GetDatabase().Increment(Community, c => c.MemberCount, 1);
             await Respond(new MemberPostResponse()
             {
                 Member = member
