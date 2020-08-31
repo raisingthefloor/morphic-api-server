@@ -72,6 +72,19 @@ namespace Morphic.Server
             }
         }
 
+        /// <summary>The Server URL prefix for the front-end web server used for things like password reset</summary>
+        public string AltCommunityServerUrlPrefix { get; set; } = "";
+
+        public Uri? AltCommunityServerUri {
+            get{
+                if (AltCommunityServerUrlPrefix != "")
+                {
+                    return new Uri(AltCommunityServerUrlPrefix);
+                }
+                return null;
+            }
+        }
+
         public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
     }
 
