@@ -25,7 +25,31 @@ $ dotnet run --project Morphic.Server
 
 You can get started making requests by registering a new user:
 ````
-$ curl http://localhost:5002/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword"}'
+$ curl http://localhost:5002/v1/register/username -X POST \
+  -H 'Content-Type: application/json; charset=utf-8' \
+  --data-binary '{"username": "myusername", "password": "mypassword", "email": "myusername@somewhere.com"}' \
+  -w "\nstatus: %{http_code}\n"
+````
+The result is a status code of `200` followed by a payload containing the
+authorization token and a `user` json structure, for example:
+````
+{
+  "token":"tSBBaAtN1MBlVN9h&&77AcD7fcSWDcZXWOpiKiAEeEiCGkGgsVgcYnuw9It5i5QAzN69JZr9Y1ihA94FvaZvQ==",
+  "user":{
+    "first_name":null,
+    "last_name":null,
+    "preferences_id":"c9f1b7a6-a6f8-49e8-b7d2-b3276750c425",
+    "id":"d62ca1c7-3476-4849-9cc7-3c64d5e68d47"
+  }
+}
+status: 200
+````
+These values can be used with other queries such as [`v1/user/{id}`](Documentation/API.md#v1usersid)
+
+Note: issuing the above `curl` command a second time is seen as a duplicate and
+results in a `404` status with the error message:
+````
+{"error":"existing_email","details":null}
 ````
 
 docker-compose and morphicserver container
