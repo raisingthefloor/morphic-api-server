@@ -21,5 +21,49 @@
         "stripe": {
             "price_id": "price_1HEfJgFNS9zyw2T7CAAkOzhm"
         }
+    },
+    {
+        "id": "midsize-1-month",
+        "active": true,
+        "member_limit": 15,
+        "months": 1,
+        "price": 1200,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HS7M7FNS9zyw2T7Kn8wu5wF"
+        }
+    },
+    {
+        "id": "midsize-6-month",
+        "active": true,
+        "member_limit": 15,
+        "months": 6,
+        "price": 6000,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HS7M7FNS9zyw2T7w8eKfyWb"
+        }
+    },
+    {
+        "id": "large-1-month",
+        "active": true,
+        "member_limit": 50,
+        "months": 1,
+        "price": 3600,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HS7MtFNS9zyw2T7OKhpAlis"
+        }
+    },
+    {
+        "id": "large-6-month",
+        "active": true,
+        "member_limit": 50,
+        "months": 6,
+        "price": 18000,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1HS7MtFNS9zyw2T7XfwmUgXU"
+        }
     }
 ]
