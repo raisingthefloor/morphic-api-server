@@ -35,11 +35,11 @@ namespace Morphic.Server.Email
         /// </summary>
         public string Type { get; set; } = EmailTypeDisabled;
         
-        public string EmailFromAddress { get; set; } = "support@morphic.world";
+        public string EmailFromAddress { get; set; } = "support@morphic.org";
         /// <summary>
         /// The default 'name' we use to send emails.
         /// </summary>
-        public string EmailFromFullname { get; set; } = "Morphic World Support";
+        public string EmailFromFullname { get; set; } = "Morphic Support";
         /// <summary>
         /// Some SendGrid settings.
         /// </summary>
