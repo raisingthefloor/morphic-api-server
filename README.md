@@ -1,3 +1,5 @@
+# Morphic API Server
+
 A C# implementation of a simple Morphic Lite HTTP API to serve and store user preferences.
 
 [![Build Status](https://dev.azure.com/raisingthefloor/MorphicLite/_apis/build/status/MorphicLiteServer?branchName=master)](https://dev.azure.com/raisingthefloor/MorphicLite/_build/latest?definitionId=1&branchName=master)
@@ -7,8 +9,23 @@ Sub-Documents:
 * [Metrics Doc](Metrics.md)
 * [Email Doc](Morphic.Server/Email/README.md)
 
-Development
-=====
+## Development
+
+### Environment
+
+* .NET core (v3.1 works)
+* MongoDB (v3.6.8 works)
+
+### Running locally
+
+Get a copy of Morphic.Server/appsettings.Local.json, then start it in the IDE or with:
+
+    dotnet run --project Morphic.Server
+
+According to [Morphic.Server/Properties/launchSettings.json](Morphic.Server/Properties/launchSettings.json),
+the server will bind to `0.0.0.0:5002`: [http://localhost:5002/](http://localhost:5002/)
+
+## Docker
 
 To run the services MorphicServer depends on, you can invoke a docker stack:
 ````
@@ -18,18 +35,13 @@ $ docker stack deploy -c docker-compose.dev.yaml morphic-server
 
 *Currently the only dependency is MongoDB, which you can run without docker if desired*
 
-The server itself can be started from your IDE or from the command line:
-````
-$ dotnet run --project Morphic.Server
-````
-
 You can get started making requests by registering a new user:
 ````
 $ curl http://localhost:5002/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword"}'
 ````
 
-docker-compose and morphicserver container
-=====
+### docker-compose and morphicserver container
+
 An alternative to docker swarm is to run the containers directly with docker-compose:
 ````
 docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml up --build
@@ -56,12 +68,12 @@ Note: If you previously created a swarm and want to leave it before running dock
 docker swarm leave --force
 ````
 
-# Logging setup and configuration
+## Logging setup and configuration
 
 1. https://github.com/serilog/serilog/wiki/Formatting-Output#formatting-json
 2. https://github.com/serilog/serilog-formatting-compact
 
-# Deployment Environment Variables
+## Deployment Environment Variables
 
 Any of the settings can be given as environment variables by combining the level using double-underscores `__`
 
