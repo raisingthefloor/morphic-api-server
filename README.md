@@ -27,6 +27,8 @@ the server will bind to `0.0.0.0:5002`: [http://localhost:5002/](http://localhos
 
 ## Docker
 
+**Running under docker for development isn't required, the above command is enough**
+
 To run the services MorphicServer depends on, you can invoke a docker stack:
 ````
 $ docker swarm init  # only needs to be called once per computer
