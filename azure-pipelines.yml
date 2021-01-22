@@ -53,8 +53,8 @@ resources:
   repositories:
     - repository: deploy-morphiclite
       type: github
-      endpoint: oregondesignservices
-      name: oregondesignservices/deploy-morphiclite
+      endpoint: raisingthefloor
+      name: raisingthefloor/deploy-morphiclite
       ref: $(deployRepoRef)
 
 pool:
@@ -90,7 +90,7 @@ stages:
             inputs:
               command: login
               containerRegistry: morphicworld dockerhub
-          - task: Docker@2
+          - task: Docker@2.173.0
             displayName: build and push image
             inputs:
               repository: morphicworld/morphiclite
