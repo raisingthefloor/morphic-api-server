@@ -51,6 +51,31 @@ namespace Morphic.Server.Billing
 
         [JsonPropertyName("stripe")]
         public StripePlan? Stripe { get; set; }
+
+        /// <summary>
+        /// The price, for displaying.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        [JsonPropertyName("price_text")]
+        public String PriceText {
+            get
+            {
+                if (this.Price < 0)
+                {
+                    return "";
+                }
+
+                if (this.Currency != "USD")
+                {
+                    throw new NotImplementedException("Support for multiple currencies is not implemented.");
+                }
+
+                decimal price = (decimal)this.Price / 100;
+                return price.ToString("$#.##");
+            }
+        }
+
+
     }
 
 }

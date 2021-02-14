@@ -2457,7 +2457,7 @@ Get the list of active billing plans for Morphic Community
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].id</code></td>
-      <td>The plan's uinique ID</td>
+      <td>The plan's unique ID</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -2483,6 +2483,12 @@ Get the list of active billing plans for Morphic Community
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].currency</code></td>
       <td>The currency of the price</td>
       <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].price_text</code></td>
+      <td>The price, for displaying</td>
+      <td><code>String</code></td>
       <td>Required</td>
     </tr>
   </tbody>
