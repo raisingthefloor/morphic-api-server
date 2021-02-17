@@ -2491,5 +2491,11 @@ Get the list of active billing plans for Morphic Community
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].monthly_price_text</code></td>
+      <td>The monthly price, for displaying. Used to compare the monthly cost with other plans.</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
