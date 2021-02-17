@@ -2237,8 +2237,8 @@ Get the billing information for a community
     </tr>
     <tr>
       <td><code>trial_end</code></td>
-      <td>UNIX timestamp representing the end of the trial period</td>
-      <td><code>Double</code></td>
+      <td>The date/time, in ISO 8601 format, of the end of the trial period</td>
+      <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
