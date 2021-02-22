@@ -41,6 +41,13 @@ namespace Morphic.Server.Billing
         [JsonPropertyName("trial_end")]
         public DateTime TrialEnd { get; set; }
 
+        /// <summary>
+        /// Number of full days until the end of trial. While the client can infer this from `TrialEnd`, it will
+        /// depend on their clock being correct.
+        /// </summary>
+        [JsonPropertyName("trial_end_days")]
+        public int TrialEndDays => (int)Math.Floor(this.TrialEnd.Subtract(DateTime.Now.Date).TotalDays);
+
         [JsonPropertyName("status")]
         public BillingStatus Status { get; set; }
 
