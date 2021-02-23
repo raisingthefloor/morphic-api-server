@@ -182,9 +182,12 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("plan_id", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("testplan1", property.GetString());
+
             Assert.True(element.TryGetProperty("trial_end", out property));
-            Assert.Equal(JsonValueKind.Number, property.ValueKind);
-            Assert.True(Math.Abs(property.GetDouble() - 1234567890.123) < 0.001);
+            Assert.Equal(JsonValueKind.String, property.ValueKind);
+            // Check the date looks like a date.
+            DateTime.TryParse(property.GetString(), out DateTime date);
+
             Assert.True(element.TryGetProperty("status", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("paid", property.GetString());
