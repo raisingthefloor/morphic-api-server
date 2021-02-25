@@ -51,6 +51,60 @@ namespace Morphic.Server.Billing
 
         [JsonPropertyName("stripe")]
         public StripePlan? Stripe { get; set; }
+
+        /// <summary>
+        /// The price, for displaying.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        [JsonPropertyName("price_text")]
+        public String PriceText {
+            get
+            {
+                if (this.Price < 0)
+                {
+                    return "";
+                }
+
+                return this.FormatPrice(this.Price);
+            }
+        }
+
+        /// <summary>
+        /// The monthly price, for displaying. This is used to compare the monthly cost of plans.
+        /// </summary>
+        /// <exception cref="NotImplementedException"></exception>
+        [JsonPropertyName("monthly_price_text")]
+        public String MonthlyPriceText {
+            get
+            {
+                if (this.Price < 0)
+                {
+                    return "";
+                }
+
+                return this.FormatPrice((int)Math.Round(this.Price / (decimal)this.Months));
+            }
+        }
+
+        /// <summary>
+        /// Formats the a price for displaying, given in the lowest unit (cents for USD).
+        /// </summary>
+        /// <param name="price">The price, in the lowest unit.</param>
+        /// <returns>A string representing the given price, like "$7.65"</returns>
+        /// <exception cref="NotImplementedException">USD is only implemented.</exception>
+        private String FormatPrice(int price)
+        {
+            if (this.Currency != "USD")
+            {
+                // No support for currencies that have something other than 2 digits after the decimal separator.
+                // No support for other currency symbols.
+                throw new NotImplementedException("Support for multiple currencies is not implemented.");
+            }
+
+            decimal decimalPrice = (decimal)price / 100;
+            return decimalPrice.ToString("$#.##");
+        }
+
     }
 
 }

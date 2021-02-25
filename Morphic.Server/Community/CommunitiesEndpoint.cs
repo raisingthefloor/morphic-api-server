@@ -160,7 +160,8 @@ namespace Morphic.Server.Community
                 Id = Guid.NewGuid().ToString(),
                 CommunityId = communityId,
                 PlanId = plan.Id,
-                TrialEnd = DateTime.Now.AddDays(30),
+                // Trial if for 30 days, round it up to the end of the day.
+                TrialEnd = DateTime.Now.Date.AddDays(31).AddMinutes(-1),
                 Status = BillingStatus.Paid,
                 ContactMemeberId = memberId
             };

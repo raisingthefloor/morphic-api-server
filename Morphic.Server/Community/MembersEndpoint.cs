@@ -71,7 +71,8 @@ namespace Morphic.Server.Community{
                     LastName = member.LastName.PlainText,
                     Role = member.Role,
                     BarId = member.BarId,
-                    State = member.State
+                    State = member.State,
+                    UserId = member.UserId
                 });
             }
             await Respond(page);
@@ -102,6 +103,9 @@ namespace Morphic.Server.Community{
 
             [JsonPropertyName("state")]
             public MemberState State { get; set; }
+
+            [JsonPropertyName("userId")]
+            public string? UserId { get; set; }
         }
 
         [Method]

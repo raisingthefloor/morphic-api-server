@@ -65,5 +65,13 @@
         "stripe": {
             "price_id": "price_1HFoxYFNS9zyw2T7t4A35YYJ"
         }
+    },
+    {
+        "id": "enterprise-1",
+        "active": true,
+        "internal": true,
+        "member_limit": 0,
+        "months": 12,
+        "price": -1
     }
 ]
