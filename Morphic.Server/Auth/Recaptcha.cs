@@ -94,7 +94,7 @@ namespace Morphic.Server.Auth
                 var result = JsonSerializer.Deserialize<RecaptchaResult>(json);
                 if (!result.Success)
                 {
-                    logger.LogWarning("ReCaptcha result success = false ({0})", result.ErrorCodes.ToString());
+                    logger.LogWarning("ReCaptcha result success = false ({0})", string.Join(',', result.ErrorCodes));
                     return false;
                 }
                 if (result.Action != action)
