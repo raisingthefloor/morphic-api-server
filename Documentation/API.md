@@ -2239,8 +2239,8 @@ Get the billing information for a community
     </tr>
     <tr>
       <td><code>trial_end</code></td>
-      <td>UNIX timestamp representing the end of the trial period</td>
-      <td><code>Double</code></td>
+      <td>The date/time, in ISO 8601 format, of the end of the trial period</td>
+      <td><code>String</code></td>
       <td>Required</td>
     </tr>
     <tr>
@@ -2459,7 +2459,7 @@ Get the list of active billing plans for Morphic Community
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].id</code></td>
-      <td>The plan's uinique ID</td>
+      <td>The plan's unique ID</td>
       <td><code>String</code></td>
       <td>Required</td>
     </tr>
@@ -2485,6 +2485,18 @@ Get the list of active billing plans for Morphic Community
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].currency</code></td>
       <td>The currency of the price</td>
       <td><code>int</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].price_text</code></td>
+      <td>The price, for displaying</td>
+      <td><code>String</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].monthly_price_text</code></td>
+      <td>The monthly price, for displaying. Used to compare the monthly cost with other plans.</td>
+      <td><code>String</code></td>
       <td>Required</td>
     </tr>
   </tbody>

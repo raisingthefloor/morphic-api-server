@@ -1,3 +1,5 @@
+# Morphic API Server
+
 A C# implementation of a simple Morphic Lite HTTP API to serve and store user preferences.
 
 [![Build Status](https://dev.azure.com/raisingthefloor/MorphicLite/_apis/build/status/MorphicLiteServer?branchName=master)](https://dev.azure.com/raisingthefloor/MorphicLite/_build/latest?definitionId=1&branchName=master)
@@ -7,8 +9,25 @@ Sub-Documents:
 * [Metrics Doc](Metrics.md)
 * [Email Doc](Morphic.Server/Email/README.md)
 
-Development
-=====
+## Development
+
+### Environment
+
+* .NET core (v3.1 works)
+* MongoDB (v3.6.8 works)
+
+### Running locally
+
+Get a copy of Morphic.Server/appsettings.Local.json, then start it in the IDE or with:
+
+    dotnet run --project Morphic.Server
+
+According to [Morphic.Server/Properties/launchSettings.json](Morphic.Server/Properties/launchSettings.json),
+the server will bind to `0.0.0.0:5002`: [http://localhost:5002/](http://localhost:5002/)
+
+## Docker
+
+**Running under docker for development isn't required, the above command is enough**
 
 To run the services MorphicServer depends on, you can invoke a docker stack:
 ````
@@ -18,18 +37,37 @@ $ docker stack deploy -c docker-compose.dev.yaml morphic-server
 
 *Currently the only dependency is MongoDB, which you can run without docker if desired*
 
-The server itself can be started from your IDE or from the command line:
-````
-$ dotnet run --project Morphic.Server
-````
-
 You can get started making requests by registering a new user:
 ````
-$ curl http://localhost:5002/register/username -H 'Content-Type: application/json; charset=utf-8' --data-binary '{"username": "myusername", "password": "mypassword"}'
+$ curl http://localhost:5002/v1/register/username -X POST \
+  -H 'Content-Type: application/json; charset=utf-8' \
+  --data-binary '{"username": "myusername", "password": "mypassword", "email": "myusername@somewhere.com"}' \
+  -w "\nstatus: %{http_code}\n"
+````
+The result is a status code of `200` followed by a payload containing the
+authorization token and a `user` json structure, for example:
+````
+{
+  "token":"tSBBaAtN1MBlVN9h&&77AcD7fcSWDcZXWOpiKiAEeEiCGkGgsVgcYnuw9It5i5QAzN69JZr9Y1ihA94FvaZvQ==",
+  "user":{
+    "first_name":null,
+    "last_name":null,
+    "preferences_id":"c9f1b7a6-a6f8-49e8-b7d2-b3276750c425",
+    "id":"d62ca1c7-3476-4849-9cc7-3c64d5e68d47"
+  }
+}
+status: 200
+````
+These values can be used with other queries such as [`v1/user/{id}`](Documentation/API.md#v1usersid)
+
+Note: issuing the above `curl` command a second time is seen as a duplicate and
+results in a `404` status with the error message:
+````
+{"error":"existing_email","details":null}
 ````
 
-docker-compose and morphicserver container
-=====
+### docker-compose and morphicserver container
+
 An alternative to docker swarm is to run the containers directly with docker-compose:
 ````
 docker-compose -f docker-compose.dev.yaml -f docker-compose.morphicserver.yml up --build
@@ -56,12 +94,12 @@ Note: If you previously created a swarm and want to leave it before running dock
 docker swarm leave --force
 ````
 
-# Logging setup and configuration
+## Logging setup and configuration
 
 1. https://github.com/serilog/serilog/wiki/Formatting-Output#formatting-json
 2. https://github.com/serilog/serilog-formatting-compact
 
-# Deployment Environment Variables
+## Deployment Environment Variables
 
 Any of the settings can be given as environment variables by combining the level using double-underscores `__`
 

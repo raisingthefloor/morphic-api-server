@@ -1,8 +1,6 @@
 .DS_Store
-**/bin/*
-**/obj/*
-Morphic.Server.Tests/bin/*
-Morphic.Server.Tests/obj/*
+**/bin
+**/obj
 *.csproj.user
 **/.vscode/*
 **/!.vscode/settings.json
