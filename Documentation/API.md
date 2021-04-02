@@ -35,7 +35,9 @@ Endpoints
   * [`/v1/communities/{id}/billing/card`](#endpoint-community-billing-card)
   * [`/v1/communities/{id}/billing/cancel`](#endpoint-community-billing-cancel)
 * [Plans](#section-plans)
-  * [`v1/plans/community`](#endpoint-plans-community)
+  * [`/v1/plans/community`](#endpoint-plans-community)
+* [Validation](#section-validate)
+  * [`/v1/validate/link/{url}`](#endpoint-valitate-link)
 
 <a name="section-user-registration"></a>User Registration
 =================
@@ -2496,6 +2498,44 @@ Get the list of active billing plans for Morphic Community
       <td>The monthly price, for displaying. Used to compare the monthly cost with other plans.</td>
       <td><code>String</code></td>
       <td>Required</td>
+    </tr>
+  </tbody>
+</table>
+
+
+<a name="section-validate"></a>Link Validation
+=================
+
+<a name="endpoint-validate-link"></a>/v1/validate/link/{url}
+------------------
+
+### HEAD
+
+Validates a link. Used by the web client to check if a link is valid for a button.
+
+(`{url}` should be URL-encoded)
+
+<table>
+  <tbody>
+    <tr>
+      <th colspan="4">Headers</th>
+    </tr>
+    <tr>
+      <td><code>Authorization</code></td>
+      <td colspan="2"><code>"Bearer "</code> + Token string obtained from<code>/auth/username</code> or <code>/auth/key</code></td>
+      <td>Required</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>200</code> (No Response Body)</th>
+    </tr>
+    <tr>
+      <td colspan="4">The link works.</td>
+    </tr>
+    <tr>
+      <th colspan="4"><code>410</code> (No Response Body)</th>
+    </tr>
+    <tr>
+      <td colspan="4">The link does not work.</td>
     </tr>
   </tbody>
 </table>
