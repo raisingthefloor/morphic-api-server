@@ -83,7 +83,7 @@ namespace Morphic.Server.Tests
             bool isGood;
             try
             {
-                await ValidateLinkEndpoint.CheckLink(url, "0.0.0.0");
+                await ValidateLinkEndpoint.CheckLink(url, "0.0.0.0", "Test/1.0" );
                 isGood = true;
             }
             catch (HttpError)
@@ -102,7 +102,7 @@ namespace Morphic.Server.Tests
             bool gotRequest = false;
             try
             {
-                await ValidateLinkEndpoint.CheckLink(url, "0.0.0.0", connectionUrl =>
+                await ValidateLinkEndpoint.CheckLink(url, "0.0.0.0", null, connectionUrl =>
                 {
                     // check the correct URL is being requested
                     Assert.Equal(new Uri(url).ToString(), connectionUrl.ToString());

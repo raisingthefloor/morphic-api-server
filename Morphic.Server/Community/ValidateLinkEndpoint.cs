@@ -53,7 +53,8 @@ namespace Morphic.Server.Community
         [Method]
         public async Task Head()
         {
-            await ValidateLinkEndpoint.CheckLink(HttpUtility.UrlDecode(this.Url), this.Request.ClientIp());
+            await ValidateLinkEndpoint.CheckLink(HttpUtility.UrlDecode(this.Url), this.Request.ClientIp(),
+                this.Request.Headers["User-Agent"]);
         }
 
         /// <summary>
@@ -61,7 +62,7 @@ namespace Morphic.Server.Community
         /// </summary>
         /// <returns>Returns if the link is ok. HttpError exception if not.</returns>
         /// <exception cref="HttpError">Thrown if the link is isn't good.</exception>
-        public static async Task CheckLink(string urlString, string? clientIp, Action<Uri>? requestMaker = null)
+        public static async Task CheckLink(string urlString, string? clientIp, string? userAgent = null, Action<Uri>? requestMaker = null)
         {
             try
             {
@@ -94,6 +95,11 @@ namespace Morphic.Server.Community
                     if (!string.IsNullOrEmpty(clientIp))
                     {
                         req.Headers.Add("X-Forwarded-For", clientIp);
+                    }
+
+                    if (!string.IsNullOrEmpty(userAgent))
+                    {
+                        req.Headers.Add("User-Agent", userAgent);
                     }
 
                     req.Method = "HEAD";
