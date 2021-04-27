@@ -104,7 +104,7 @@ namespace Morphic.Server.Community
 
                     req.Method = "HEAD";
                     req.Timeout = 10000;
-                    HttpWebResponse response = (HttpWebResponse) await req.GetResponseAsync();
+                    using HttpWebResponse response = (HttpWebResponse) await req.GetResponseAsync();
                     if ((int) response.StatusCode >= 400)
                     {
                         throw new HttpError(HttpStatusCode.Gone);
@@ -117,6 +117,12 @@ namespace Morphic.Server.Community
             catch (HttpError httpError)
             {
                 throw;
+            }
+            catch (WebException webException)
+                when (webException.Response is HttpWebResponse {StatusCode: HttpStatusCode.MethodNotAllowed})
+            {
+                // 405 Method Not Allowed: it doesn't like the HEAD request, assume the link is ok otherwise it would
+                // have returned another error like 404.
             }
             catch (Exception)
             {
