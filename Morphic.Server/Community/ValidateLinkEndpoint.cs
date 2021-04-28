@@ -22,6 +22,8 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -91,26 +93,31 @@ namespace Morphic.Server.Community
                 }
                 else
                 {
-                    HttpWebRequest req = (HttpWebRequest) WebRequest.Create(parsed);
+                    Dictionary<string, string> headers = new Dictionary<string, string>();
                     if (!string.IsNullOrEmpty(clientIp))
                     {
-                        req.Headers.Add("X-Forwarded-For", clientIp);
+                        headers.Add("X-Forwarded-For", clientIp);
                     }
 
                     if (!string.IsNullOrEmpty(userAgent))
                     {
-                        req.Headers.Add("User-Agent", userAgent);
+                        headers.Add("User-Agent", userAgent);
                     }
 
-                    req.Method = "HEAD";
-                    req.Timeout = 10000;
-                    using HttpWebResponse response = (HttpWebResponse) await req.GetResponseAsync();
-                    if ((int) response.StatusCode >= 400)
+                    HttpStatusCode headStatus = await GetLinkStatus(parsed, "HEAD", headers);
+                    bool good = CheckStatusCode(headStatus);
+
+                    if (!good && headStatus > 0)
+                    {
+                        // Try it again with a GET request.
+                        HttpStatusCode getStatus = await GetLinkStatus(parsed, "GET", headers);
+                        good = CheckStatusCode(getStatus);
+                    }
+
+                    if (!good)
                     {
                         throw new HttpError(HttpStatusCode.Gone);
                     }
-
-                    response.Close();
                 }
 
             }
@@ -118,18 +125,70 @@ namespace Morphic.Server.Community
             {
                 throw;
             }
-            catch (WebException webException)
-                when (webException.Response is HttpWebResponse {StatusCode: HttpStatusCode.MethodNotAllowed})
-            {
-                // 405 Method Not Allowed: it doesn't like the HEAD request, assume the link is ok otherwise it would
-                // have returned another error like 404.
-            }
             catch (Exception)
             {
                 throw new HttpError(HttpStatusCode.Gone);
             }
         }
 
+        /// <summary>
+        /// Determines if a status code represents a valid link.
+        /// </summary>
+        /// <param name="statusCode">The status code</param>
+        /// <returns>true if the link is good.</returns>
+        private static bool CheckStatusCode(HttpStatusCode statusCode)
+        {
+            switch (statusCode)
+            {
+                case 0:
+                    return false;
+                case HttpStatusCode.MethodNotAllowed:
+                    // 405 Method Not Allowed: it doesn't like the HEAD request, assume the link is ok otherwise it
+                    // would have returned another error like 404.
+                    return true;
+                default:
+                    return (int)statusCode < 400;
+            }
+        }
+
+        /// <summary>
+        /// Gets the status code return by the server for the given url.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="method"></param>
+        /// <param name="headers"></param>
+        /// <returns>The status code, or 0 if there was a error outside the protocol or a timeout.</returns>
+        private static async Task<HttpStatusCode> GetLinkStatus(Uri url, string method,
+            Dictionary<string, string> headers)
+        {
+            HttpStatusCode statusCode;
+
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+            try
+            {
+                req.Method = method;
+                req.Timeout = 10000;
+                req.KeepAlive = false;
+
+                foreach ((string key, string value) in headers)
+                {
+                    req.Headers[key] = value;
+                }
+
+                using HttpWebResponse response = (HttpWebResponse)await req.GetResponseAsync();
+                statusCode = response.StatusCode;
+            }
+            catch (WebException webException) when (webException.Response is HttpWebResponse webResponse)
+            {
+                statusCode = webResponse.StatusCode;
+            }
+            catch (Exception)
+            {
+                statusCode = 0;
+            }
+
+            return statusCode;
+        }
 
 
         private class LinkCheck
