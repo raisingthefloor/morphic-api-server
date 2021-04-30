@@ -22,6 +22,8 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
@@ -35,6 +37,28 @@ namespace Morphic.Server.Community
     using Http;
     using Billing;
 
+    /// <summary>
+    /// This allows the web client to check if a link is working.
+    /// The browser is unable to perform this check itself, because cross-origin requests are forbidden
+    /// in https.
+    ///
+    /// This does mean the server is performing network requests on behalf of the user, so there is a potential
+    /// for trouble with accessing random resources.
+    ///
+    /// Risks:
+    /// - The server is used to access something due to IP filtering.
+    /// - An action on a remote server could be performed under the guise of the server.
+    ///
+    /// There are some limitations and mitigations:
+    /// - Only authenticated users can access this.
+    /// - This endpoint is accessed via a POST request.
+    /// - Nothing is actually read, stored, or parsed - only the HTTP response headers.
+    /// - Only normal looking URLs are accepted (http/https, non-IP, standard port)
+    /// - HEAD requests are sent, then retried with a GET (some servers don't support HEAD).
+    /// - The response from this endpoint is only success or failure (or validation error), nothing from
+    ///    the external link is provided.
+    /// - X-Forwarded-For provides the client's IP.
+    /// </summary>
     [Path("/v1/validate/link/{url}")]
     public class ValidateLinkEndpoint: Endpoint
     {
@@ -53,7 +77,8 @@ namespace Morphic.Server.Community
         [Method]
         public async Task Head()
         {
-            await ValidateLinkEndpoint.CheckLink(HttpUtility.UrlDecode(this.Url), this.Request.ClientIp());
+            await ValidateLinkEndpoint.CheckLink(HttpUtility.UrlDecode(this.Url), this.Request.ClientIp(),
+                this.Request.Headers["User-Agent"]);
         }
 
         /// <summary>
@@ -61,7 +86,7 @@ namespace Morphic.Server.Community
         /// </summary>
         /// <returns>Returns if the link is ok. HttpError exception if not.</returns>
         /// <exception cref="HttpError">Thrown if the link is isn't good.</exception>
-        public static async Task CheckLink(string urlString, string? clientIp, Action<Uri>? requestMaker = null)
+        public static async Task CheckLink(string urlString, string? clientIp, string? userAgent = null, Action<Uri>? requestMaker = null)
         {
             try
             {
@@ -90,21 +115,31 @@ namespace Morphic.Server.Community
                 }
                 else
                 {
-                    HttpWebRequest req = (HttpWebRequest) WebRequest.Create(parsed);
+                    Dictionary<string, string> headers = new Dictionary<string, string>();
                     if (!string.IsNullOrEmpty(clientIp))
                     {
-                        req.Headers.Add("X-Forwarded-For", clientIp);
+                        headers.Add("X-Forwarded-For", clientIp);
                     }
 
-                    req.Method = "HEAD";
-                    req.Timeout = 10000;
-                    HttpWebResponse response = (HttpWebResponse) await req.GetResponseAsync();
-                    if ((int) response.StatusCode >= 400)
+                    if (!string.IsNullOrEmpty(userAgent))
+                    {
+                        headers.Add("User-Agent", userAgent);
+                    }
+
+                    HttpStatusCode headStatus = await GetLinkStatus(parsed, "HEAD", headers);
+                    bool good = CheckStatusCode(headStatus);
+
+                    if (!good && headStatus > 0)
+                    {
+                        // Try it again with a GET request.
+                        HttpStatusCode getStatus = await GetLinkStatus(parsed, "GET", headers);
+                        good = CheckStatusCode(getStatus);
+                    }
+
+                    if (!good)
                     {
                         throw new HttpError(HttpStatusCode.Gone);
                     }
-
-                    response.Close();
                 }
 
             }
@@ -118,6 +153,60 @@ namespace Morphic.Server.Community
             }
         }
 
+        /// <summary>
+        /// Determines if a status code represents a valid link.
+        /// </summary>
+        /// <param name="statusCode">The status code</param>
+        /// <returns>true if the link is good.</returns>
+        private static bool CheckStatusCode(HttpStatusCode statusCode)
+        {
+            switch (statusCode)
+            {
+                case 0:
+                    return false;
+                default:
+                    return (int)statusCode < 400;
+            }
+        }
+
+        /// <summary>
+        /// Gets the status code return by the server for the given url.
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="method"></param>
+        /// <param name="headers"></param>
+        /// <returns>The status code, or 0 if there was a error outside the protocol or a timeout.</returns>
+        private static async Task<HttpStatusCode> GetLinkStatus(Uri url, string method,
+            Dictionary<string, string> headers)
+        {
+            HttpStatusCode statusCode;
+
+            HttpWebRequest req = (HttpWebRequest)WebRequest.Create(url);
+            try
+            {
+                req.Method = method;
+                req.Timeout = 10000;
+                req.KeepAlive = false;
+
+                foreach ((string key, string value) in headers)
+                {
+                    req.Headers[key] = value;
+                }
+
+                using HttpWebResponse response = (HttpWebResponse)await req.GetResponseAsync();
+                statusCode = response.StatusCode;
+            }
+            catch (WebException webException) when (webException.Response is HttpWebResponse webResponse)
+            {
+                statusCode = webResponse.StatusCode;
+            }
+            catch (Exception)
+            {
+                statusCode = 0;
+            }
+
+            return statusCode;
+        }
 
 
         private class LinkCheck
