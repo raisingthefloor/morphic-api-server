@@ -37,6 +37,28 @@ namespace Morphic.Server.Community
     using Http;
     using Billing;
 
+    /// <summary>
+    /// This allows the web client to check if a link is working.
+    /// The browser is unable to perform this check itself, because cross-origin requests are forbidden
+    /// in https.
+    ///
+    /// This does mean the server is performing network requests on behalf of the user, so there is a potential
+    /// for trouble with accessing random resources.
+    ///
+    /// Risks:
+    /// - The server is used to access something due to IP filtering.
+    /// - An action on a remote server could be performed under the guise of the server.
+    ///
+    /// There are some limitations and mitigations:
+    /// - Only authenticated users can access this.
+    /// - This endpoint is accessed via a POST request.
+    /// - Nothing is actually read, stored, or parsed - only the HTTP response headers.
+    /// - Only normal looking URLs are accepted (http/https, non-IP, standard port)
+    /// - HEAD requests are sent, then retried with a GET (some servers don't support HEAD).
+    /// - The response from this endpoint is only success or failure (or validation error), nothing from
+    ///    the external link is provided.
+    /// - X-Forwarded-For provides the client's IP.
+    /// </summary>
     [Path("/v1/validate/link/{url}")]
     public class ValidateLinkEndpoint: Endpoint
     {
