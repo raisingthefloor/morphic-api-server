@@ -142,10 +142,6 @@ namespace Morphic.Server.Community
             {
                 case 0:
                     return false;
-                case HttpStatusCode.MethodNotAllowed:
-                    // 405 Method Not Allowed: it doesn't like the HEAD request, assume the link is ok otherwise it
-                    // would have returned another error like 404.
-                    return true;
                 default:
                     return (int)statusCode < 400;
             }
