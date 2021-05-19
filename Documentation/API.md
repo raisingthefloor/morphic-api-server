@@ -1411,9 +1411,15 @@ Get a list of community members
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code></td>
-      <td>The member's bar_id (null means use community default_bar_id)</td>
+      <td>The member's first bar_id from the bar_ids array (null means no bars)</td>
       <td>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_ids</code></td>
+      <td>The member's bar_ids (an empty set means no bars)</td>
+      <td>string[]</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>

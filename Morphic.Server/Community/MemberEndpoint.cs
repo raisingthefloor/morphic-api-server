@@ -94,7 +94,20 @@ namespace Morphic.Server.Community{
                     throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.BadBarId);
                 }
             }
-            Member.BarId = input.BarId;
+            //
+            // backwards-compatibility: if the member already had a single BarId, move it to the BarIds array in the response
+            if (Member.BarId != null && Member.BarIds.Contains(Member.BardId.Value) == false) 
+            {
+                Member.BarIds.Add(Member.BarId);
+            }
+            Member.BarId = null;
+            //
+            // legacy: Member.BarId = input.BarId;
+            if (Member.BarIds.Contains(input.BarId) == false) 
+            {
+                Member.BarIds.Add(input.BarId);
+            }
+            //
             await Save(Member);
             // If we're demoting the member that is the billing contact for the community,
             // then make the logged-in member the new billing contact

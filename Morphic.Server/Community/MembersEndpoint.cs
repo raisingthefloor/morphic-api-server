@@ -64,13 +64,36 @@ namespace Morphic.Server.Community{
             var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id);
             foreach (var member in members)
             {
+                /* for backwards compatibility:
+                 * - if the database record just contained "bar_id", make sure that data is
+                 *   added to the "bar_ids" array
+                 */
+                var allBarIds = member.BarIds;
+                if (member.BarId != null && allBarIds.Contains(member.BarId.Value) == false)
+                {
+                    allBarIds.Insert(member.BarId, 0);
+                }
+                /* for backwards compatibility:
+                 * - capture the first bar (to populate the result's member.bar_id field)
+                 */
+                string? primaryBarId;
+                if (member.BarIds.Count > 0) 
+                {
+                    primaryBarId = member.BarIds[0];
+                }
+                else 
+                {
+                    primaryBarId = member.BarId;
+                }
+
                 page.Members.Add(new CommunityMembersItem()
                 {
                     Id = member.Id,
                     FirstName = member.FirstName.PlainText,
                     LastName = member.LastName.PlainText,
                     Role = member.Role,
-                    BarId = member.BarId,
+                    BarId = primaryBarId,
+                    BarIds = allBarIds,
                     State = member.State,
                     UserId = member.UserId
                 });
@@ -100,6 +123,9 @@ namespace Morphic.Server.Community{
 
             [JsonPropertyName("bar_id")]
             public string? BarId { get; set; }
+
+            [JsonPropertyName("bar_ids")]
+            public List<string> BarIds { get; set; }
 
             [JsonPropertyName("state")]
             public MemberState State { get; set; }

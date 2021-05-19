@@ -56,7 +56,22 @@ namespace Morphic.Server.Community{
             }
             Member = await Load<Member>(m => m.CommunityId == Id && m.UserId == authenticatedUser.Id && m.State == MemberState.Active);
             Community = await Load<Community>(Id);
-            Bar = await Load<Bar>(Member.BarId ?? Community.DefaultBarId);
+            //
+            string? barId;
+            if (Member.BarIds.Count > 0) 
+            {
+                barId = Member.BarIds[0];
+            }
+            else if (Member.BarId != null) 
+            {
+                // for backwards-compatibility
+                barId = Member.BarId;
+            }
+            else 
+            {
+                barId = Community.DefaultBarId;
+            }
+            Bar = await Load<Bar>(barId);
         }
 
         public User User = null!;
