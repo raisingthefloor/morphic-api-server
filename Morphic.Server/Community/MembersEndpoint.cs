@@ -86,7 +86,7 @@ namespace Morphic.Server.Community{
                     FirstName = member.FirstName.PlainText,
                     LastName = member.LastName.PlainText,
                     Role = member.Role,
-                    BarIds = allBarIds,
+                    BarIds = barIds,
                     State = member.State,
                     UserId = member.UserId
                 });
