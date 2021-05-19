@@ -86,7 +86,7 @@ namespace Morphic.Server.Community{
                 throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.CannotDemoteSelf);
             }
             Member.Role = input.Role;
-            foreach (varId in input.BarIds) {
+            foreach (var barId in input.BarIds) {
                 var bar = await db.Get<Bar>(barId);
                 if (bar == null || bar.CommunityId != Community.Id)
                 {
