@@ -69,7 +69,8 @@ namespace Morphic.Server.Community{
         public (Community, Member)[] Communities = null!;
 
         [Method]
-        public async Task Get(){
+        public async Task Get()
+        {
             var collection = new UserCommunityCollection();
             foreach (var pair in Communities){
                 if (pair.Item1.IsMemberLocked)

@@ -66,12 +66,18 @@ namespace Morphic.Server.Community{
             {
                 /* for backwards compatibility:
                  * - if the database record just contained "bar_id", make sure that data is
-                 *   added to the "bar_ids" array
+                 *   presented as part of the "bar_ids" array in our response instead
                  */
-                var allBarIds = member.BarIds;
-                if (member.BarId != null && allBarIds.Contains(member.BarId!) == false)
+                List<string> barIds;
+                if (member.BarId != null)
                 {
-                    allBarIds.Insert(0, member.BarId);
+                    // NOTE: the database is invalid if it contains both bar_id and bar_ids entries
+                    //       for this record; therefore it is proper to only return bar_id (if populated)
+                    barIds = new List<string>() { member.BarId };
+                }
+                else 
+                {
+                    barIds = member.BarIds;
                 }
 
                 page.Members.Add(new CommunityMembersItem()
@@ -109,8 +115,8 @@ namespace Morphic.Server.Community{
             public MemberRole Role { get; set; }
 
 			// ** REMOVED **
-//            [JsonPropertyName("bar_id")]
-//            public string? BarId { get; set; }
+        //    [JsonPropertyName("bar_id")]
+        //    public string? BarId { get; set; }
 
             [JsonPropertyName("bar_ids")]
             public List<string> BarIds { get; set; } = new List<string>();

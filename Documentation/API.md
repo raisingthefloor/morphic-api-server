@@ -1411,7 +1411,7 @@ Get a list of community members
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
-      <td><del>The member's bar_id (null means no bar)</del></td>
+      <td><del>The member's bar_id (null means use community default_bar_id)</del></td>
       <td>String</code></td>
       <td>Optional</td>
     </tr>

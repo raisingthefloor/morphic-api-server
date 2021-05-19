@@ -95,6 +95,7 @@ namespace Morphic.Server.Community{
             }
             // for legacy reasons, be sure we clear out any previously-populated (legacy) bar_id; it should already be in the input.BarIds collection if the caller wanted it to be preserved
             Member.BarId = null;
+            //
             Member.BarIds = input.BarIds;
             //
             await Save(Member);
@@ -151,8 +152,8 @@ namespace Morphic.Server.Community{
             public string? LastName { get; set; } = null!;
 
 			// ** REMOVED **
-//            [JsonPropertyName("bar_id")]
-//            public string? BarId { get; set; }
+        //    [JsonPropertyName("bar_id")]
+        //    public string? BarId { get; set; }
 
             [JsonPropertyName("bar_ids")]
             public List<string> BarIds { get; set; } = new List<string>();

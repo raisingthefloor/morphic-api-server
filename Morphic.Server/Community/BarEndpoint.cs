@@ -105,13 +105,14 @@ namespace Morphic.Server.Community
         }
 
         [Method]
-        public async Task Delete(){
+        public async Task Delete()
+        {
             if (Bar.Id == Community.DefaultBarId)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BarDeleteError.CannotDeleteDefault);
             }
             var db = Context.GetDatabase();
-            var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id && (m.BarId == Bar.Id) || (m.BarIds.Contains(Bar.Id)));
+            var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id && ((m.BarId == Bar.Id) || (m.BarIds.Contains(Bar.Id))));
             foreach (var member in members){
                 throw new HttpError(HttpStatusCode.BadRequest, BarDeleteError.CannotDeleteUsed);
             }
