@@ -249,7 +249,8 @@ namespace Morphic.Server.Tests.Community
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("uninvited", property.GetString());
             Assert.True(element.TryGetProperty("bar_ids", out property));
-            Assert.Equal(JsonValueKind.Null, property.ValueKind);
+            Assert.Equal(JsonValueKind.Array, property.ValueKind);
+            Assert.Equal(0, property.GetArrayLength());
         }
     }
 }
