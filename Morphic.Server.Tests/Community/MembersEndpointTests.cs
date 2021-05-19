@@ -150,7 +150,7 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("last_name", out property));
             Assert.True(element.TryGetProperty("role", out property));
             Assert.True(element.TryGetProperty("state", out property));
-            Assert.True(element.TryGetProperty("bar_id", out property));
+            Assert.True(element.TryGetProperty("bar_ids", out property));
         }
 
         [Fact]
@@ -248,7 +248,7 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("state", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("uninvited", property.GetString());
-            Assert.True(element.TryGetProperty("bar_id", out property));
+            Assert.True(element.TryGetProperty("bar_ids", out property));
             Assert.Equal(JsonValueKind.Null, property.ValueKind);
         }
     }

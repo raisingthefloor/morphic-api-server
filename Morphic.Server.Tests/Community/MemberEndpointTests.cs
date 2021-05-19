@@ -203,7 +203,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
-            content.Add("bar_id", null);
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             var response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
@@ -215,6 +215,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
@@ -226,6 +227,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -237,6 +239,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -247,6 +250,7 @@ namespace Morphic.Server.Tests.Community
             content = new Dictionary<string, object>();
             content.Add("last_name", "Member");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -257,6 +261,7 @@ namespace Morphic.Server.Tests.Community
             content = new Dictionary<string, object>();
             content.Add("first_name", "Changed");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -267,6 +272,7 @@ namespace Morphic.Server.Tests.Community
             content = new Dictionary<string, object>();
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -278,7 +284,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
-            content.Add("bar_id", "notreal");
+            content.Add("bar_ids", new List<string>() { "notreal" });
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
@@ -290,6 +296,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -302,6 +309,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Manager");
             content.Add("role", "manager");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -314,6 +322,7 @@ namespace Morphic.Server.Tests.Community
             content.Add("first_name", "Changed");
             content.Add("last_name", "Member");
             content.Add("role", "member");
+            content.Add("bar_ids", new List<string>());
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
