@@ -4,20 +4,21 @@ Endpoints
 =========
 
 * [User Registration](#section-user-registration)
-  * [`/v1/register/username`](#endpoint-register-username)
-  * [`/v1/register/key`](#endpoint-register-key)
+  * [`/v1/register/username`](#endpoint-register-username) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+  * [`/v1/register/key`](#endpoint-register-key) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
   * [`/v1/invitations/{id}`](#endpoint-invitation)
 * [Authentication](#section-authentication)
-  * [`/v1/auth/username`](#endpoint-auth-username)
-  * [`/v1/auth/key`](#endpoint-auth-key)
+  * [`/v1/auth/username`](#endpoint-auth-username) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+  * [`/v1/auth/key`](#endpoint-auth-key) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 * [User Data](#section-user-data)
-  * [`/v1/users/{id}`](#endpoint-user)
-  * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences)
+  * [`/v1/users/{id}`](#endpoint-user) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+  * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
   * [`/v1/users/{id}/password`](#endpoint-password)
-  * [`/v1/users/{id}/communities`](#endpoint-user-communities)
-  * [`/v1/users/{uid}/communities/{cid}`](#endpoint-user-community)
+  * [`/v1/users/{id}/communities`](#endpoint-user-communities) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+  * [`/v1/users/{uid}/communities/{cid}`](#endpoint-user-community) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
   * [`/v1/users/{id}/unregister`](#endpoint-user-unregister)
   * [`/v1/users/{id}/resend_verification`](#endpoint-user-resend-verification)
+  * `/v1/preferences/{uid}` <span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Undocumented&nbsp;&nbsp;</span> <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 * [Password Reset](#section-password-reset)
   * [`/v1/auth/username/password_reset/{oneTimeToken}`](#endpoint-password-reset)  
   * [`/v1/auth/username/password_reset/request`](#endpoint-password-reset-request)
@@ -42,10 +43,10 @@ Endpoints
 <a name="section-user-registration"></a>User Registration
 =================
 
-<a name="endpoint-register-username"></a>/v1/register/username
+<a name="endpoint-register-username"></a>/v1/register/username <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
-### POST
+### POST <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Create a new user with empty preferences and the ability to login with the
 given username/password credentials.
@@ -159,12 +160,12 @@ Immediately log the user in and return an authentication token.
   </tbody>
 </table>
 
-<a name="endpoint-register-key"></a>/v1/register/key (Disabled)
+<a name="endpoint-register-key"></a>/v1/register/key (Disabled) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
 *Temporarily disabled until we need it*
 
-### POST
+### POST <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Create a new user with empty preferences and the ability to login with the
 given secret key credentials.
@@ -307,10 +308,10 @@ the `/v1/community/{cid}/invitations/{id}/accept` endpoint.
 <a name="section-authentication"></a>Authentication
 =================
 
-<a name="endpoint-auth-username"></a>/v1/auth/username
+<a name="endpoint-auth-username"></a>/v1/auth/username <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
-### POST
+### POST <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Authenticate the given username/password credentials and return a
 token that can be used in `Authorization` headers.
@@ -386,12 +387,12 @@ token that can be used in `Authorization` headers.
   </tbody>
 </table>
 
-<a name="endpoint-auth-key"></a>/v1/auth/key (Disabled)
+<a name="endpoint-auth-key"></a>/v1/auth/key (Disabled) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
 *Temporarily disabled until we need it*
 
-### POST
+### POST <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Authenticate the given secret key credentials and return a
 token that can be used in `Authorization` headers.
@@ -449,10 +450,10 @@ token that can be used in `Authorization` headers.
 <a name="section-user-data"></a>User Data
 =================
 
-<a name="endpoint-user"></a>/v1/users/{id}
+<a name="endpoint-user"></a>/v1/users/{id} <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
-### GET
+### GET <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Get the user object for the given `id`
 
@@ -517,7 +518,7 @@ Get the user object for the given `id`
 </table>
 
 
-### PUT 
+### PUT <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Save the user object for the given `id`
 
@@ -580,12 +581,12 @@ Save the user object for the given `id`
   </tbody>
 </table>
 
-<a name="endpoint-preferences"></a>/v1/users/{uid}/preferences/{id}
+<a name="endpoint-preferences"></a>/v1/users/{uid}/preferences/{id} <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
 A preference id can be found in the `preferences_id` property of a user object.
 
-### GET
+### GET <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Get the preferences object for the given `id`.
 
@@ -650,7 +651,7 @@ Get the preferences object for the given `id`.
 </table>
 
 
-### PUT 
+### PUT <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Save the user object for the given `id`
 
@@ -786,10 +787,10 @@ for additional security.
 </table>
 
 
-<a name="endpoint-user-communities"></a>/v1/users/{id}/communities
+<a name="endpoint-user-communities"></a>/v1/users/{id}/communities <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
-### GET
+### GET <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 Get a list of communities the user belongs to.
 
@@ -838,10 +839,10 @@ Get a list of communities the user belongs to.
 * `member`
 
 
-<a name="endpoint-user-community"></a>/v1/users/{uid}/communities/{id}
+<a name="endpoint-user-community"></a>/v1/users/{uid}/communities/{id} <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
-### GET
+### GET <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 
 The details of a community the user belongs to
 
