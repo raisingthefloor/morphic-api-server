@@ -167,8 +167,12 @@ namespace Morphic.Server.Community{
             [JsonPropertyName("last_name")]
             public string? LastName { get; set; } = null!;
 
-            [JsonPropertyName("bar_id")]
-            public string? BarId { get; set; }
+			// ** REMOVED **
+//            [JsonPropertyName("bar_id")]
+//            public string? BarId { get; set; }
+
+            [JsonPropertyName("bar_ids")]
+            public List<string> BarIds { get; set; } = new List<string>();
 
             [JsonPropertyName("role")]
             [JsonRequired]
