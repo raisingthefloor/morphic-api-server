@@ -28,8 +28,8 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
-namespace Morphic.Server.Community{
-
+namespace Morphic.Server.Community
+{
     using Http;
     using Users;
 
