@@ -1410,10 +1410,10 @@ Get a list of community members
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code><del>[i].bar_id</del></code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
       <td><del>The member's bar_id (null means use community default_bar_id)</del></td>
-      <td>String</code></td>
-      <td>Optional</td>
+      <td><del>String</del></code></td>
+      <td><del>Optional</del></td>
     </tr>
     <tr>
       <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
@@ -1546,10 +1546,10 @@ Get a community member's details
       <td>Required</td>
     </tr>
     <tr>
-      <td><code>bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td><code><del>bar_id</del></code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
       <td><del>The member's bar, if not the community's default</del></td>
-      <td><code>String</code></td>
-      <td>Optional</td>
+      <td><code><del>String</del></code></td>
+      <td><del>Optional</del></td>
     </tr>
     <tr>
       <td><code>bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
@@ -1604,10 +1604,10 @@ Update a community member's details
       <td>Optional</td>
     </tr>
     <tr>
-      <td><code>bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td><code><del>bar_id</del></code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
       <td><del>The member's bar, if not the community's default</del></td>
-      <td><code>String</code></td>
-      <td>Optional</td>
+      <td><code><del>String</del></code></td>
+      <td><del>Optional</del></td>
     </tr>
     <tr>
       <td><code>bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
