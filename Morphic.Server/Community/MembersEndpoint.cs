@@ -64,13 +64,29 @@ namespace Morphic.Server.Community{
             var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id);
             foreach (var member in members)
             {
+                /* for backwards compatibility:
+                 * - if the database record just contained "bar_id", make sure that data is
+                 *   presented as part of the "bar_ids" array in our response instead
+                 */
+                List<string> barIds;
+                if (member.BarId != null)
+                {
+                    // NOTE: the database is invalid if it contains both bar_id and bar_ids entries
+                    //       for this record; therefore it is proper to only return bar_id (if populated)
+                    barIds = new List<string>() { member.BarId };
+                }
+                else 
+                {
+                    barIds = member.BarIds;
+                }
+
                 page.Members.Add(new CommunityMembersItem()
                 {
                     Id = member.Id,
                     FirstName = member.FirstName.PlainText,
                     LastName = member.LastName.PlainText,
                     Role = member.Role,
-                    BarId = member.BarId,
+                    BarIds = barIds,
                     State = member.State,
                     UserId = member.UserId
                 });
@@ -98,8 +114,12 @@ namespace Morphic.Server.Community{
             [JsonPropertyName("role")]
             public MemberRole Role { get; set; }
 
-            [JsonPropertyName("bar_id")]
-            public string? BarId { get; set; }
+			// ** REMOVED **
+        //    [JsonPropertyName("bar_id")]
+        //    public string? BarId { get; set; }
+
+            [JsonPropertyName("bar_ids")]
+            public List<string> BarIds { get; set; } = new List<string>();
 
             [JsonPropertyName("state")]
             public MemberState State { get; set; }

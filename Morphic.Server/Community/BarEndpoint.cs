@@ -55,11 +55,13 @@ namespace Morphic.Server.Community
             User = await RequireUser();
             Community = await Load<Community>(CommunityId);
             Member = await Load<Member>(m => m.UserId == User.Id && m.CommunityId == Community.Id && m.State == MemberState.Active);
-            if (Member.Role != MemberRole.Manager){
+            if (Member.Role != MemberRole.Manager)
+            {
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
             Bar = await Load<Bar>(Id);
-            if (Bar.CommunityId != Community.Id){
+            if (Bar.CommunityId != Community.Id)
+            {
                 throw new HttpError(HttpStatusCode.NotFound);
             }
         }
@@ -103,13 +105,14 @@ namespace Morphic.Server.Community
         }
 
         [Method]
-        public async Task Delete(){
+        public async Task Delete()
+        {
             if (Bar.Id == Community.DefaultBarId)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BarDeleteError.CannotDeleteDefault);
             }
             var db = Context.GetDatabase();
-            var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id && m.BarId == Bar.Id);
+            var members = await db.GetEnumerable<Member>(m => m.CommunityId == Community.Id && ((m.BarId == Bar.Id) || (m.BarIds.Contains(Bar.Id))));
             foreach (var member in members){
                 throw new HttpError(HttpStatusCode.BadRequest, BarDeleteError.CannotDeleteUsed);
             }

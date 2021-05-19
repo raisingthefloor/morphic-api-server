@@ -22,6 +22,7 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 
@@ -50,6 +51,9 @@ namespace Morphic.Server.Community{
 
         [JsonPropertyName("bar_id")]
         public string? BarId { get; set; }
+
+        [JsonPropertyName("bar_ids")]
+        public List<string> BarIds { get; set; } = new List<string>();
 
         [JsonPropertyName("role")]
         public MemberRole Role { get; set; } = MemberRole.Member;

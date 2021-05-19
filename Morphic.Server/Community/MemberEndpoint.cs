@@ -86,15 +86,18 @@ namespace Morphic.Server.Community{
                 throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.CannotDemoteSelf);
             }
             Member.Role = input.Role;
-            if (input.BarId is string barId)
-            {
+            foreach (var barId in input.BarIds) {
                 var bar = await db.Get<Bar>(barId);
                 if (bar == null || bar.CommunityId != Community.Id)
                 {
                     throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.BadBarId);
                 }
             }
-            Member.BarId = input.BarId;
+            // for legacy reasons, be sure we clear out any previously-populated (legacy) bar_id; it should already be in the input.BarIds collection if the caller wanted it to be preserved
+            Member.BarId = null;
+            //
+            Member.BarIds = input.BarIds;
+            //
             await Save(Member);
             // If we're demoting the member that is the billing contact for the community,
             // then make the logged-in member the new billing contact
@@ -148,8 +151,12 @@ namespace Morphic.Server.Community{
             [JsonPropertyName("last_name")]
             public string? LastName { get; set; } = null!;
 
-            [JsonPropertyName("bar_id")]
-            public string? BarId { get; set; }
+			// ** REMOVED **
+        //    [JsonPropertyName("bar_id")]
+        //    public string? BarId { get; set; }
+
+            [JsonPropertyName("bar_ids")]
+            public List<string> BarIds { get; set; } = new List<string>();
 
             [JsonPropertyName("role")]
             [JsonRequired]

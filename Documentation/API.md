@@ -1236,7 +1236,7 @@ Get a community's details
       <td>Required</td>
     </tr>
     <tr>
-      <td><code>default_bar_id</code></td>
+      <td><code>default_bar_id</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Deprecated&nbsp;&nbsp;</span></td>
       <td>The default bar for this community</td>
       <td><code>String</code></td>
       <td>Required</td>
@@ -1291,7 +1291,7 @@ Update a community
       <td>Required</td>
     </tr>
     <tr>
-      <td><code>default_bar_id</code></td>
+      <td><code>default_bar_id</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Deprecated&nbsp;&nbsp;</span></td>
       <td>The new default bar id for this community</td>
       <td><code>String</code></td>
       <td>Required</td>
@@ -1410,10 +1410,16 @@ Get a list of community members
       <td>Required</td>
     </tr>
     <tr>
-      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code></td>
-      <td>The member's bar_id (null means use community default_bar_id)</td>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td><del>The member's bar_id (null means use community default_bar_id)</del></td>
       <td>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
+      <td>The member's bar_ids (an empty set means no bars)</td>
+      <td>string[]</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>
@@ -1540,10 +1546,16 @@ Get a community member's details
       <td>Required</td>
     </tr>
     <tr>
-      <td><code>bar_id</code></td>
-      <td>The member's bar, if not the community's default</td>
+      <td><code>bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td><del>The member's bar, if not the community's default</del></td>
       <td><code>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <td><code>bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
+      <td>The member's bar_ids (an empty set means no bars)</td>
+      <td>string[]</code></td>
+      <td>Required</td>
     </tr>
   </tbody>
 </table>
@@ -1592,10 +1604,16 @@ Update a community member's details
       <td>Optional</td>
     </tr>
     <tr>
-      <td><code>bar_id</code></td>
-      <td>The member's bar, if not the community's default</td>
+      <td><code>bar_id</code><br/><span style="font-size:10pt;background-color:#aa0000;color:#000;padding:2pt">&nbsp;&nbsp;Removed&nbsp;&nbsp;</span></td>
+      <td><del>The member's bar, if not the community's default</del></td>
       <td><code>String</code></td>
       <td>Optional</td>
+    </tr>
+    <tr>
+      <td><code>bar_ids</code><br/><span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;New&nbsp;&nbsp;</span></td>
+      <td>The member's bar_ids (an empty set means no bars)</td>
+      <td>string[]</code></td>
+      <td>Required</td>
     </tr>
     <tr>
       <td><code>role</code></td>
