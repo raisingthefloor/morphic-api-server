@@ -69,9 +69,9 @@ namespace Morphic.Server.Community{
                  *   added to the "bar_ids" array
                  */
                 var allBarIds = member.BarIds;
-                if (member.BarId != null && allBarIds.Contains(member.BarId.Value) == false)
+                if (member.BarId != null && allBarIds.Contains(member.BarId!) == false)
                 {
-                    allBarIds.Insert(member.BarId, 0);
+                    allBarIds.Insert(0, member.BarId);
                 }
                 /* for backwards compatibility:
                  * - capture the first bar (to populate the result's member.bar_id field)

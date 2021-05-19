@@ -96,11 +96,17 @@ namespace Morphic.Server.Community{
             }
             //
             // backwards-compatibility: if the member already had a single BarId, move it to the BarIds array in the response
-            if (Member.BarId != null && Member.BarIds.Contains(Member.BardId.Value) == false) 
+            if (Member.BarId != null && Member.BarIds.Contains(Member.BarId!) == false) 
             {
                 Member.BarIds.Add(Member.BarId);
             }
             Member.BarId = null;
+            //
+            // breaking change: we can not longer accept null bar IDs
+            if (input.BarId == null) 
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.BadBarId);
+            }
             //
             // legacy: Member.BarId = input.BarId;
             if (Member.BarIds.Contains(input.BarId) == false) 
