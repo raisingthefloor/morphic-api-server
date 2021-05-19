@@ -86,33 +86,16 @@ namespace Morphic.Server.Community{
                 throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.CannotDemoteSelf);
             }
             Member.Role = input.Role;
-            if (input.BarId is string barId)
-            {
+            foreach (varId in input.BarIds) {
                 var bar = await db.Get<Bar>(barId);
                 if (bar == null || bar.CommunityId != Community.Id)
                 {
                     throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.BadBarId);
                 }
             }
-            //
-            // backwards-compatibility: if the member already had a single BarId, move it to the BarIds array in the response
-            if (Member.BarId != null && Member.BarIds.Contains(Member.BarId!) == false) 
-            {
-                Member.BarIds.Add(Member.BarId);
-            }
+            // for legacy reasons, be sure we clear out any previously-populated (legacy) bar_id; it should already be in the input.BarIds collection if the caller wanted it to be preserved
             Member.BarId = null;
-            //
-            // breaking change: we can not longer accept null bar IDs
-            if (input.BarId == null) 
-            {
-                throw new HttpError(HttpStatusCode.BadRequest, MemberPutError.BadBarId);
-            }
-            //
-            // legacy: Member.BarId = input.BarId;
-            if (Member.BarIds.Contains(input.BarId) == false) 
-            {
-                Member.BarIds.Add(input.BarId);
-            }
+            Member.BarIds = input.BarIds;
             //
             await Save(Member);
             // If we're demoting the member that is the billing contact for the community,
