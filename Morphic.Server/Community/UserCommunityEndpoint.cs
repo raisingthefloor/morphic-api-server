@@ -1,4 +1,4 @@
-// Copyright 2020 Raising the Floor - International
+// Copyright 2020-2021 Raising the Floor - International
 //
 // Licensed under the New BSD license. You may not use this file except in
 // compliance with this License.
@@ -71,16 +71,34 @@ namespace Morphic.Server.Community
             {
                 barId = Community.DefaultBarId;
             }
+
+            // capture the single bar (for backwards-compatibility)
             Bar = await Load<Bar>(barId);
+
+            // capture all the bars (for Morphic v1.3+ clients which use the v1 API)
+            this.Bars = new List<Bar>();
+            foreach (var id in Member.BarIds)
+            {
+                var bar = await Load<Bar>(id);
+                this.Bars.Add(bar);
+            }
+            //
+            if (this.Bars.Count == 0 && this.Bar != null)
+            {
+                this.Bars.Add(this.Bar);
+            }
+
         }
 
         public User User = null!;
         public Member Member = null!;
         public Community Community = null!;
         public Bar Bar = null!;
+        public List<Bar> Bars = null!;
 
         [Method]
-        public async Task Get(){
+        public async Task Get()
+        {
             if (Community.IsMemberLocked)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, new Dictionary<string, object>()
@@ -92,7 +110,8 @@ namespace Morphic.Server.Community
             {
                 Id = Community.Id,
                 Name = Community.Name,
-                Bar = Bar
+                Bar = Bar,
+                Bars = Bars
             });
         }
 
@@ -108,6 +127,8 @@ namespace Morphic.Server.Community
             [JsonPropertyName("bar")]
             public Bar Bar { get; set; } = null!;
 
+            [JsonPropertyName("bars")]
+            public List<Bar> Bars { get; set; } = null!;
         }
     }
 
