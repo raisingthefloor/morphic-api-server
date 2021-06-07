@@ -28,8 +28,8 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
-namespace Morphic.Server.Community{
-
+namespace Morphic.Server.Community
+{
     using Http;
     using Users;
 
@@ -87,7 +87,8 @@ namespace Morphic.Server.Community{
             await Respond(collection);
         }
 
-        private class UserCommunityCollectionItem{
+        private class UserCommunityCollectionItem
+        {
             [JsonPropertyName("id")]
             public string Id { get; set; } = null!;
 
@@ -98,7 +99,8 @@ namespace Morphic.Server.Community{
             public MemberRole Role { get; set; }
         }
 
-        private class UserCommunityCollection{
+        private class UserCommunityCollection
+        {
             [JsonPropertyName("communities")]
             public List<UserCommunityCollectionItem> Communities { get; set; } = new List<UserCommunityCollectionItem>();
         }
