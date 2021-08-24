@@ -29,7 +29,6 @@ namespace Morphic.Server.Email
         public static readonly string EmailTypeSendgrid = "sendgrid";
         public static readonly string EmailTypeSendInBlue = "sendinblue";
         public static readonly string EmailTypeLog = "log";
-        
         /// <summary>
         /// The type of email sending we want. Supported: "sendgrid", "log", "disabled"
         /// </summary>
@@ -46,5 +45,16 @@ namespace Morphic.Server.Email
         public SendGridSettings SendGridSettings { get; set; } = null!;
 
         public SendInBlueSettings SendInBlueSettings { get; set; } = null!;
+
+#if DEBUG
+        public static readonly string EmailTypeFile = "file";
+
+        /// <summary>Location of email templates, for testing</summary>
+        public string FileTemplatePath { get; set; } = "emails";
+        /// <summary>Output of emails, for testing</summary>
+        public string? FileOutputPath { get; set; }
+        /// <summary>true to use the same filename for each type, whens saving</summary>
+        public bool FileOverwrite { get; set; }
+#endif
     }
 }

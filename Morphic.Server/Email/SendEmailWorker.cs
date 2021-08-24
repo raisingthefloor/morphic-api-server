@@ -36,6 +36,12 @@ namespace Morphic.Server.Email
             {
                 return new EmailLogger(emailSettings, logger);
             }
+#if DEBUG
+            if (emailSettings.Type == EmailSettings.EmailTypeFile)
+            {
+                return new FileEmail(emailSettings, logger);
+            }
+#endif
             return null;
         }
     }

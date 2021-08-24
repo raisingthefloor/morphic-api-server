@@ -7,7 +7,7 @@ See top-level Metrics document.
 ## Settings
 
     "EmailSettings": {
-        "Type": "sendgrid | sendinblue | disabled"  (or "log" for development)
+        "Type": "sendgrid | sendinblue | disabled"  (or "log"/"file" for development)
         "EmailFromAddress": "From address to use when sending email",
         "EmailFromFullname": "From name to use when sending email", 
         "SendgridSettings": {
@@ -27,7 +27,13 @@ See top-level Metrics document.
           "PasswordResetUnknownEmailId": "<template Id>",
           "ChangePasswordEmailId": "<template Id>",
           "CommunityInvitationId": "<template Id>"
-        }
+        },
+        // For Type="file":
+        "FileTemplatePath": "<template path>",
+        "FileOutputPath": "<output path>",
+        "FileOverwrite": false
+
+
     }
 
 # Hangfire information
