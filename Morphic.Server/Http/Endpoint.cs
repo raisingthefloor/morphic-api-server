@@ -482,7 +482,7 @@ namespace Morphic.Server.Http
 
         public void AddAllowedOrigin(AllowedOrigin allowedOrigin)
         {
-            allowedOrigins.Add(allowedOrigin.Origin, allowedOrigin);
+            allowedOrigins.TryAdd(allowedOrigin.Origin, allowedOrigin);
         }
 
         public void AddAllowedOrigin(Uri origin)

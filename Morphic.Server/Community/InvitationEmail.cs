@@ -41,7 +41,8 @@ namespace Morphic.Server.Community
         }
         
         [AutomaticRetry(Attempts = 20)]
-        public async Task SendEmail(string invitationId, string? message, string? clientIp)
+        public async Task SendEmail(string communityName, string managerEmail, string invitationId, string? message,
+            string? clientIp, bool existingUser)
         {
             if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
@@ -67,20 +68,50 @@ namespace Morphic.Server.Community
                 return;
             }
 
-            var email = invitation.Email.PlainText!;
-            var uri = GetFrontEndUri("/invite", new Dictionary<string, string>(){
-                {"i", invitation.Id}
-            });
+            string emailTo;
+
+            if (this.EmailType == EmailConstants.EmailTypes.CommunityInvitation)
+            {
+                emailTo = invitation.Email.PlainText!;
+                string linkId = invitation.Id;
+
+                // Let the front-end know if it's a known email address, and show the sign-in form by default.
+                string knownEmail = existingUser ? "signin" : "register";
+
+                Attributes.Add("AcceptLink", this.MakeEmailLink("invite", "accept", linkId, knownEmail).ToString());
+                Attributes.Add("RejectLink", this.MakeEmailLink("invite", "reject", linkId, knownEmail).ToString());
+                Attributes.Add("ReportLink", this.MakeEmailLink("invite", "report", linkId, knownEmail).ToString());
+            }
+            else
+            {
+                emailTo = managerEmail;
+                // The manager's copy doesn't contain the links.
+            }
 
             Attributes.Add("EmailType", EmailType.ToString());
-            Attributes.Add("ToUserName", member.FullName ?? email);
-            Attributes.Add("ToEmail", email);
+            Attributes.Add("ToUserName", member.FullName ?? emailTo);
+            Attributes.Add("ToEmail", emailTo);
             Attributes.Add("FromUserName", EmailSettings.EmailFromFullname);
             Attributes.Add("FromEmail", EmailSettings.EmailFromAddress);
             Attributes.Add("ClientIp", clientIp ?? UnknownClientIp);
-            Attributes.Add("Link", uri.ToString());
+            Attributes.Add("Community", communityName);
+            Attributes.Add("ManagerEmail", managerEmail);
+            Attributes.Add("InviteeEmail", invitation.Email.PlainText!);
             Attributes.Add("Message", message ?? "");
             await SendOneEmail(EmailType, Attributes);
+        }
+    }
+
+    /// <summary>
+    /// Copy of the invitation sent to the manager. The template includes the member's invitation email, so it's
+    /// virtually the same - the subtle differences are handled in InvitationEmail.
+    /// </summary>
+    public class InvitationManagerEmail : InvitationEmail
+    {
+        public InvitationManagerEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailJob> logger, Database db)
+            : base(morphicSettings, settings, logger, db)
+        {
+            this.EmailType = EmailConstants.EmailTypes.CommunityInvitationManager;
         }
     }
 }

@@ -28,6 +28,7 @@ using System.Net;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using Hangfire;
+using Morphic.Server.Auth;
 
 namespace Morphic.Server.Community
 {
@@ -105,10 +106,30 @@ namespace Morphic.Server.Community
 
             member.State = MemberState.Invited;
             await db.Save(member);
+
+            // Check if the email is already known, so the front-end can decide to display the registration or sign-in.
+            UsernameCredential? knownUser =
+                await Context.GetDatabase().UsernameCredentialForUsername(input.Email, ActiveSession);
+            bool existingUser = knownUser != null;
+
+            // Email to the invitee
             jobClient.Enqueue<InvitationEmail>(x => x.SendEmail(
+                this.Community.Name,
+                this.User.Email.PlainText!,
                 invitation.Id,
                 input.Message,
-                Request.ClientIp()
+                Request.ClientIp(),
+                existingUser
+            ));
+
+            // Email copy to the manager
+            jobClient.Enqueue<InvitationManagerEmail>(x => x.SendEmail(
+                this.Community.Name,
+                this.User.Email.PlainText!,
+                invitation.Id,
+                input.Message,
+                Request.ClientIp(),
+                false
             ));
         }
 
