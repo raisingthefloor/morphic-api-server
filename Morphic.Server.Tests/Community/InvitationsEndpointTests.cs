@@ -256,6 +256,7 @@ namespace Morphic.Server.Tests.Community
             Assert.NotNull(JobClient.Job);
 
             // POST, success
+            JobClient.Jobs.Clear();
             request = new HttpRequestMessage(HttpMethod.Post, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ManagerUserInfo.AuthToken);
             content = new Dictionary<string, object>();
@@ -264,8 +265,10 @@ namespace Morphic.Server.Tests.Community
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Job.Type.FullName);
+
+            Assert.Equal(2, JobClient.Jobs.Count);
+            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Jobs[0].Type.FullName);
+            Assert.Equal("Morphic.Server.Community.InvitationManagerEmail", JobClient.Jobs[1].Type.FullName);
 
             // POST, success with message
             JobClient.Job = null;
@@ -278,8 +281,10 @@ namespace Morphic.Server.Tests.Community
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
             Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            Assert.NotNull(JobClient.Job);
-            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Job.Type.FullName);
+
+            Assert.Equal(2, JobClient.Jobs.Count);
+            Assert.Equal("Morphic.Server.Community.InvitationEmail", JobClient.Jobs[0].Type.FullName);
+            Assert.Equal("Morphic.Server.Community.InvitationManagerEmail", JobClient.Jobs[1].Type.FullName);
         }
     }
 }
