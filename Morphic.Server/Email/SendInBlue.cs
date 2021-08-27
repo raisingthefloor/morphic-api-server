@@ -18,6 +18,7 @@ namespace Morphic.Server.Email
         public string PasswordResetUnknownEmailId { get; set; } = "";
         public string ChangePasswordEmailId { get; set; } = "";
         public string CommunityInvitationId { get; set; } = "";
+        public string CommunityInvitationManagerId { get; set; } = "";
     }
 
     /// <summary>
@@ -58,6 +59,9 @@ namespace Morphic.Server.Email
                     break;
                 case EmailConstants.EmailTypes.CommunityInvitation:
                     emailTemplateId = emailSettings.SendInBlueSettings.CommunityInvitationId;
+                    break;
+                case EmailConstants.EmailTypes.CommunityInvitationManager:
+                    emailTemplateId = emailSettings.SendInBlueSettings.CommunityInvitationManagerId;
                     break;
                 case EmailConstants.EmailTypes.None:
                     throw new SendInBlueException("EmailType None");

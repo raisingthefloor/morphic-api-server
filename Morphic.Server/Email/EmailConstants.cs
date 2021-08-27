@@ -10,7 +10,8 @@ namespace Morphic.Server.Email
             PasswordResetEmailNotValidated = 3,
             PasswordResetUnknownEmail = 4,
             ChangePasswordEmail = 5,
-            CommunityInvitation = 6
+            CommunityInvitation = 6,
+            CommunityInvitationManager = 7
         }
     }
 }
