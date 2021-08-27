@@ -22,6 +22,8 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using Hangfire;
 using Hangfire.Common;
 using Hangfire.States;
@@ -30,7 +32,23 @@ namespace Morphic.Server.Tests
 {
     public class MockBackgroundJobClient : IBackgroundJobClient
     {
-        public Job Job { get; set; }
+        public List<Job> Jobs { get; } = new List<Job>();
+
+        public Job Job
+        {
+            get => this.Jobs.LastOrDefault();
+            set
+            {
+                if (value == null)
+                {
+                    this.Jobs.Clear();
+                }
+                else
+                {
+                    this.Jobs.Add(value);
+                }
+            }
+        }
 
         public string Create(Job job, IState state)
         {
