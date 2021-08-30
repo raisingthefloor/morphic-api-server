@@ -46,7 +46,7 @@ namespace Morphic.Server.Users
         public string? PreferencesId { get; set; }
         [JsonPropertyName("email")]
         public SearchableEncryptedString Email { get; set; } = new SearchableEncryptedString();
-        [JsonIgnore]
+        [JsonPropertyName("email_verified")]
         public bool EmailVerified { get; set; }
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
