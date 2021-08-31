@@ -69,6 +69,7 @@ namespace Morphic.Server.Community
             }
 
             string emailTo;
+            string emailToName;
 
             if (this.EmailType == EmailConstants.EmailTypes.CommunityInvitation)
             {
@@ -81,15 +82,17 @@ namespace Morphic.Server.Community
                 Attributes.Add("AcceptLink", this.MakeEmailLink("invite", "accept", linkId, knownEmail).ToString());
                 Attributes.Add("RejectLink", this.MakeEmailLink("invite", "reject", linkId, knownEmail).ToString());
                 Attributes.Add("ReportLink", this.MakeEmailLink("invite", "report", linkId, knownEmail).ToString());
+                emailToName = member.FullName ?? string.Empty;
             }
             else
             {
                 emailTo = managerEmail;
+                emailToName = string.Empty;
                 // The manager's copy doesn't contain the links.
             }
 
             Attributes.Add("EmailType", EmailType.ToString());
-            Attributes.Add("ToUserName", member.FullName ?? emailTo);
+            Attributes.Add("ToUserName", emailToName);
             Attributes.Add("ToEmail", emailTo);
             Attributes.Add("FromUserName", EmailSettings.EmailFromFullname);
             Attributes.Add("FromEmail", EmailSettings.EmailFromAddress);
