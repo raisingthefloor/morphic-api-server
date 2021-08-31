@@ -61,11 +61,9 @@ namespace Morphic.Server.Auth
                 return;
             }
             var oneTimeToken = new OneTimeToken(user.Id);
-            var verifyUri = GetFrontEndUri("/email/verify", new Dictionary<string, string>()
-            {
-                {"user_id", oneTimeToken.UserId},
-                {"token", oneTimeToken.GetUnhashedToken()}
-            });
+
+            Uri verifyUri = this.MakeEmailLink("confirm-email", oneTimeToken.UserId, oneTimeToken.GetUnhashedToken());
+
             await Db.Save(oneTimeToken);
 
             FillAttributes(user, verifyUri.ToString(), clientIp);
