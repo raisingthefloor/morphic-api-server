@@ -29,6 +29,7 @@ namespace Morphic.Server.Email
         public string PasswordResetUnknownEmailId { get; set; } = "";
         public string ChangePasswordEmailId { get; set; } = "";
         public string CommunityInvitationId { get; set; } = "";
+        public string CommunityInvitationManagerId { get; set; } = "";
     }
 
     public class Sendgrid : SendEmailWorker
@@ -64,6 +65,9 @@ namespace Morphic.Server.Email
                     break;
                 case EmailConstants.EmailTypes.CommunityInvitation:
                     emailTemplateId = emailSettings.SendGridSettings.CommunityInvitationId;
+                    break;
+                case EmailConstants.EmailTypes.CommunityInvitationManager:
+                    emailTemplateId = emailSettings.SendGridSettings.CommunityInvitationManagerId;
                     break;
                 case EmailConstants.EmailTypes.None:
                     throw new SendgridException("EmailType None");

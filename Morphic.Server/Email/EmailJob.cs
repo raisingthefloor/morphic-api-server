@@ -21,9 +21,12 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Text;
 using System.Threading.Tasks;
+using System.Web;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 
@@ -117,6 +120,9 @@ namespace Morphic.Server.Email
                 throw new SendEmailException("Email sending disabled");
             }
 
+            // A base url for general links in the email - the front-end will decide the redirect location.
+            emailAttributes["EmailLink"] = this.MakeEmailLink("/email.html", "").ToString();
+
             logger.LogDebug("SendOneEmail sending email {EmailType} {ClientIp}",
                 emailAttributes["EmailType"], emailAttributes["ClientIp"]);
             var stopWatch = Stopwatch.StartNew();
@@ -146,6 +152,40 @@ namespace Morphic.Server.Email
                 throw new UnableToSendEmailException();
             }
 
+        }
+
+        /// <summary>
+        /// Makes a link to the front-end, for inserting into emails.
+        ///
+        /// The URL will look something like: https://example.com#/action/args1/args2/argsN
+        ///
+        /// </summary>
+        /// <param name="action">First part of the path. This does not get url encoded.</param>
+        /// <param name="args">Remaining items of the path (these will be url encoded).</param>
+        /// <returns>The URL.</returns>
+        public Uri MakeEmailLink(string action, params string[] args)
+        {
+            UriBuilder builder = new UriBuilder(settings.AltCommunityServerUri ?? settings.CommunityServerUri);
+
+            StringBuilder hash = new StringBuilder();
+
+            if (action.StartsWith('/'))
+            {
+                builder.Path = action;
+            }
+            else
+            {
+                hash.Append(action);
+            }
+
+            foreach (string item in args)
+            {
+                hash.Append('/').Append(HttpUtility.UrlEncode(item));
+            }
+
+            builder.Fragment = hash.ToString();
+
+            return builder.Uri;
         }
 
         private class SendEmailException : MorphicServerException
