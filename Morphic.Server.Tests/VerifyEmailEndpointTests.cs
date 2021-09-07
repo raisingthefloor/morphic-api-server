@@ -40,6 +40,8 @@ namespace Morphic.Server.Tests
         [Fact]
         public async Task TestEmailValidationApi()
         {
+            this.JobClient.Job = null;
+
             // create user
             var user = new User();
             user.Id = Guid.NewGuid().ToString();
@@ -67,6 +69,9 @@ namespace Morphic.Server.Tests
             Assert.NotNull(sameUser);
             Assert.False(sameUser.EmailVerified);
 
+            // Email should not be sent.
+            Assert.Null(this.JobClient.Job);
+
             // GET, Good token
             sameUser = await Database.Get<User>(user.Id);
             Assert.NotNull(sameUser);
@@ -78,7 +83,13 @@ namespace Morphic.Server.Tests
             oneTimeToken = await Database.Get<OneTimeToken>(t => t.UserId == user.Id);
             Assert.NotNull(oneTimeToken);
             Assert.NotNull(oneTimeToken.UsedAt);
+
+            // Check an email was sent.
+            Assert.NotNull(this.JobClient.Job);
+            Assert.Equal(typeof(SignupConfirmationEmail).FullName, this.JobClient.Job.Type.FullName);
+
             // try the same request again. Will fail
+            this.JobClient.Job = null;
             request = new HttpRequestMessage(HttpMethod.Post, path);
             response = await Client.SendAsync(request);
             await assertJsonError(response, HttpStatusCode.NotFound, "invalid_token");
@@ -89,6 +100,9 @@ namespace Morphic.Server.Tests
             sameUser = await Database.Get<User>(user.Id);
             Assert.NotNull(sameUser);
             Assert.True(sameUser.EmailVerified);
+
+            // Email should not be sent.
+            Assert.Null(this.JobClient.Job);
         }
     }
 }

@@ -120,6 +120,8 @@ namespace Morphic.Server.Tests
             Assert.Equal(userInfo1.FirstName, property.GetString());
             Assert.True(user.TryGetProperty("last_name", out property));
             Assert.Equal(userInfo1.LastName, property.GetString());
+            Assert.True(user.TryGetProperty("email_verified", out property));
+            Assert.Equal(userInfo1.EmailVerified, property.GetBoolean());
         }
 
         [Fact]

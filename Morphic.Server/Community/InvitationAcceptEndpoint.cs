@@ -78,6 +78,12 @@ namespace Morphic.Server.Community
             var db = Context.GetDatabase();
             Member.UserId = User.Id;
             Member.State = MemberState.Active;
+
+            if (this.User.Email.PlainText == this.Invitation.Email.PlainText)
+            {
+                this.User.EmailVerified = true;
+            }
+
             await Save(Member);
             await db.Delete(Invitation);
         }

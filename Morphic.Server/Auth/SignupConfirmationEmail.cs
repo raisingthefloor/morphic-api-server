@@ -21,53 +21,55 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using Hangfire;
-using Microsoft.Extensions.Logging;
 
 namespace Morphic.Server.Auth
 {
 
+    using System;
+    using System.Threading.Tasks;
+    using Hangfire;
+    using Microsoft.Extensions.Logging;
     using Email;
     using Db;
     using Users;
 
-    public class EmailVerificationEmail : EmailJob
+    /// <summary>
+    /// Email sent when a new user has signed up for Morphic, after they have confirmed their email address.
+    /// </summary>
+    public class SignupConfirmationEmail : EmailJob
     {
-        public EmailVerificationEmail(MorphicSettings morphicSettings, EmailSettings settings, ILogger<EmailVerificationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
+        public SignupConfirmationEmail(MorphicSettings morphicSettings, EmailSettings settings,
+            ILogger<SignupConfirmationEmail> logger, Database db) : base(morphicSettings, settings, logger, db)
         {
-            EmailType = EmailConstants.EmailTypes.WelcomeEmailValidation;
+            this.EmailType = EmailConstants.EmailTypes.SignupConfirmation;
         }
 
         [AutomaticRetry(Attempts = 20)]
         public async Task SendEmail(string userId, string? clientIp)
         {
-            if (EmailSettings.Type == EmailSettings.EmailTypeDisabled)
+            if (this.EmailSettings.Type == EmailSettings.EmailTypeDisabled)
             {
                 // Email shouldn't be disabled, but if it is, we want to
                 // fail this job so it retries
                 throw new Exception("Email is disabled, failing job to it will retry");
             }
-            var user = await Db.Get<User>(userId);
+
+            User? user = await this.Db.Get<User>(userId);
             if (user == null)
             {
                 throw new EmailJobException("No User");
             }
+
             if (user.Email.PlainText == null)
             {
-                logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
+                this.logger.LogDebug($"Sending email to user {user.Id} who doesn't have an email address");
                 return;
             }
-            var oneTimeToken = new OneTimeToken(user.Id);
 
-            Uri verifyUri = this.MakeEmailLink("confirm-email", oneTimeToken.UserId, oneTimeToken.GetUnhashedToken());
+            Uri verifyUri = this.MakeEmailLink("download", "signup");
 
-            await Db.Save(oneTimeToken);
-
-            FillAttributes(user, verifyUri.ToString(), clientIp);
-            await SendOneEmail(EmailType, Attributes);
+            this.FillAttributes(user, verifyUri.ToString(), clientIp);
+            await this.SendOneEmail(this.EmailType, this.Attributes);
         }
     }
 }

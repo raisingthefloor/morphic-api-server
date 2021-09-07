@@ -24,8 +24,11 @@
 using System.Net;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Hangfire;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Morphic.Server.Community;
+using Morphic.Server.Db;
 
 namespace Morphic.Server.Auth
 {
@@ -41,8 +44,12 @@ namespace Morphic.Server.Auth
     [Path("/v1/users/{userId}/verify_email/{oneTimeToken}")]
     public class VerifyEmailEndpoint : Endpoint
     {
-        public VerifyEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<VerifyEmailEndpoint> logger): base(contextAccessor, logger)
+        private IBackgroundJobClient jobClient;
+
+        public VerifyEmailEndpoint(IHttpContextAccessor contextAccessor, ILogger<VerifyEmailEndpoint> logger,
+            IBackgroundJobClient jobClient) : base(contextAccessor, logger)
         {
+            this.jobClient = jobClient;
             AddAllowedOrigin(settings.FrontEndServerUri);
         }
 
@@ -96,6 +103,9 @@ namespace Morphic.Server.Auth
             user.EmailVerified = true;
             await Save(user);
             await OneTimeToken.Invalidate(Context.GetDatabase());
+
+            this.jobClient.Enqueue<SignupConfirmationEmail>(x => x.SendEmail(this.user.Id, this.Request.ClientIp()));
+
             await Respond(new SuccessResponse("email_verified"));
         }
 

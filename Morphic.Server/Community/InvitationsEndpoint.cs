@@ -70,16 +70,10 @@ namespace Morphic.Server.Community
         {
             var db = Context.GetDatabase();
             var input = await Request.ReadJson<InvitationPostRequest>();
-
-            // Removing the verification check:
-            // Currently, there is no good way for the web-client to check if the email has been verified
-            // without modifying the API (and soon the verification will be handled outside this service, so
-            // there's not much value in changing it now).
-            // if (!User.EmailVerified)
-            // {
-            //     throw new HttpError(HttpStatusCode.BadRequest, InvitationPostError.EmailVerificationRequired);
-            // }
-
+            if (!User.EmailVerified)
+            {
+                throw new HttpError(HttpStatusCode.BadRequest, InvitationPostError.EmailVerificationRequired);
+            }
             var member = await db.Get<Member>(input.MemeberId);
             if (member == null || member.CommunityId != Community.Id)
             {

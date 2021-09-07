@@ -244,16 +244,13 @@ namespace Morphic.Server.Tests.Community
             content.Add("email", "test@morphic.org");
             request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
             response = await Client.SendAsync(request);
-            // While the email verification is disabled, the request should still succeed.
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-            // disabled email verifiation:
-            // await assertJsonError(response, HttpStatusCode.BadRequest, "email_verification_required", mustContainDetails: false);
+            await assertJsonError(response, HttpStatusCode.BadRequest, "email_verification_required", mustContainDetails: false);
 
             var user = await Database.Get<User>(ManagerUserInfo.Id);
             user.EmailVerified = true;
             await Database.Save(user);
 
-            Assert.NotNull(JobClient.Job);
+            Assert.Null(JobClient.Job);
 
             // POST, success
             JobClient.Jobs.Clear();
