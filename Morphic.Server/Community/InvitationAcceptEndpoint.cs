@@ -82,6 +82,7 @@ namespace Morphic.Server.Community
             if (this.User.Email.PlainText == this.Invitation.Email.PlainText)
             {
                 this.User.EmailVerified = true;
+                await this.Save(this.User);
             }
 
             await Save(Member);
