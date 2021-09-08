@@ -81,7 +81,9 @@ namespace Morphic.Server.Community
 
                 Attributes.Add("AcceptLink", this.MakeEmailLink("invite", "accept", linkId, knownEmail).ToString());
                 Attributes.Add("RejectLink", this.MakeEmailLink("invite", "reject", linkId, knownEmail).ToString());
-                Attributes.Add("ReportLink", this.MakeEmailLink("invite", "report", linkId, knownEmail).ToString());
+				// NOTE for stegru: please make the generated email work properly...and then redirect to the currently-hardcoded "/not-me" link
+                // Attributes.Add("ReportLink", this.MakeEmailLink("invite", "report", linkId, knownEmail).ToString());
+                Attributes.Add("ReportLink", "https://morphic.org/not-me"); // temporary hard-coded link
                 emailToName = member.FullName ?? string.Empty;
             }
             else
