@@ -831,6 +831,12 @@ Get a list of communities the user belongs to.
       <td><code>Role</code></td>
       <td>Required</td>
     </tr>
+    <tr>
+      <td>&nbsp;&nbsp;&nbsp;&nbsp;<code>[i].member_id</code></td>
+      <td>The user's member id for the community</td>
+      <td><code>GUID</code></td>
+      <td>Required</td>
+    </tr>
   </tbody>
 </table>
 
