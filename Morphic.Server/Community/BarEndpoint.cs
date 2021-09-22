@@ -55,11 +55,11 @@ namespace Morphic.Server.Community
             User = await RequireUser();
             Community = await Load<Community>(CommunityId);
             Member = await Load<Member>(m => m.UserId == User.Id && m.CommunityId == Community.Id && m.State == MemberState.Active);
-            if (Member.Role != MemberRole.Manager)
+            Bar = await Load<Bar>(Id);
+            if (Member.Role != MemberRole.Manager && this.Member.UserId != this.User.Id)
             {
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
-            Bar = await Load<Bar>(Id);
             if (Bar.CommunityId != Community.Id)
             {
                 throw new HttpError(HttpStatusCode.NotFound);
@@ -80,6 +80,11 @@ namespace Morphic.Server.Community
         [Method]
         public async Task Put()
         {
+            if (Member.Role != MemberRole.Manager)
+            {
+                throw new HttpError(HttpStatusCode.Forbidden);
+            }
+
             var input = await Request.ReadJson<BarPutRequest>();
             if (Bar.Id == Community.DefaultBarId && !input.IsShared)
             {
@@ -107,6 +112,11 @@ namespace Morphic.Server.Community
         [Method]
         public async Task Delete()
         {
+            if (Member.Role != MemberRole.Manager)
+            {
+                throw new HttpError(HttpStatusCode.Forbidden);
+            }
+
             if (Bar.Id == Community.DefaultBarId)
             {
                 throw new HttpError(HttpStatusCode.BadRequest, BarDeleteError.CannotDeleteDefault);

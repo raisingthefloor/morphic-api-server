@@ -57,10 +57,11 @@ namespace Morphic.Server.Community{
             AuthenticatedUser = await RequireUser();
             Community = await Load<Community>(CommunityId);
             AuthenticatedMember = await Load<Member>(m => m.CommunityId == Community.Id && m.UserId == AuthenticatedUser.Id && m.State == MemberState.Active);
-            if (AuthenticatedMember.Role != MemberRole.Manager){
+            Member = await Load<Member>(m => m.Id == Id && m.CommunityId == Community.Id);
+
+            if (AuthenticatedMember.Role != MemberRole.Manager && this.Member.UserId != this.AuthenticatedUser.Id){
                 throw new HttpError(HttpStatusCode.Forbidden);
             }
-            Member = await Load<Member>(m => m.Id == Id && m.CommunityId == Community.Id);
         }
 
         public Community Community = null!;
@@ -77,6 +78,11 @@ namespace Morphic.Server.Community{
         [Method]
         public async Task Put()
         {
+            if (AuthenticatedMember.Role != MemberRole.Manager)
+            {
+                throw new HttpError(HttpStatusCode.Forbidden);
+            }
+
             var db = Context.GetDatabase();
             var input = await Request.ReadJson<MemberPutRequest>();
             Member.FirstName.PlainText = input.FirstName;
@@ -119,6 +125,11 @@ namespace Morphic.Server.Community{
         [Method]
         public async Task Delete()
         {
+            if (AuthenticatedMember.Role != MemberRole.Manager)
+            {
+                throw new HttpError(HttpStatusCode.Forbidden);
+            }
+
             var db = Context.GetDatabase();
             if (Member.Id == AuthenticatedMember.Id)
             {
