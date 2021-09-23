@@ -153,7 +153,7 @@ namespace Morphic.Server.Tests.Community
             request = new HttpRequestMessage(HttpMethod.Get, path);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", ActiveUserInfo.AuthToken);
             response = await Client.SendAsync(request);
-            Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
             // GET, not active
             request = new HttpRequestMessage(HttpMethod.Get, path);

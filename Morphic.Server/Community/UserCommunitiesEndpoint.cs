@@ -72,16 +72,17 @@ namespace Morphic.Server.Community
         public async Task Get()
         {
             var collection = new UserCommunityCollection();
-            foreach (var pair in Communities){
-                if (pair.Item1.IsMemberLocked)
+            foreach ((Community community, Member member) in Communities){
+                if (community.IsMemberLocked)
                 {
                     continue;
                 }
                 collection.Communities.Add(new UserCommunityCollectionItem()
                 {
-                    Id = pair.Item1.Id,
-                    Name = pair.Item1.Name,
-                    Role = pair.Item2.Role
+                    Id = community.Id,
+                    Name = community.Name,
+                    Role = member.Role,
+                    MemberId = member.Id
                 });
             }
             await Respond(collection);
@@ -97,6 +98,9 @@ namespace Morphic.Server.Community
 
             [JsonPropertyName("role")]
             public MemberRole Role { get; set; }
+
+            [JsonPropertyName("member_id")]
+            public string MemberId { get; set; }
         }
 
         private class UserCommunityCollection
