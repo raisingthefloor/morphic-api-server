@@ -51,6 +51,14 @@ namespace Morphic.Server.Users
         [JsonIgnore]
         public DateTime LastAuth { get; set; }
 
+        [JsonPropertyName("email_plaintext")]
+        [JsonInclude]
+        public string? EmailPlaintext => this.IncludeEmail ? this.Email.PlainText : null;
+
+        /// <summary>Set true to include the email in the serialised output.</summary>
+        [JsonIgnore]
+        public bool IncludeEmail { get; set; }
+
         public User()
         {
             Id = Guid.NewGuid().ToString();
