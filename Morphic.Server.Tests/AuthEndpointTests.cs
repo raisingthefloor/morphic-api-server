@@ -26,6 +26,7 @@ using System.Threading.Tasks;
 using System.Net;
 using System.Net.Http;
 using System.Linq;
+using System.Net.Http.Headers;
 using Xunit;
 using System.Text.Json;
 using System.Text;
@@ -122,6 +123,55 @@ namespace Morphic.Server.Tests
             Assert.Equal(userInfo1.LastName, property.GetString());
             Assert.True(user.TryGetProperty("email_verified", out property));
             Assert.Equal(userInfo1.EmailVerified, property.GetBoolean());
+        }
+
+        [Fact]
+        public async Task TestDeleteToken()
+        {
+            UserInfo userInfo = await this.CreateTestUser();
+
+            // authenticate
+            const string authPath = "/v1/auth/username";
+            HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, authPath);
+            Dictionary<string,object> content = new Dictionary<string, object>
+            {
+                { "username", $"{userInfo.Username}" },
+                { "password", $"{userInfo.Password}" }
+            };
+
+            request.Content = new StringContent(JsonSerializer.Serialize(content), Encoding.UTF8, JsonMediaType);
+
+            HttpResponseMessage response = await this.Client.SendAsync(request);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // check if authenticated
+            string testPath = $"/v1/users/{userInfo.Id}";
+            HttpRequestMessage userRequest1 = new HttpRequestMessage(HttpMethod.Get, testPath);
+            userRequest1.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
+
+            response = await Client.SendAsync(userRequest1);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // un-authenticate
+            HttpRequestMessage unauthRequest = new HttpRequestMessage(HttpMethod.Delete, "/v1/auth/token");
+            unauthRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
+
+            response = await Client.SendAsync(unauthRequest);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            // check if not authenticated
+            HttpRequestMessage userRequest2 = new HttpRequestMessage(HttpMethod.Get, testPath);
+            userRequest2.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
+
+            response = await Client.SendAsync(userRequest2);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+
+            // un-authenticate (again)
+            HttpRequestMessage unauthRequestAgain = new HttpRequestMessage(HttpMethod.Delete, "/v1/auth/token");
+            unauthRequestAgain.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
+
+            response = await Client.SendAsync(unauthRequestAgain);
+            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
         }
 
         [Fact]

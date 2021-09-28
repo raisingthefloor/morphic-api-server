@@ -122,6 +122,27 @@ namespace Morphic.Server.Auth
         }
     }
 
+    /// <summary>
+    /// Delete the authentication token.
+    /// </summary>
+    [Path("/v1/auth/token")]
+    public class UnAuthEndpoint : Endpoint
+    {
+        public UnAuthEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger) : base(contextAccessor, logger)
+        {
+        }
+
+        /// <summary>
+        /// Called when logging out, to delete the authentication token.
+        /// </summary>
+        [Method]
+        public async Task Delete()
+        {
+            User user = await this.RequireUser();
+            await ((Endpoint)this).Delete<AuthToken>(token => token.UserId == user.Id);
+        }
+    }
+
     /// <summary>Authenticate with a key</summary>
     // Disabling until we have a legitimate use case.  Not removing because we expect
     // to re-enable at some point down the line for something like a USB stick login.
