@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Net;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
@@ -119,6 +120,32 @@ namespace Morphic.Server.Auth
         public async Task Post()
         {
             await Authenticate();
+        }
+    }
+
+    /// <summary>
+    /// Delete the authentication token.
+    /// </summary>
+    [Path("/v1/auth/token")]
+    public class UnAuthEndpoint : Endpoint
+    {
+        public UnAuthEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger) : base(contextAccessor, logger)
+        {
+        }
+
+        /// <summary>
+        /// Called when logging out, to delete the authentication token.
+        /// </summary>
+        [Method]
+        public async Task Delete()
+        {
+            User? user = await this.Context.GetUser();
+            if (user != null)
+            {
+                await ((Endpoint)this).Delete<AuthToken>(token => token.UserId == user.Id);
+            }
+
+            throw new HttpError(HttpStatusCode.NoContent);
         }
     }
 
