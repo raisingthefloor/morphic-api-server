@@ -100,7 +100,7 @@ namespace Morphic.Server.Community
             {
                 await this.Respond(CouponCheckErrorResponse.Inactive);
             }
-            else if (!string.IsNullOrEmpty(this.user.EmailPlaintext) && !coupon.IsEmailAllowed(this.user.EmailPlaintext))
+            else if (!coupon.IsEmailAllowed(this.user.Email.PlainText))
             {
                 await this.Respond(CouponCheckErrorResponse.InvalidEmail);
             }

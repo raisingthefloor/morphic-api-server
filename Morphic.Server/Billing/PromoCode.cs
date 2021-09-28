@@ -66,12 +66,16 @@ namespace Morphic.Server.Billing
         public string? ValidForEmail { get; set; }
 
         /// <summary>Determines if the coupon is valid for an email address</summary>
-        public bool IsEmailAllowed(string email)
+        public bool IsEmailAllowed(string? email)
         {
             bool valid;
             if (string.IsNullOrEmpty(this.ValidForEmail))
             {
                 valid = true;
+            }
+            else if (string.IsNullOrEmpty(email))
+            {
+                valid = false;
             }
             else
             {
