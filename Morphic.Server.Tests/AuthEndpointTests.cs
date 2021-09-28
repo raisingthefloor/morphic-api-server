@@ -157,7 +157,7 @@ namespace Morphic.Server.Tests
             unauthRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
 
             response = await Client.SendAsync(unauthRequest);
-            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
 
             // check if not authenticated
             HttpRequestMessage userRequest2 = new HttpRequestMessage(HttpMethod.Get, testPath);
@@ -171,7 +171,7 @@ namespace Morphic.Server.Tests
             unauthRequestAgain.Headers.Authorization = new AuthenticationHeaderValue("Bearer", userInfo.AuthToken);
 
             response = await Client.SendAsync(unauthRequestAgain);
-            Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
         }
 
         [Fact]

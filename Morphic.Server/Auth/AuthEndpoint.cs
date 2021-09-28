@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Net;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Http;
@@ -138,8 +139,13 @@ namespace Morphic.Server.Auth
         [Method]
         public async Task Delete()
         {
-            User user = await this.RequireUser();
-            await ((Endpoint)this).Delete<AuthToken>(token => token.UserId == user.Id);
+            User? user = await this.Context.GetUser();
+            if (user != null)
+            {
+                await ((Endpoint)this).Delete<AuthToken>(token => token.UserId == user.Id);
+            }
+
+            throw new HttpError(HttpStatusCode.NoContent);
         }
     }
 

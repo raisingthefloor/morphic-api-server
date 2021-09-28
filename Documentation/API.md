@@ -410,7 +410,7 @@ Deletes the auth token. Used when logging out of the app.
       <th colspan="4">Request Body</th>
     </tr>
     <tr>
-      <th colspan="4"><code>200</code> Response Body</th>
+      <th colspan="4"><code>204</code> Response Body</th>
     </tr>
   </tbody>
 </table>
