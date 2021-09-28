@@ -161,7 +161,7 @@ namespace Morphic.Server.Billing
                     }
                     else
                     {
-                        this.Price -= this.Price * (int)(this.Coupon.PercentOff.Value / 100);
+                        this.Price -= (int)Math.Round(this.Price * (this.Coupon.PercentOff.Value / 100));
                     }
                 }
             }
