@@ -23,6 +23,7 @@
 
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
+using Morphic.Json;
 
 namespace Morphic.Server.Community
 {
@@ -91,11 +92,11 @@ namespace Morphic.Server.Community
             {
                 await this.Respond(CouponCheckErrorResponse.Unknown);
             }
-            else if (coupon.Expired)
+            else if (coupon.Expired && checkRequest.IncludeInactive != true)
             {
                 await this.Respond(CouponCheckErrorResponse.Expired);
             }
-            else if (!coupon.Active)
+            else if (!coupon.Active && checkRequest.IncludeInactive != true)
             {
                 await this.Respond(CouponCheckErrorResponse.Inactive);
             }
@@ -150,6 +151,9 @@ namespace Morphic.Server.Community
         {
             [JsonPropertyName("coupon_code")]
             public string CouponCode { get; set; } = null!;
+
+            [JsonPropertyName("inactive")]
+            public bool? IncludeInactive { get; set; }
 
             [JsonPropertyName("plans")]
             public Dictionary<string, string> Plans { get; set; }
