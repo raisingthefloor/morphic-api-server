@@ -10,7 +10,7 @@ Endpoints
 * [Authentication](#section-authentication)
   * [`/v1/auth/username`](#endpoint-auth-username) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
   * [`/v1/auth/key`](#endpoint-auth-key) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
-  * [`/v1/auth/token`](#endpoint-auth-key) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+  * [`/v1/auth/token`](#endpoint-auth-token) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 * [User Data](#section-user-data)
   * [`/v1/users/{id}`](#endpoint-user) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
   * [`/v1/users/{uid}/preferences/{id}`](#endpoint-preferences) <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
@@ -389,7 +389,7 @@ token that can be used in `Authorization` headers.
 </table>
 <a name="section-authentication"></a>
 
-<a name="endpoint-auth-username"></a>/v1/auth/token <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
+<a name="endpoint-auth-token"></a>/v1/auth/token <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
 ------------------
 
 ### DELETE <span style="font-size:10pt;background-color:#e1ad01;color:#000;padding:2pt">&nbsp;&nbsp;Marked for deprecation&nbsp;&nbsp;</span>
