@@ -23,6 +23,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using Stripe;
 using Microsoft.Extensions.Logging;
@@ -64,6 +66,9 @@ namespace Morphic.Server.Billing
         private ILogger logger;
         private Plans plans;
 
+        private static readonly List<PromotionCode> PromotionCodes = new List<PromotionCode>();
+        private static DateTime promotionCodesUpdated = DateTime.MinValue;
+
         public async Task StartCommunitySubscription(Community community, BillingRecord billing, User contact)
         {
             var plan = plans.GetPlan(billing.PlanId)!;
@@ -88,6 +93,7 @@ namespace Morphic.Server.Billing
                             }
                         }
                     };
+
                     if (billing.TrialEnd > DateTime.Now){
                         subscription.TrialEnd = billing.TrialEnd;
                     }
@@ -210,6 +216,135 @@ namespace Morphic.Server.Billing
             }
         }
 
+        /// <summary>
+        /// Updates the coupon used by the community billing.
+        /// </summary>
+        /// <param name="community"></param>
+        /// <param name="billing"></param>
+        /// <param name="couponCode">The coupon code. null to remove it.</param>
+        /// <returns>The coupon, or null if it's unknown.</returns>
+        /// <exception cref="PaymentProcessorCardException"></exception>
+        public async Task<Coupon?> ChangeCommunityCoupon(Community community, BillingRecord billing, string? couponCode)
+        {
+            PromotionCode? promo = string.IsNullOrEmpty(couponCode) ? null : await this.FindCode(couponCode);
+
+            try
+            {
+                CustomerUpdateOptions options = new CustomerUpdateOptions()
+                {
+                    PromotionCode = promo?.Id,
+                };
+
+                options.AddExpand("default_source");
+                await this.Customers.UpdateAsync(billing.Stripe!.CustomerId, options, this.RequestOptions);
+            }
+            catch (StripeException e)
+            {
+                this.logger.LogError(e, "Failed to update stripe customer");
+                throw new PaymentProcessorCardException();
+            }
+
+            return promo == null ? null : await this.GetCoupon(promo);
+        }
+
+        /// <summary>
+        /// Gets information about a coupon code.
+        /// </summary>
+        public async Task<Coupon?> GetCoupon(string couponCode)
+        {
+            PromotionCode? promo = await this.FindCode(couponCode);
+
+            return promo == null
+                ? null
+                : await this.GetCoupon(promo);
+        }
+
+        /// <summary>
+        /// Gets information about a coupon.
+        /// </summary>
+        private async Task<Coupon?> GetCoupon(PromotionCode promo)
+        {
+            promo.Coupon.Metadata.TryGetValue("plan", out string? plan);
+            promo.Coupon.Metadata.TryGetValue("email", out string? email);
+
+            Coupon coupon = new Coupon()
+            {
+                Code = promo.Code,
+                Name = promo.Coupon.Name,
+                Id = promo.Coupon.Id,
+                ApiId = promo.Id,
+                AmountOff = promo.Coupon.AmountOff,
+                PercentOff = promo.Coupon.PercentOff,
+                Expired = promo.ExpiresAt < DateTime.UtcNow,
+                Active = promo.Active && promo.Coupon.Valid,
+                ValidForPlan = plan,
+                ValidForEmail = email
+            };
+
+            return coupon;
+        }
+
+        /// <summary>
+        /// Gets the coupon information from stripe.
+        /// </summary>
+        private async Task<PromotionCode?> FindCode(string couponCode)
+        {
+            PromotionCode? Find()
+            {
+                return StripePaymentProcessor.PromotionCodes.Find(promo =>
+                    promo.Code.Equals(couponCode, StringComparison.OrdinalIgnoreCase));
+            }
+
+            PromotionCode? promotionCode = Find();
+
+            if (promotionCode == null)
+            {
+                // The coupon was not found - update the list from stripe.
+                bool updated = await this.UpdateCouponCodes();
+                if (updated)
+                {
+                    promotionCode = Find();
+                }
+            }
+
+            return promotionCode;
+        }
+
+        /// <summary>
+        /// Updates a list of the coupon codes from stripe.
+        /// </summary>
+        /// <returns>true if the list was updated.</returns>
+        private async Task<bool> UpdateCouponCodes()
+        {
+            StripeConfiguration.ApiKey = this.RequestOptions.ApiKey;
+            bool updated;
+
+            if (DateTime.Now - StripePaymentProcessor.promotionCodesUpdated > TimeSpan.FromMinutes(1))
+            {
+                PromotionCodeService service = new PromotionCodeService();
+
+                StripeList<PromotionCode> codes = await service.ListAsync(new PromotionCodeListOptions()
+                {
+                    Limit = 100
+                });;
+
+
+                lock (StripePaymentProcessor.PromotionCodes)
+                {
+                    StripePaymentProcessor.PromotionCodes.Clear();
+                    StripePaymentProcessor.PromotionCodes.AddRange(codes.ToList());
+                }
+
+                StripePaymentProcessor.promotionCodesUpdated = DateTime.Now;
+                updated = true;
+            }
+            else
+            {
+                updated = false;
+            }
+
+            return updated;
+        }
     }
 
 }

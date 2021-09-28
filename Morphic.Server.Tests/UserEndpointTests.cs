@@ -220,5 +220,27 @@ namespace Morphic.Server.Tests
             Assert.Equal("foo bar", user.FullName);
         }
 
+        [Fact]
+        public void TestEmail()
+        {
+            var user = new User();
+            Assert.Null(user.Email.PlainText);
+
+            user.Email = new SearchableEncryptedString("");
+            Assert.Equal("", user.Email.PlainText);
+
+            user.Email = new SearchableEncryptedString("nobody@example.com");
+            Assert.Equal("nobody@example.com", user.Email.PlainText);
+            Assert.Null(user.EmailPlaintext);
+
+            user.IncludeEmail = true;
+            Assert.Equal("nobody@example.com", user.EmailPlaintext);
+
+            user.Email = new SearchableEncryptedString("other@example.com");
+            Assert.Equal("other@example.com", user.EmailPlaintext);
+
+            user.IncludeEmail = false;
+            Assert.Null(user.EmailPlaintext);
+        }
     }
 }

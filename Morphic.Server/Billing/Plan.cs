@@ -22,12 +22,17 @@
 // * Consumer Electronics Association Foundation
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text.Json.Serialization;
 
 namespace Morphic.Server.Billing
 {
     public class Plan
     {
+        private List<string> coupons;
+
         [JsonPropertyName("id")]
         public string Id { get; set; } = null!;
 
@@ -82,7 +87,7 @@ namespace Morphic.Server.Billing
                     return "";
                 }
 
-                return this.FormatPrice((int)Math.Round(this.Price / (decimal)this.Months));
+                return this.FormatPrice(this.Price == 0 ? 0 : (int)Math.Round(this.Price / (decimal)this.Months));
             }
         }
 
@@ -92,7 +97,7 @@ namespace Morphic.Server.Billing
         /// <param name="price">The price, in the lowest unit.</param>
         /// <returns>A string representing the given price, like "$7.65"</returns>
         /// <exception cref="NotImplementedException">USD is only implemented.</exception>
-        private String FormatPrice(int price)
+        protected String FormatPrice(int price)
         {
             if (this.Currency != "USD")
             {
@@ -101,10 +106,72 @@ namespace Morphic.Server.Billing
                 throw new NotImplementedException("Support for multiple currencies is not implemented.");
             }
 
-            decimal decimalPrice = (decimal)price / 100;
-            return decimalPrice.ToString("$#.##");
+            decimal decimalPrice = price == 0 ? 0 : (decimal)price / 100;
+            return decimalPrice.ToString("$0.##");
         }
 
     }
 
+    public class DiscountedPlan : Plan
+    {
+        [JsonPropertyName("coupon")] public Coupon Coupon { get; }
+
+        [JsonPropertyName("coupon_saving")] public int CouponSaving { get; }
+
+        [JsonPropertyName("coupon_saving_text")]
+        public string CouponSavingText => this.FormatPrice(this.CouponSaving);
+
+        [JsonPropertyName("error")]
+        public string? Error { get; private set; }
+
+        /// <summary>Determines if the coupon is valid for this plan.</summary>
+        private bool ValidForPlan()
+        {
+            return string.IsNullOrEmpty(this.Coupon.ValidForPlan)
+                   || this.Id == this.Coupon.ValidForPlan || this.Id.StartsWith(this.Coupon.ValidForPlan + "-");
+        }
+
+        public DiscountedPlan(Plan plan, Coupon coupon, string? email)
+        {
+            this.Coupon = coupon;
+            plan.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public)
+                .Where(pi => pi.CanWrite)
+                .ToList().ForEach(pi => pi.SetValue(this, pi.GetValue(plan)));
+
+            if (!this.ValidForPlan())
+            {
+                this.Coupon.Active = false;
+                this.Error = "wrong_plan";
+            }
+            else if (!this.Coupon.Active)
+            {
+                this.Error = this.Coupon.Expired ? "expired" : "inactive";
+            }
+            else
+            {
+                if (this.Coupon.AmountOff.HasValue)
+                {
+                    this.Price -= (int)this.Coupon.AmountOff.Value;
+                }
+                else if (this.Coupon.PercentOff.HasValue)
+                {
+                    if (this.Coupon.PercentOff.Value >= 100)
+                    {
+                        this.Price = 0;
+                    }
+                    else
+                    {
+                        this.Price -= (int)Math.Round(this.Price * (this.Coupon.PercentOff.Value / 100));
+                    }
+                }
+            }
+
+            if (this.Price < 0)
+            {
+                this.Price = 0;
+            }
+
+            this.CouponSaving = plan.Price - this.Price;
+        }
+    }
 }

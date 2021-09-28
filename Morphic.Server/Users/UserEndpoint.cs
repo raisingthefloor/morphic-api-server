@@ -64,6 +64,7 @@ namespace Morphic.Server.Users
         [Method]
         public async Task Get()
         {
+            this.User.IncludeEmail = true;
             await Respond(User);
         }
 

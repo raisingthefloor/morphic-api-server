@@ -31,7 +31,6 @@ namespace Morphic.Server.Billing
 
     public class BillingRecord: Record
     {
-
         [JsonIgnore]
         public string? CommunityId { get; set; }
 
@@ -56,6 +55,12 @@ namespace Morphic.Server.Billing
 
         [JsonPropertyName("card")]
         public Card? Card { get; set; }
+
+        [JsonPropertyName("coupon_code")]
+        public string? CouponCode { get; set; }
+
+        [JsonPropertyName("coupon")]
+        public Coupon? Coupon { get; set; }
 
         [JsonIgnore]
         public StripeBillingRecord? Stripe { get; set; }
