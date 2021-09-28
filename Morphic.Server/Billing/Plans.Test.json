@@ -1,8 +1,19 @@
 [
     {
-        "id": "plus-5",
+        "id": "basic",
         "active": true,
         "default": true,
+        "member_limit": 0,
+        "months": 0,
+        "price": 0,
+        "currency": "USD",
+        "stripe": {
+            "price_id": "price_1JeR4BFNS9zyw2T77JAX47hI"
+        }
+    },
+    {
+        "id": "plus-5",
+        "active": true,
         "member_limit": 5,
         "months": 12,
         "price": 3500,
@@ -14,7 +25,6 @@
     {
         "id": "plus-5-monthly",
         "active": true,
-        "default": true,
         "member_limit": 5,
         "months": 1,
         "price": 500,
@@ -26,7 +36,6 @@
     {
         "id": "plus-15",
         "active": true,
-        "default": true,
         "member_limit": 15,
         "months": 12,
         "price": 7000,
@@ -38,7 +47,6 @@
     {
         "id": "plus-15-monthly",
         "active": true,
-        "default": true,
         "member_limit": 15,
         "months": 1,
         "price": 1000,
@@ -51,7 +59,6 @@
     {
         "id": "basic-1-month",
         "active": true,
-        "default": true,
         "member_limit": 5,
         "months": 1,
         "price": 600,
