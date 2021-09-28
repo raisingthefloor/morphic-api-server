@@ -36,6 +36,8 @@ namespace Morphic.Server.Billing
         Task CancelCommunitySubscription(Community community, BillingRecord billing);
         Task ChangeCommunityContact(Community community, BillingRecord billing, User contact);
         Task ChangeCommunityCard(Community community, BillingRecord billing, object card);
+        Task<Coupon?> ChangeCommunityCoupon(Community community, BillingRecord billing, string couponCode);
+        Task<Coupon?> GetCoupon(string couponCode);
     }
 
     public class PaymentProcessorCardException: Exception
