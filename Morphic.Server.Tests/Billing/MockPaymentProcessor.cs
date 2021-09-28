@@ -76,6 +76,15 @@ namespace Morphic.Server.Tests.Billing
             return Task.CompletedTask;
         }
 
+        public Task<Coupon?> ChangeCommunityCoupon(Community community, BillingRecord billing, string couponCode)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<Coupon?> GetCoupon(string couponCode)
+        {
+            throw new NotImplementedException();
+        }
     }
 
 }
