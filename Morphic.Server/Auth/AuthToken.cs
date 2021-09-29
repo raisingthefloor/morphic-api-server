@@ -50,5 +50,13 @@ namespace Morphic.Server.Auth
         public void Touch(int ttl = 4 * 60 * 60){
             ExpiresAt = DateTime.Now + new TimeSpan(0, 0, ttl);
         }
+
+        /// <summary>
+        /// Makes the token expired, by setting the expiry date to something in the past.
+        /// </summary>
+        public void Expire()
+        {
+            this.ExpiresAt = DateTime.Now.AddYears(-1);
+        }
     }
 }

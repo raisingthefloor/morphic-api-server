@@ -21,6 +21,7 @@
 // * Adobe Foundation
 // * Consumer Electronics Association Foundation
 
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Text.Json.Serialization;
@@ -129,7 +130,8 @@ namespace Morphic.Server.Auth
     [Path("/v1/auth/token")]
     public class UnAuthEndpoint : Endpoint
     {
-        public UnAuthEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger) : base(contextAccessor, logger)
+        public UnAuthEndpoint(IHttpContextAccessor contextAccessor, ILogger<Endpoint> logger) : base(contextAccessor,
+            logger)
         {
         }
 
@@ -139,10 +141,22 @@ namespace Morphic.Server.Auth
         [Method]
         public async Task Delete()
         {
-            User? user = await this.Context.GetUser();
-            if (user != null)
+            string? auth = this.Request.Headers["Authorization"].FirstOrDefault();
+            const string tokenPrefix = "Bearer ";
+
+            if (!string.IsNullOrEmpty(auth) && auth.StartsWith(tokenPrefix))
             {
-                await ((Endpoint)this).Delete<AuthToken>(token => token.UserId == user.Id);
+                string token = auth.Substring(tokenPrefix.Length);
+                Database db = this.Context.GetDatabase();
+                AuthToken? authToken = await db.Get<AuthToken>(token);
+
+                if (authToken != null)
+                {
+                    // Ensure it's expired.
+                    authToken.Expire();
+                    await db.Save(authToken);
+                    await db.Delete(authToken);
+                }
             }
 
             throw new HttpError(HttpStatusCode.NoContent);
