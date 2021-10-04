@@ -278,7 +278,9 @@ namespace Morphic.Server.Billing
                 Expired = promo.ExpiresAt < DateTime.UtcNow,
                 Active = promo.Active && promo.Coupon.Valid,
                 ValidForPlan = plan,
-                ValidForEmail = email
+                ValidForEmail = email,
+                Duration = promo.Coupon.Duration,
+                DurationMonths = promo.Coupon.DurationInMonths
             };
 
             return coupon;

@@ -65,6 +65,11 @@ namespace Morphic.Server.Billing
         public string? ValidForPlan { get; set; }
         public string? ValidForEmail { get; set; }
 
+        [JsonPropertyName("duration")]
+        public string Duration { get; set; } = null!;
+        [JsonPropertyName("duration_months")]
+        public long? DurationMonths { get; set; }
+
         /// <summary>Determines if the coupon is valid for an email address</summary>
         public bool IsEmailAllowed(string? email)
         {
