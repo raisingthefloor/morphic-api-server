@@ -1,133 +1,133 @@
 [
-    {
-        "id": "basic",
-        "active": true,
-        "default": true,
-        "member_limit": 0,
-        "months": 0,
-        "price": 0,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1Jee0ZFNS9zyw2T7qM6GUbGm"
-        }
-    },
-    {
-        "id": "plus-5",
-        "active": true,
-        "member_limit": 5,
-        "months": 12,
-        "price": 3500,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1JdFTiFNS9zyw2T7fg1X2Tw9"
-        }
-    },
-    {
-        "id": "plus-5-monthly",
-        "active": true,
-        "member_limit": 5,
-        "months": 1,
-        "price": 500,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1JdFTiFNS9zyw2T7S61gRt2w"
-        }
-    },
-    {
-        "id": "plus-15",
-        "active": true,
-        "member_limit": 15,
-        "months": 12,
-        "price": 7000,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1JdFTRFNS9zyw2T7bTyimek6"
-        }
-    },
-    {
-        "id": "plus-15-monthly",
-        "active": true,
-        "member_limit": 15,
-        "months": 1,
-        "price": 1000,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1JdFTRFNS9zyw2T7wbefrunf"
-        }
-    },
-
-    {
-        "id": "basic-1-month",
-        "active": true,
-        "member_limit": 5,
-        "months": 1,
-        "price": 600,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HEfJgFNS9zyw2T7js0QBmSM"
-        }
-    },
-    {
-        "id": "basic-6-month",
-        "active": true,
-        "member_limit": 5,
-        "months": 6,
-        "price": 3000,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HEfJgFNS9zyw2T7CAAkOzhm"
-        }
-    },
-    {
-        "id": "midsize-1-month",
-        "active": true,
-        "member_limit": 15,
-        "months": 1,
-        "price": 1200,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HS7M7FNS9zyw2T7Kn8wu5wF"
-        }
-    },
-    {
-        "id": "midsize-6-month",
-        "active": true,
-        "member_limit": 15,
-        "months": 6,
-        "price": 6000,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HS7M7FNS9zyw2T7w8eKfyWb"
-        }
-    },
-    {
-        "id": "large-1-month",
-        "active": true,
-        "member_limit": 50,
-        "months": 1,
-        "price": 3600,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HS7MtFNS9zyw2T7OKhpAlis"
-        }
-    },
-    {
-        "id": "large-6-month",
-        "active": true,
-        "member_limit": 50,
-        "months": 6,
-        "price": 18000,
-        "currency": "USD",
-        "stripe": {
-            "price_id": "price_1HS7MtFNS9zyw2T7XfwmUgXU"
-        }
-    },
-    {
-        "id": "enterprise-1",
-        "active": true,
-        "internal": true,
-        "member_limit": 0,
-        "months": 12,
-        "price": -1
+  {
+    "id": "basic",
+    "active": true,
+    "member_limit": 0,
+    "months": 0,
+    "price": 0,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1Jee0ZFNS9zyw2T7qM6GUbGm"
     }
+  },
+  {
+    "id": "plus-5",
+    "active": true,
+    "default": true,
+    "member_limit": 5,
+    "months": 12,
+    "price": 3500,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1JdFTiFNS9zyw2T7fg1X2Tw9"
+    }
+  },
+  {
+    "id": "plus-5-monthly",
+    "active": true,
+    "member_limit": 5,
+    "months": 1,
+    "price": 500,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1JdFTiFNS9zyw2T7S61gRt2w"
+    }
+  },
+  {
+    "id": "plus-15",
+    "active": true,
+    "member_limit": 15,
+    "months": 12,
+    "price": 7000,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1JdFTRFNS9zyw2T7bTyimek6"
+    }
+  },
+  {
+    "id": "plus-15-monthly",
+    "active": true,
+    "member_limit": 15,
+    "months": 1,
+    "price": 1000,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1JdFTRFNS9zyw2T7wbefrunf"
+    }
+  },
+
+  {
+    "id": "basic-1-month",
+    "active": true,
+    "member_limit": 5,
+    "months": 1,
+    "price": 600,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HEfJgFNS9zyw2T7js0QBmSM"
+    }
+  },
+  {
+    "id": "basic-6-month",
+    "active": true,
+    "member_limit": 5,
+    "months": 6,
+    "price": 3000,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HEfJgFNS9zyw2T7CAAkOzhm"
+    }
+  },
+  {
+    "id": "midsize-1-month",
+    "active": true,
+    "member_limit": 15,
+    "months": 1,
+    "price": 1200,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HS7M7FNS9zyw2T7Kn8wu5wF"
+    }
+  },
+  {
+    "id": "midsize-6-month",
+    "active": true,
+    "member_limit": 15,
+    "months": 6,
+    "price": 6000,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HS7M7FNS9zyw2T7w8eKfyWb"
+    }
+  },
+  {
+    "id": "large-1-month",
+    "active": true,
+    "member_limit": 50,
+    "months": 1,
+    "price": 3600,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HS7MtFNS9zyw2T7OKhpAlis"
+    }
+  },
+  {
+    "id": "large-6-month",
+    "active": true,
+    "member_limit": 50,
+    "months": 6,
+    "price": 18000,
+    "currency": "USD",
+    "stripe": {
+      "price_id": "price_1HS7MtFNS9zyw2T7XfwmUgXU"
+    }
+  },
+  {
+    "id": "enterprise-1",
+    "active": true,
+    "internal": true,
+    "member_limit": 0,
+    "months": 12,
+    "price": -1
+  }
 ]
