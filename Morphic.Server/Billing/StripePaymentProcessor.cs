@@ -127,7 +127,7 @@ namespace Morphic.Server.Billing
                     {
                         Price = stripePlan.PriceId
                     };
-                    await SubscriptionItems.UpdateAsync(billing.Stripe!.SubscriptionItemId, update, RequestOptions);
+                    //await SubscriptionItems.UpdateAsync(billing.Stripe!.SubscriptionItemId, update, RequestOptions);
                 }
                 catch (StripeException e)
                 {

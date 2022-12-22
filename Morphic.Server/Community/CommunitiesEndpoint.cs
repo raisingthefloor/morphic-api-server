@@ -178,7 +178,7 @@ namespace Morphic.Server.Community
             };
             await db.Save(community);
 
-            await paymentProcessor.StartCommunitySubscription(community, billing, User);
+            //await paymentProcessor.StartCommunitySubscription(community, billing, User);
 
             await db.Save(billing);
 
