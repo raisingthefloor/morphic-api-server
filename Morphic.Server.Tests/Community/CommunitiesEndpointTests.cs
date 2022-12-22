@@ -101,7 +101,8 @@ namespace Morphic.Server.Tests.Community
             Assert.True(element.TryGetProperty("name", out property));
             Assert.Equal(JsonValueKind.String, property.ValueKind);
             Assert.Equal("Test Community", property.GetString());
-            Assert.Equal(1, paymentProcessor.StartCommunitySubscriptionCalls);
+            // Not calling stripe anymore
+            //Assert.Equal(1, paymentProcessor.StartCommunitySubscriptionCalls);
         }
     }
 }
