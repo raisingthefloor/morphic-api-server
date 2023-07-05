@@ -27,6 +27,7 @@ WORKDIR /app
 
 # copy and build
 COPY ./MorphicServer.sln .
+COPY ./Morphic.Server.Settings/ ./Morphic.Server.Settings/
 COPY ./Morphic.Server/ ./Morphic.Server/
 COPY ./Morphic.Server.Tests/ ./Morphic.Server.Tests/
 COPY ./Morphic.Security/ ./Morphic.Security/
