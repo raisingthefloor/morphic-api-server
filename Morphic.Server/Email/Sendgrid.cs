@@ -21,7 +21,14 @@ namespace Morphic.Server.Email
         ///
         /// For development and others, see launchSettings.json or the docker-compose.morphicserver.yml file.
         /// </summary>
-        public string ApiKey { get; set; } = "";
+        public string ApiKey
+        {
+            get
+            {
+                var apiKey = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "EMAILSETTINGS__SENDGRIDSETTINGS__APIKEY") ?? "";
+                return apiKey;
+            }
+        }
 
         public string WelcomeEmailValidationId { get; set; } = "";
         public string PasswordResetId { get; set; } = "";

@@ -62,16 +62,26 @@ namespace Morphic.Server
         {
             services.Configure<MorphicSettings>(Configuration.GetSection("MorphicSettings"));
             services.AddSingleton<MorphicSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<MorphicSettings>>().Value);
+            //
+            // TODO: deprecate this method of capturing DatabaseSettings
             services.Configure<DatabaseSettings>(Configuration.GetSection("DatabaseSettings"));
             services.AddSingleton<DatabaseSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<DatabaseSettings>>().Value);
+            //
+            // TODO: deprecate this method of capturing DatabaseSettings
             services.Configure<EmailSettings>(Configuration.GetSection("EmailSettings"));
             services.AddSingleton<EmailSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<EmailSettings>>().Value);
+            //
+            // TODO: deprecate this method of capturing KeyStorageSettings
             services.Configure<KeyStorageSettings>(Configuration.GetSection("KeyStorageSettings"));
             services.AddSingleton<KeyStorageSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<KeyStorageSettings>>().Value);
             services.AddSingleton<KeyStorage>(serviceProvider => KeyStorage.CreateShared(serviceProvider.GetRequiredService<KeyStorageSettings>(), serviceProvider.GetRequiredService<ILogger<KeyStorage>>()));
+            //
             services.AddSingleton<Plans>(serviceProvider => Plans.FromJson(Path.Join(serviceProvider.GetRequiredService<IWebHostEnvironment>().ContentRootPath, "Billing", serviceProvider.GetRequiredService<StripeSettings>().Plans)));
+            //
+            // TODO: deprecate this method of capturing KeyStorageSettings
             services.Configure<StripeSettings>(Configuration.GetSection("StripeSettings"));
             services.AddSingleton<StripeSettings>(serviceProvider => serviceProvider.GetRequiredService<IOptions<StripeSettings>>().Value);
+            //
             services.AddSingleton<IPaymentProcessor, StripePaymentProcessor>();
             services.AddSingleton<Database>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
@@ -85,13 +95,15 @@ namespace Morphic.Server
                 Strategy = MongoMigrationStrategy.Migrate,
                 BackupStrategy = MongoBackupStrategy.Collections
             };
+            string? hangfireConnectionString = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "HANGFIRESETTINGS__CONNECTIONSTRING") ?? "";
+            // var hangfireConnectionString = Configuration.GetSection("HangfireSettings")["ConnectionString"]; // TODO Is there a better way than GetSection[]?
             services.AddHangfire(configuration => configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
                 .UseSimpleAssemblyNameTypeSerializer()
                 .UseRecommendedSerializerSettings()
                 .UseSerilogLogProvider()
                 .UseFilter(new HangfireJobMetrics())
-                .UseMongoStorage(Configuration.GetSection("HangfireSettings")["ConnectionString"], // TODO Is there a better way than GetSection[]?
+                .UseMongoStorage(hangfireConnectionString,
                     new MongoStorageOptions
                     {
                         MigrationOptions = migrationOptions

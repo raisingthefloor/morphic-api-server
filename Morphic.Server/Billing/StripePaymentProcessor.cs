@@ -36,9 +36,34 @@ namespace Morphic.Server.Billing
     using Users;
 
     public class StripeSettings{
-        public string SecretKey { get; set; } = "";
+        public string SecretKey
+        {
+             get
+             {
+                  var secretKey = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "STRIPESETTINGS__SECRETKEY") ?? "";
+                  return secretKey;
+             }
+        }
+
         public string Plans { get; set; } = "Plans.json";
-        public string WebhookSecret { get; set; } = "";
+
+        private string? _webhookSecret = null;
+        public string WebhookSecret
+        {
+             get
+             {
+                  if (_webhookSecret == null)
+                  {
+                      _webhookSecret = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "STRIPESETTINGS__WEBHOOKSECRET") ?? "";
+                  }
+                  return _webhookSecret!;
+             }
+             
+             set
+             {
+                 _webhookSecret = value;
+             }
+          }
     }
 
     public class StripePaymentProcessor : IPaymentProcessor

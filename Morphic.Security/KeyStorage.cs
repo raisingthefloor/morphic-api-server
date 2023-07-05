@@ -1,19 +1,19 @@
-// Copyright 2020 Raising the Floor - International
+// Copyright 2020-2023 Raising the Floor - US, Inc.
 //
 // Licensed under the New BSD license. You may not use this file except in
 // compliance with this License.
 //
 // You may obtain a copy of the License at
-// https://github.com/GPII/universal/blob/master/LICENSE.txt
+// https://github.com/raisingthefloor/morphic-api-server/blob/master/LICENSE.txt
 //
 // The R&D leading to these results received funding from the:
-// * Rehabilitation Services Administration, US Dept. of Education under 
+// * Rehabilitation Services Administration, US Dept. of Education under
 //   grant H421A150006 (APCP)
-// * National Institute on Disability, Independent Living, and 
+// * National Institute on Disability, Independent Living, and
 //   Rehabilitation Research (NIDILRR)
-// * Administration for Independent Living & Dept. of Education under grants 
+// * Administration for Independent Living & Dept. of Education under grants
 //   H133E080022 (RERC-IT) and H133E130028/90RE5003-01-00 (UIITA-RERC)
-// * European Union's Seventh Framework Programme (FP7/2007-2013) grant 
+// * European Union's Seventh Framework Programme (FP7/2007-2013) grant
 //   agreement nos. 289016 (Cloud4all) and 610510 (Prosperity4All)
 // * William and Flora Hewlett Foundation
 // * Ontario Ministry of Research and Innovation
@@ -111,35 +111,57 @@ namespace Morphic.Security
             {
                 var myKeyArray = new List<KeyInfo>();
 
-                string keyValue = Environment.GetEnvironmentVariable(EncryptionKeyPrimary) ?? "";
+                string? keyValue = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", this.EncryptionKeyPrimary);
+                //string keyValue = Environment.GetEnvironmentVariable(EncryptionKeyPrimary) ?? "";
                 if (String.IsNullOrWhiteSpace(keyValue))
                 {
                     throw new EmptyKey(EncryptionKeyPrimary);
                 }
 
-                var key = KeyInfoFromEnvValue(EncryptionKeyPrimary, keyValue, true);
+                var key = KeyInfoFromEnvValue(EncryptionKeyPrimary, keyValue!, true);
                 myKeyArray.Add(key);
 
-                // Look for the rollover keys. We allow multiple to give us time to move off of keys
-                foreach (var envKey in Environment.GetEnvironmentVariables().Keys)
+                // Look for the rollover keys (with a base index of 1). We allow multiple to give us time to move off of keys
+                var rolloverKeyNumber = 1;
+                while (true)
                 {
-                    if (envKey == null || !envKey.ToString()!.StartsWith(EncryptionKeyRolloverPrefix))
-                        continue;
+                     var rolloverKeyName = this.EncryptionKeyRolloverPrefix + rolloverKeyNumber.ToString();
+                     keyValue = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", rolloverKeyName);
+                     if (String.IsNullOrWhiteSpace(keyValue))
+                     {
+                          break;
+                     }
 
-                    keyValue = Environment.GetEnvironmentVariable(envKey!.ToString() ?? "") ?? "";
-                    if (String.IsNullOrWhiteSpace(keyValue) || String.IsNullOrWhiteSpace(keyValue))
-                    {
-                        continue;
-                    }
+                     key = KeyInfoFromEnvValue(rolloverKeyName, keyValue!, false);
+                     if (myKeyArray.FirstOrDefault(k => k.KeyName == key.KeyName) != null)
+                     {
+                          throw new DuplicateKey(key.KeyName);
+                     }
 
-                    key = KeyInfoFromEnvValue(envKey.ToString()!, keyValue, false);
-                    if (myKeyArray.FirstOrDefault(k => k.KeyName == key.KeyName) != null)
-                    {
-                        throw new DuplicateKey(key.KeyName);
-                    }
+                     myKeyArray.Add(key);
 
-                    myKeyArray.Add(key);
+                     rolloverKeyNumber += 1;
                 }
+
+                //foreach (var envKey in Environment.GetEnvironmentVariables().Keys)
+                //{
+                //    if (envKey == null || !envKey.ToString()!.StartsWith(EncryptionKeyRolloverPrefix))
+                //        continue;
+
+                //    keyValue = Environment.GetEnvironmentVariable(envKey!.ToString() ?? "") ?? "";
+                //    if (String.IsNullOrWhiteSpace(keyValue) || String.IsNullOrWhiteSpace(keyValue))
+                //    {
+                //        continue;
+                //    }
+
+                //    key = KeyInfoFromEnvValue(envKey.ToString()!, keyValue, false);
+                //    if (myKeyArray.FirstOrDefault(k => k.KeyName == key.KeyName) != null)
+                //    {
+                //        throw new DuplicateKey(key.KeyName);
+                //    }
+
+                //    myKeyArray.Add(key);
+                //}
 
                 keyArray = myKeyArray;
             }
@@ -149,13 +171,14 @@ namespace Morphic.Security
                 var myHashSaltArray = new List<KeyInfo>();
 
                 // Get the hash salt
-                var hashValue = Environment.GetEnvironmentVariable(HashSaltPrimary) ?? "";
+                string? hashValue = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", this.HashSaltPrimary);
+                //var hashValue = Environment.GetEnvironmentVariable(HashSaltPrimary) ?? "";
                 if (String.IsNullOrWhiteSpace(hashValue))
                 {
                     throw new EmptyKey(HashSaltPrimary);
                 }
 
-                var hash = KeyInfoFromEnvValue(HashSaltPrimary, hashValue, true);
+                var hash = KeyInfoFromEnvValue(HashSaltPrimary, hashValue!, true);
 
                 myHashSaltArray.Add(hash);
                 hashSaltArray = myHashSaltArray;

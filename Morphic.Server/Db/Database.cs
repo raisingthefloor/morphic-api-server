@@ -74,10 +74,23 @@ namespace Morphic.Server.Db
         /// </remarks>
         public Database(DatabaseSettings settings, ILogger<Database> logger)
         {
+            var databaseConnectionString = Database.GetConnectionString();
+            if (String.IsNullOrWhiteSpace(databaseConnectionString))
+            {
+                throw new Exception("Could not retrieve database connection string.");
+            }
+            var databaseName = Database.GetDatabaseName();
+            if (String.IsNullOrWhiteSpace(databaseName))
+            {
+                 throw new Exception("Could not retrieve database name.");
+            }
+
             this.logger = logger;
             BsonSerializer.RegisterSerializationProvider(new BsonSerializerProvider());
-            client = new MongoClient(settings.ConnectionString);
-            morphic = client.GetDatabase(settings.DatabaseName);
+            client = new MongoClient(databaseConnectionString!);
+            //client = new MongoClient(settings.ConnectionString);
+            morphic = client.GetDatabase(databaseName!);
+            //morphic = client.GetDatabase(settings.DatabaseName);
 
             logger.LogInformation("Opened DB {Database}: {ConnectionSettings}",
                 settings.DatabaseName, client.Settings.ToString());
@@ -96,6 +109,18 @@ namespace Morphic.Server.Db
             CollectionByType[typeof(Bar)] = morphic.GetCollection<Bar>("CommunityBars");
             CollectionByType[typeof(Invitation)] = morphic.GetCollection<Invitation>("CommunityInvitations");
             CollectionByType[typeof(BillingRecord)] = morphic.GetCollection<BillingRecord>("BillingRecord");
+        }
+
+        static private string? GetConnectionString()
+        {
+            string? keyValue = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "DATABASESETTINGS__CONNECTIONSTRING");
+            return keyValue;
+        }
+
+        static private string? GetDatabaseName()
+        {
+             string? keyValue = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "DATABASESETTINGS__DATABASENAME");
+             return keyValue;
         }
 
         public void DeleteDatabase()

@@ -12,4 +12,8 @@
     <PackageReference Include="prometheus-net" Version="3.5.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Morphic.Server.Settings\Morphic.Server.Settings.csproj" />
+  </ItemGroup>
+
 </Project>

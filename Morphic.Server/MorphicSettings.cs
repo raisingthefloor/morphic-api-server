@@ -85,7 +85,30 @@ namespace Morphic.Server
             }
         }
 
-        public Recaptcha3Settings Recaptcha3Settings { get; set; } = new Recaptcha3Settings();
+        public Recaptcha3Settings Recaptcha3Settings 
+        { 
+            get
+            {
+                 var key = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "MORPHICSETTINGS__RECAPTCHA3SETTINGS__KEY") ?? "";
+                 //
+                 var secret = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "MORPHICSETTINGS__RECAPTCHA3SETTINGS__SECRET") ?? "";
+                 //
+                 var minimumScoreAsString = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "MORPHICSETTINGS__RECAPTCHA3SETTINGS__MINIMUM_SCORE") ?? "0.7";
+                 double minimumScore;
+                 var minimumScoreIsValid = Double.TryParse(minimumScoreAsString, out minimumScore);
+                 if (minimumScoreIsValid == false) 
+                 {
+                      throw new Exception("Recaptcha3Settings minimum score is not a valid double value");
+                 }
+
+                 return new Recaptcha3Settings
+                 {
+                     Key = key,
+                     Secret = secret,
+                     MinimumScore = minimumScore,
+                 };
+            }
+        }
     }
 
     public class Recaptcha3Settings

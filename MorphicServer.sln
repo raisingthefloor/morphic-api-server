@@ -1,19 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.26124.0
+# Visual Studio Version 17
+VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 15.0.26124.0
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Json", "Morphic.Json\Morphic.Json.csproj", "{9661E3C2-1EA5-41EC-8AB4-FF5A388701F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Json", "Morphic.Json\Morphic.Json.csproj", "{9661E3C2-1EA5-41EC-8AB4-FF5A388701F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Json.Tests", "Morphic.Json.Tests\Morphic.Json.Tests.csproj", "{C2CB9D0C-BFC0-4246-8D67-2C342ADD7B88}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Json.Tests", "Morphic.Json.Tests\Morphic.Json.Tests.csproj", "{C2CB9D0C-BFC0-4246-8D67-2C342ADD7B88}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Server", "Morphic.Server\Morphic.Server.csproj", "{61987C4C-F287-4A04-B9D6-D303AEA72122}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Server", "Morphic.Server\Morphic.Server.csproj", "{61987C4C-F287-4A04-B9D6-D303AEA72122}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Server.Tests", "Morphic.Server.Tests\Morphic.Server.Tests.csproj", "{3DE209D2-B68D-4E3F-98C6-D768B66F5D36}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Server.Tests", "Morphic.Server.Tests\Morphic.Server.Tests.csproj", "{3DE209D2-B68D-4E3F-98C6-D768B66F5D36}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Security", "Morphic.Security\Morphic.Security.csproj", "{BF17C935-1D86-40A8-9706-8B5F91D33F1B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Security", "Morphic.Security\Morphic.Security.csproj", "{BF17C935-1D86-40A8-9706-8B5F91D33F1B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Security.Tests", "Morphic.Security.Tests\Morphic.Security.Tests.csproj", "{8FCEB384-3C03-404E-AFDC-B8B96D74DF6D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Morphic.Security.Tests", "Morphic.Security.Tests\Morphic.Security.Tests.csproj", "{8FCEB384-3C03-404E-AFDC-B8B96D74DF6D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Morphic.Server.Settings", "Morphic.Server.Settings\Morphic.Server.Settings.csproj", "{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,9 +25,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 		Release|x64 = Release|x64
 		Release|x86 = Release|x86
-	EndGlobalSection
-	GlobalSection(SolutionProperties) = preSolution
-		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{9661E3C2-1EA5-41EC-8AB4-FF5A388701F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
@@ -100,5 +99,23 @@ Global
 		{8FCEB384-3C03-404E-AFDC-B8B96D74DF6D}.Release|x64.Build.0 = Release|Any CPU
 		{8FCEB384-3C03-404E-AFDC-B8B96D74DF6D}.Release|x86.ActiveCfg = Release|Any CPU
 		{8FCEB384-3C03-404E-AFDC-B8B96D74DF6D}.Release|x86.Build.0 = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|x64.Build.0 = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Debug|x86.Build.0 = Debug|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|Any CPU.Build.0 = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|x64.ActiveCfg = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|x64.Build.0 = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|x86.ActiveCfg = Release|Any CPU
+		{62E1535F-A1F3-49FB-BEB4-9C7DAE299728}.Release|x86.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2C99201F-AB53-4B34-8972-CA5B627DB927}
 	EndGlobalSection
 EndGlobal

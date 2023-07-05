@@ -10,7 +10,14 @@ namespace Morphic.Server.Email
 {
     public class SendInBlueSettings
     {
-        public string ApiKey { get; set; } = "";
+        public string ApiKey
+        {
+            get
+            {
+                var apiKey = Morphic.Server.Settings.MorphicAppSecret.GetSecret("api-server", "EMAILSETTINGS__SENDINBLUESETTINGS__APIKEY") ?? "";
+                return apiKey;
+            }
+        }
         
         public string WelcomeEmailValidationId { get; set; } = "";
         public string PasswordResetId { get; set; } = "";
