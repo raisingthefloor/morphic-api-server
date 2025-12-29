@@ -1,4 +1,4 @@
-// Copyright 2020 Raising the Floor - International
+// Copyright 2020-2025 Raising the Floor - International
 //
 // Licensed under the New BSD license. You may not use this file except in
 // compliance with this License.
@@ -34,7 +34,6 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using Serilog.Context;
