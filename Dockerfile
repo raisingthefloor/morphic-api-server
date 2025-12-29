@@ -21,7 +21,10 @@
 # * Adobe Foundation
 # * Consumer Electronics Association Foundation
 
+#see: https://github.com/dotnet/dotnet-docker/blob/main/README.sdk.md & https://mcr.microsoft.com/artifact/mar/dotnet/sdk/tags
 ARG SDK_VERSION=10.0.101-alpine3.23
+#
+#see: https://github.com/dotnet/dotnet-docker/blob/main/README.aspnet.md & https://mcr.microsoft.com/artifact/mar/dotnet/aspnet/tags
 ARG ASPNET_VERSION=10.0.1-alpine3.23
 
 FROM mcr.microsoft.com/dotnet/sdk:${SDK_VERSION} AS build-env
