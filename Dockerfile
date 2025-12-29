@@ -21,7 +21,7 @@
 # * Adobe Foundation
 # * Consumer Electronics Association Foundation
 
-ARG VERSION=3.1-alpine
+ARG VERSION=10.0-alpine
 FROM mcr.microsoft.com/dotnet/core/sdk:${VERSION} AS build-env
 WORKDIR /app
 
