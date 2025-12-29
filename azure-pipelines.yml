@@ -7,7 +7,16 @@ trigger:
 - master
 
 pool:
-  vmImage: ubuntu-20.04
+  vmImage: 'ubuntu-24.04' 
+
+variables:
+- group: 'github-access'
+- name: 'containerRegistry'
+  value: 'acr-morphic'
+- name: 'repository'
+  value: 'morphic-api-server'
+- name: 'tag'
+  value: '$(Build.BuildNumber)'
 
 # steps:
 # - script: echo Hello, world!
@@ -32,32 +41,35 @@ pool:
 # - finally: create a mechanism (during dev and production deployment) to delete any container images from the registry which are older than the image we are replacing (i.e. only keep the current one and the new one)
 
 stages:
-  - stage: Docker
-    jobs:
-      - job: Docker
-        steps:
-          - task: Docker@2
-            displayName: Build docker image
-            inputs:
-              command: build
-              containerRegistry: acr-morphic
-              repository: morphic-api-server
-              tags: $(Build.BuildNumber)
-          - task: Docker@2
-            displayName: Log in to container registry
-            inputs:
-              command: login
-              containerRegistry: acr-morphic
-          - task: Docker@2
-            displayName: Push docker image
-            inputs:
-              command: push
-              containerRegistry: acr-morphic
-              repository: morphic-api-server
-              tags: $(Build.BuildNumber)
-          - task: Docker@2
-            displayName: Log out of container registry
-            inputs:
-              command: logout
-              containerRegistry: acr-morphic
+- stage: Docker
+  displayName: Build and push Docker image
+  jobs:
+  - job: DockerBuildAndPush
+    displayName: Build and push Docker image
+    steps:
+    - task: Docker@2
+      displayName: Build Docker image
+      inputs:
+        command: build
+        containerRegistry: $(containerRegistry)
+        dockerfile: './Dockerfile'
+        repository: $(repository)
+        tags: $(tag)
+    - task: Docker@2
+      displayName: Log in to container registry
+      inputs:
+        command: login
+        containerRegistry: $(containerRegistry)
+    - task: Docker@2
+      displayName: Push docker image
+      inputs:
+        command: push
+        containerRegistry: $(containerRegistry)
+        repository: $(repository)
+        tags: $(tag)
+    - task: Docker@2
+      displayName: Log out of container registry
+      inputs:
+        command: logout
+        containerRegistry: $(containerRegistry)
 
